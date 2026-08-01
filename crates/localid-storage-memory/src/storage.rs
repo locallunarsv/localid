@@ -5,6 +5,8 @@ use std::{
 
 use localid_credential::{Credential, CredentialId};
 use localid_identity::{Identity, IdentityId};
+use localid_password::PasswordCredential;
+use localid_repository::PasswordCredentialRepository;
 use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
 use localid_session::{Session, SessionId};
 
@@ -15,6 +17,7 @@ struct InnerStorage {
     identities: HashMap<IdentityId, Identity>,
     credentials: HashMap<CredentialId, Credential>,
     sessions: HashMap<SessionId, Session>,
+    password_credentials: HashMap<CredentialId, PasswordCredential>,
 }
 
 /// Shared in-memory implementation of LocalID repository contracts.
@@ -90,6 +93,35 @@ impl CredentialRepository for MemoryStorage {
             .map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage.credentials.insert(credential.id(), credential);
+
+        Ok(())
+    }
+}
+
+impl PasswordCredentialRepository for MemoryStorage {
+    type Error = MemoryStorageError;
+
+    fn find_by_credential_id(
+        &self,
+        credential_id: CredentialId,
+    ) -> Result<Option<PasswordCredential>, Self::Error> {
+        let storage = self
+            .inner
+            .read()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage.password_credentials.get(&credential_id).cloned())
+    }
+
+    fn save(&mut self, password: PasswordCredential) -> Result<(), Self::Error> {
+        let mut storage = self
+            .inner
+            .write()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        storage
+            .password_credentials
+            .insert(password.credential_id(), password);
 
         Ok(())
     }
@@ -199,5 +231,24 @@ mod tests {
             .expect("session lookup should succeed");
 
         assert_eq!(sessions.len(), 1);
+    }
+    #[test]
+    fn stores_password_credential_material() {
+        use localid_password::{PasswordCredential, PasswordHash};
+        use localid_repository::PasswordCredentialRepository;
+
+        let mut storage = MemoryStorage::new();
+        let credential_id = CredentialId::new();
+
+        let password =
+            PasswordCredential::new(credential_id, PasswordHash::new("$example$hash".to_owned()));
+
+        PasswordCredentialRepository::save(&mut storage, password.clone())
+            .expect("password credential should be stored");
+
+        let stored = PasswordCredentialRepository::find_by_credential_id(&storage, credential_id)
+            .expect("password credential lookup should succeed");
+
+        assert_eq!(stored, Some(password));
     }
 }
