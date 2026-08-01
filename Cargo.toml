@@ -7,4 +7,5 @@ members = [
     "crates/localid-session",
     "crates/localid-repository",
     "crates/localid-authentication",
+    "crates/localid-storage-memory",
 ]
