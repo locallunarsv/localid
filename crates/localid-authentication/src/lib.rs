@@ -9,5 +9,5 @@ mod authentication;
 
 pub use authentication::{
     AuthenticateRequest, AuthenticateResult, AuthenticationError, AuthenticationEvidence,
-    AuthenticationService, CredentialVerifier,
+    AuthenticationService, CredentialVerifier, DefaultAuthenticationService, SessionFactory,
 };
