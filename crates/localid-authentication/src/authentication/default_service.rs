@@ -32,24 +32,6 @@ impl<IR, CR, SR, V, SF> DefaultAuthenticationService<IR, CR, SR, V, SF> {
             session_factory,
         }
     }
-
-    /// Returns a reference to the Identity repository.
-    #[must_use]
-    pub const fn identity_repository(&self) -> &IR {
-        &self.identity_repository
-    }
-
-    /// Returns a reference to the Credential repository.
-    #[must_use]
-    pub const fn credential_repository(&self) -> &CR {
-        &self.credential_repository
-    }
-
-    /// Returns a reference to the Session repository.
-    #[must_use]
-    pub const fn session_repository(&self) -> &SR {
-        &self.session_repository
-    }
 }
 
 impl<IR, CR, SR, V, SF> AuthenticationService for DefaultAuthenticationService<IR, CR, SR, V, SF>
