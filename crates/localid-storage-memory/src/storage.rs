@@ -5,8 +5,8 @@ use std::{
 
 use localid_credential::{Credential, CredentialId};
 use localid_identity::{Identity, IdentityId};
-use localid_password::PasswordCredential;
-use localid_repository::PasswordCredentialRepository;
+use localid_password::PasswordMaterial;
+use localid_repository::PasswordMaterialRepository;
 use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
 use localid_session::{Session, SessionId};
 
@@ -17,7 +17,7 @@ struct InnerStorage {
     identities: HashMap<IdentityId, Identity>,
     credentials: HashMap<CredentialId, Credential>,
     sessions: HashMap<SessionId, Session>,
-    password_credentials: HashMap<CredentialId, PasswordCredential>,
+    password_materials: HashMap<CredentialId, PasswordMaterial>,
 }
 
 /// Shared in-memory implementation of LocalID repository contracts.
@@ -98,30 +98,30 @@ impl CredentialRepository for MemoryStorage {
     }
 }
 
-impl PasswordCredentialRepository for MemoryStorage {
+impl PasswordMaterialRepository for MemoryStorage {
     type Error = MemoryStorageError;
 
     fn find_by_credential_id(
         &self,
         credential_id: CredentialId,
-    ) -> Result<Option<PasswordCredential>, Self::Error> {
+    ) -> Result<Option<PasswordMaterial>, Self::Error> {
         let storage = self
             .inner
             .read()
             .map_err(|_| MemoryStorageError::LockPoisoned)?;
 
-        Ok(storage.password_credentials.get(&credential_id).cloned())
+        Ok(storage.password_materials.get(&credential_id).cloned())
     }
 
-    fn save(&mut self, password: PasswordCredential) -> Result<(), Self::Error> {
+    fn save(&mut self, material: PasswordMaterial) -> Result<(), Self::Error> {
         let mut storage = self
             .inner
             .write()
             .map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage
-            .password_credentials
-            .insert(password.credential_id(), password);
+            .password_materials
+            .insert(material.credential_id(), material);
 
         Ok(())
     }
@@ -170,6 +170,7 @@ mod tests {
     use chrono::{TimeDelta, TimeZone, Utc};
     use localid_credential::{Credential, CredentialId, CredentialKind};
     use localid_identity::{Identity, IdentityId};
+    use localid_password::PasswordHash;
     use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
     use localid_session::{Session, SessionId};
 
@@ -234,19 +235,19 @@ mod tests {
     }
     #[test]
     fn stores_password_credential_material() {
-        use localid_password::{PasswordCredential, PasswordHash};
-        use localid_repository::PasswordCredentialRepository;
+        use localid_password::PasswordMaterial;
+        use localid_repository::PasswordMaterialRepository;
 
         let mut storage = MemoryStorage::new();
         let credential_id = CredentialId::new();
 
         let password =
-            PasswordCredential::new(credential_id, PasswordHash::new("$example$hash".to_owned()));
+            PasswordMaterial::new(credential_id, PasswordHash::new("$example$hash".to_owned()));
 
-        PasswordCredentialRepository::save(&mut storage, password.clone())
+        PasswordMaterialRepository::save(&mut storage, password.clone())
             .expect("password credential should be stored");
 
-        let stored = PasswordCredentialRepository::find_by_credential_id(&storage, credential_id)
+        let stored = PasswordMaterialRepository::find_by_credential_id(&storage, credential_id)
             .expect("password credential lookup should succeed");
 
         assert_eq!(stored, Some(password));

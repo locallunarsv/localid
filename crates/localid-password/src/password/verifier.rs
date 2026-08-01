@@ -1,4 +1,4 @@
-use super::{PasswordCredential, PasswordSecret};
+use super::{PasswordMaterial, PasswordSecret};
 
 /// Verifies a supplied password against stored password Credential material.
 pub trait PasswordVerifier {
@@ -16,7 +16,7 @@ pub trait PasswordVerifier {
     /// completed.
     fn verify(
         &self,
-        credential: &PasswordCredential,
+        credential: &PasswordMaterial,
         secret: &PasswordSecret,
     ) -> Result<bool, Self::Error>;
 }

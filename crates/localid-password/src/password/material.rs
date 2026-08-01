@@ -4,16 +4,15 @@ use super::PasswordHash;
 
 /// Password-specific authentication material associated with a Credential.
 ///
-/// `PasswordCredential` stores only password-specific data. Ownership,
-/// Credential kind, and lifecycle remain managed by the primary Credential
-/// aggregate.
+/// Ownership, Credential kind, and lifecycle remain managed by the primary
+/// Credential aggregate.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PasswordCredential {
+pub struct PasswordMaterial {
     credential_id: CredentialId,
     password_hash: PasswordHash,
 }
 
-impl PasswordCredential {
+impl PasswordMaterial {
     /// Creates password material for an existing Credential.
     #[must_use]
     pub const fn new(credential_id: CredentialId, password_hash: PasswordHash) -> Self {
@@ -36,9 +35,6 @@ impl PasswordCredential {
     }
 
     /// Replaces the stored password hash.
-    ///
-    /// Password policy and hashing remain responsibilities of callers and
-    /// password infrastructure.
     pub fn replace_hash(&mut self, password_hash: PasswordHash) {
         self.password_hash = password_hash;
     }
@@ -48,31 +44,31 @@ impl PasswordCredential {
 mod tests {
     use localid_credential::CredentialId;
 
-    use super::PasswordCredential;
+    use super::PasswordMaterial;
     use crate::PasswordHash;
 
     #[test]
-    fn creates_password_credential() {
+    fn creates_password_material() {
         let credential_id = CredentialId::new();
         let password_hash = PasswordHash::new("$example$hash".to_owned());
 
-        let password = PasswordCredential::new(credential_id, password_hash.clone());
+        let material = PasswordMaterial::new(credential_id, password_hash.clone());
 
-        assert_eq!(password.credential_id(), credential_id);
-        assert_eq!(password.password_hash(), &password_hash);
+        assert_eq!(material.credential_id(), credential_id);
+        assert_eq!(material.password_hash(), &password_hash);
     }
 
     #[test]
     fn replaces_password_hash() {
-        let mut password = PasswordCredential::new(
+        let mut material = PasswordMaterial::new(
             CredentialId::new(),
             PasswordHash::new("$example$old".to_owned()),
         );
 
         let new_hash = PasswordHash::new("$example$new".to_owned());
 
-        password.replace_hash(new_hash.clone());
+        material.replace_hash(new_hash.clone());
 
-        assert_eq!(password.password_hash(), &new_hash);
+        assert_eq!(material.password_hash(), &new_hash);
     }
 }

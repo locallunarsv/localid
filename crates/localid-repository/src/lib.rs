@@ -4,10 +4,10 @@
 
 mod credential;
 mod identity;
-mod password;
+mod password_material;
 mod session;
 
 pub use credential::CredentialRepository;
 pub use identity::IdentityRepository;
-pub use password::PasswordCredentialRepository;
+pub use password_material::PasswordMaterialRepository;
 pub use session::SessionRepository;

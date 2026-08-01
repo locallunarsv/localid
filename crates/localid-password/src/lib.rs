@@ -5,6 +5,5 @@
 mod password;
 
 pub use password::{
-    PasswordCredential, PasswordError, PasswordHash, PasswordHasher, PasswordSecret,
-    PasswordVerifier,
+    PasswordError, PasswordHash, PasswordHasher, PasswordMaterial, PasswordSecret, PasswordVerifier,
 };

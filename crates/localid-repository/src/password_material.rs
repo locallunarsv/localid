@@ -1,8 +1,8 @@
 use localid_credential::CredentialId;
-use localid_password::PasswordCredential;
+use localid_password::PasswordMaterial;
 
-/// Repository for password-specific Credential material.
-pub trait PasswordCredentialRepository {
+/// Repository for password-specific authentication material.
+pub trait PasswordMaterialRepository {
     /// Repository-specific error.
     type Error;
 
@@ -10,20 +10,19 @@ pub trait PasswordCredentialRepository {
     ///
     /// # Errors
     ///
-    /// Returns the repository-specific error when the lookup cannot be
-    /// completed.
+    /// Returns the repository-specific error when lookup cannot be completed.
     fn find_by_credential_id(
         &self,
         credential_id: CredentialId,
-    ) -> Result<Option<PasswordCredential>, Self::Error>;
+    ) -> Result<Option<PasswordMaterial>, Self::Error>;
 
     /// Persists password material associated with a Credential.
     ///
-    /// Existing material for the same Credential may be replaced.
+    /// Existing material associated with the same Credential may be replaced.
     ///
     /// # Errors
     ///
     /// Returns the repository-specific error when persistence cannot be
     /// completed.
-    fn save(&mut self, password: PasswordCredential) -> Result<(), Self::Error>;
+    fn save(&mut self, material: PasswordMaterial) -> Result<(), Self::Error>;
 }

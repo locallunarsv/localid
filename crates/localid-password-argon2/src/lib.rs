@@ -9,7 +9,7 @@ use argon2::{
     },
 };
 use localid_password::{
-    PasswordCredential, PasswordHash, PasswordHasher, PasswordSecret, PasswordVerifier,
+    PasswordHash, PasswordHasher, PasswordMaterial, PasswordSecret, PasswordVerifier,
 };
 use rand_core::OsRng;
 
@@ -47,7 +47,7 @@ impl PasswordVerifier for Argon2PasswordHasher {
 
     fn verify(
         &self,
-        credential: &PasswordCredential,
+        credential: &PasswordMaterial,
         secret: &PasswordSecret,
     ) -> Result<bool, Self::Error> {
         PasswordHasher::verify(self, secret, credential.password_hash())
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn verifies_password_credential() {
         use localid_credential::CredentialId;
-        use localid_password::{PasswordCredential, PasswordHasher, PasswordVerifier};
+        use localid_password::{PasswordHasher, PasswordMaterial, PasswordVerifier};
 
         let verifier = Argon2PasswordHasher::new();
         let secret = PasswordSecret::new("correct-password").expect("password should be valid");
@@ -161,7 +161,7 @@ mod tests {
         let hash =
             PasswordHasher::hash(&verifier, &secret).expect("password hashing should succeed");
 
-        let credential = PasswordCredential::new(CredentialId::new(), hash);
+        let credential = PasswordMaterial::new(CredentialId::new(), hash);
 
         assert!(
             PasswordVerifier::verify(&verifier, &credential, &secret)
