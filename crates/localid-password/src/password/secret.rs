@@ -1,4 +1,4 @@
-use std::fmt::{ Debug, Formatter };
+use std::fmt::{Debug, Formatter};
 
 use super::PasswordError;
 
@@ -48,9 +48,8 @@ mod tests {
 
     #[test]
     fn creates_password_secret() {
-        let secret = PasswordSecret::new("correct horse battery staple").expect(
-            "non-empty password should be accepted"
-        );
+        let secret = PasswordSecret::new("correct horse battery staple")
+            .expect("non-empty password should be accepted");
 
         assert_eq!(secret.as_str(), "correct horse battery staple");
     }
@@ -64,9 +63,8 @@ mod tests {
 
     #[test]
     fn debug_output_does_not_expose_password() {
-        let secret = PasswordSecret::new("super-secret-password").expect(
-            "non-empty password should be accepted"
-        );
+        let secret = PasswordSecret::new("super-secret-password")
+            .expect("non-empty password should be accepted");
 
         let output = format!("{secret:?}");
 
