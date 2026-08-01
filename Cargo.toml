@@ -9,4 +9,5 @@ members = [
     "crates/localid-authentication",
     "crates/localid-storage-memory",
     "crates/localid-password",
+    "crates/localid-password-argon2",
 ]
