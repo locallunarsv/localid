@@ -89,10 +89,10 @@ where
         let password_is_valid = self
             .password_verifier
             .verify(&password_material, request.password())
-            .map_err(|_| AuthenticationError::VerificationFailure)?;
+            .map_err(|_| AuthenticationError::PasswordVerificationFailure)?;
 
         if !password_is_valid {
-            return Err(AuthenticationError::InvalidEvidence);
+            return Err(AuthenticationError::InvalidPassword);
         }
 
         let session = self

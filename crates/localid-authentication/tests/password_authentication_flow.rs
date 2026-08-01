@@ -142,7 +142,7 @@ fn rejects_invalid_password() {
 
     // Assert
 
-    assert_eq!(result, Err(AuthenticationError::InvalidEvidence));
+    assert_eq!(result, Err(AuthenticationError::InvalidPassword));
 }
 
 #[test]
