@@ -12,4 +12,5 @@ localid-session = { path = "../localid-session" }
 
 [dev-dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+localid-password-argon2 = { path = "../localid-password-argon2" }
 localid-storage-memory = { path = "../localid-storage-memory" }
