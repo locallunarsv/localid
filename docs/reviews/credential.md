@@ -90,6 +90,20 @@ Each Credential:
 
 Authentication behavior depends on the Credential Kind rather than the aggregate structure.
 
+## Aggregate Boundary
+
+Credential is an independent aggregate.
+
+Credential references its owning Identity through `IdentityId`.
+
+Identity does not own Credential objects.
+
+Credential lifecycle is independent from Identity lifecycle.
+
+Changes to a Credential do not require modifications to the Identity aggregate.
+
+Removing a Credential does not remove its owning Identity.
+
 ## Open Questions
 
 - Should every Credential Kind share the same lifecycle?
