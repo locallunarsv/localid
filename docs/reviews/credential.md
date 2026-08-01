@@ -44,7 +44,22 @@ Authentication verifies Credentials rather than Identities directly.
 
 ## Candidate Responsibilities
 
-(To be discussed)
+Credential is responsible for:
+
+- representing a proof of authentication;
+- belonging to exactly one Identity;
+- maintaining its own lifecycle;
+- identifying its credential kind;
+- exposing information required for verification.
+
+Credential is not responsible for:
+
+- authenticating an Identity;
+- creating Sessions;
+- authorizing requests;
+- storing profile information;
+- deciding authentication policy;
+- managing Identity lifecycle.
 
 ---
 
