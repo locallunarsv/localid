@@ -110,6 +110,12 @@ impl Credential {
             }),
         }
     }
+    /// Permanently revokes this Credential.
+    ///
+    /// Revoking an already revoked Credential is idempotent.
+    pub const fn revoke(&mut self) {
+        self.lifecycle_state = CredentialLifecycleState::Revoked;
+    }
 }
 
 #[cfg(test)]
@@ -117,7 +123,7 @@ mod tests {
     use localid_identity::IdentityId;
 
     use super::Credential;
-    use crate::{CredentialId, CredentialKind, CredentialLifecycleState};
+    use crate::{CredentialError, CredentialId, CredentialKind, CredentialLifecycleState};
 
     #[test]
     fn creates_active_credential() {
@@ -202,5 +208,92 @@ mod tests {
             .expect("enabling an active Credential should succeed");
 
         assert!(credential.is_active());
+    }
+    #[test]
+    fn revokes_active_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential.revoke();
+
+        assert!(credential.is_revoked());
+    }
+
+    #[test]
+    fn revokes_disabled_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential
+            .disable()
+            .expect("active Credential should be disableable");
+
+        credential.revoke();
+
+        assert!(credential.is_revoked());
+    }
+
+    #[test]
+    fn revoking_revoked_credential_is_idempotent() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential.revoke();
+        credential.revoke();
+
+        assert!(credential.is_revoked());
+    }
+
+    #[test]
+    fn cannot_disable_revoked_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential.revoke();
+
+        let result = credential.disable();
+
+        assert_eq!(
+            result,
+            Err(CredentialError::InvalidLifecycleTransition {
+                from: CredentialLifecycleState::Revoked,
+                to: CredentialLifecycleState::Disabled,
+            })
+        );
+        assert!(credential.is_revoked());
+    }
+
+    #[test]
+    fn cannot_enable_revoked_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential.revoke();
+
+        let result = credential.enable();
+
+        assert_eq!(
+            result,
+            Err(CredentialError::InvalidLifecycleTransition {
+                from: CredentialLifecycleState::Revoked,
+                to: CredentialLifecycleState::Active,
+            })
+        );
+        assert!(credential.is_revoked());
     }
 }
