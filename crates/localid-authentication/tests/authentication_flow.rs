@@ -5,6 +5,7 @@ use localid_authentication::{
 };
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
+use localid_password::PasswordSecret;
 use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
 use localid_session::{Session, SessionId};
 use localid_storage_memory::MemoryStorage;
@@ -66,7 +67,11 @@ fn successful_authentication_creates_and_stores_session() {
         FixedSessionFactory,
     );
 
-    let request = AuthenticateRequest::new(credential_id, AuthenticationEvidence);
+    let evidence = AuthenticationEvidence::password(
+        PasswordSecret::new("test-password").expect("test password should be valid"),
+    );
+
+    let request = AuthenticateRequest::new(credential_id, evidence);
 
     let result = authentication
         .authenticate(request)

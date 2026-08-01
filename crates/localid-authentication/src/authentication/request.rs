@@ -37,11 +37,14 @@ mod tests {
     use super::AuthenticateRequest;
     use crate::AuthenticationEvidence;
     use localid_credential::CredentialId;
+    use localid_password::PasswordSecret;
 
     #[test]
     fn creates_authentication_request() {
         let credential_id = CredentialId::new();
-        let evidence = AuthenticationEvidence;
+        let evidence = AuthenticationEvidence::password(
+            PasswordSecret::new("test-password").expect("test password should be valid"),
+        );
 
         let request = AuthenticateRequest::new(credential_id, evidence.clone());
 

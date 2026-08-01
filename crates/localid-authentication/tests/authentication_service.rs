@@ -4,6 +4,7 @@ use localid_authentication::{
 };
 use localid_credential::CredentialId;
 use localid_identity::IdentityId;
+use localid_password::PasswordSecret;
 use localid_session::Session;
 use localid_session::SessionId;
 
@@ -37,7 +38,11 @@ impl AuthenticationService for StubAuthenticationService {
 fn authentication_service_returns_result() {
     let mut service = StubAuthenticationService;
 
-    let request = AuthenticateRequest::new(CredentialId::new(), AuthenticationEvidence);
+    let evidence = AuthenticationEvidence::password(
+        PasswordSecret::new("test-password").expect("test password should be valid"),
+    );
+
+    let request = AuthenticateRequest::new(CredentialId::new(), evidence);
 
     let result = service.authenticate(request);
 

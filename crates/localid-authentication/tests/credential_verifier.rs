@@ -1,6 +1,7 @@
 use localid_authentication::{AuthenticationEvidence, CredentialVerifier};
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::IdentityId;
+use localid_password::PasswordSecret;
 
 struct AcceptingVerifier;
 
@@ -41,7 +42,9 @@ fn credential() -> Credential {
 #[test]
 fn verifier_can_accept_authentication_evidence() {
     let verifier = AcceptingVerifier;
-    let evidence = AuthenticationEvidence;
+    let evidence = AuthenticationEvidence::password(
+        PasswordSecret::new("test-password").expect("test password should be valid"),
+    );
     let credential = credential();
 
     let verified = verifier
@@ -54,7 +57,9 @@ fn verifier_can_accept_authentication_evidence() {
 #[test]
 fn verifier_can_reject_authentication_evidence() {
     let verifier = RejectingVerifier;
-    let evidence = AuthenticationEvidence;
+    let evidence = AuthenticationEvidence::password(
+        PasswordSecret::new("test-password").expect("test password should be valid"),
+    );
     let credential = credential();
 
     let verified = verifier
