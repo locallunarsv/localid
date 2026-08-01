@@ -4,4 +4,6 @@
 
 mod password;
 
-pub use password::{PasswordError, PasswordHash, PasswordHasher, PasswordSecret};
+pub use password::{
+    PasswordCredential, PasswordError, PasswordHash, PasswordHasher, PasswordSecret,
+};
