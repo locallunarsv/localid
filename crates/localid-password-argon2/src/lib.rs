@@ -8,7 +8,9 @@ use argon2::{
         PasswordHash as ParsedPasswordHash, PasswordHasher as _, PasswordVerifier as _, SaltString,
     },
 };
-use localid_password::{PasswordHash, PasswordHasher, PasswordSecret};
+use localid_password::{
+    PasswordCredential, PasswordHash, PasswordHasher, PasswordSecret, PasswordVerifier,
+};
 use rand_core::OsRng;
 
 /// Errors produced by the Argon2 password adapter.
@@ -37,6 +39,18 @@ impl std::error::Error for Argon2PasswordError {
         match self {
             Self::HashingFailed(error) | Self::VerificationFailed(error) => Some(error),
         }
+    }
+}
+
+impl PasswordVerifier for Argon2PasswordHasher {
+    type Error = Argon2PasswordError;
+
+    fn verify(
+        &self,
+        credential: &PasswordCredential,
+        secret: &PasswordSecret,
+    ) -> Result<bool, Self::Error> {
+        PasswordHasher::verify(self, secret, credential.password_hash())
     }
 }
 
@@ -135,5 +149,23 @@ mod tests {
         let second = hasher.hash(&secret).expect("second hash should succeed");
 
         assert_ne!(first, second);
+    }
+    #[test]
+    fn verifies_password_credential() {
+        use localid_credential::CredentialId;
+        use localid_password::{PasswordCredential, PasswordHasher, PasswordVerifier};
+
+        let verifier = Argon2PasswordHasher::new();
+        let secret = PasswordSecret::new("correct-password").expect("password should be valid");
+
+        let hash =
+            PasswordHasher::hash(&verifier, &secret).expect("password hashing should succeed");
+
+        let credential = PasswordCredential::new(CredentialId::new(), hash);
+
+        assert!(
+            PasswordVerifier::verify(&verifier, &credential, &secret)
+                .expect("verification should succeed")
+        );
     }
 }
