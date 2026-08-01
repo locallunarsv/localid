@@ -52,6 +52,10 @@ impl Identity {
             }),
         }
     }
+
+    pub const fn delete(&mut self) {
+        self.lifecycle_state = LifecycleState::Deleted;
+    }
 }
 
 #[cfg(test)]
@@ -97,10 +101,8 @@ mod tests {
 
     #[test]
     fn cannot_disable_deleted_identity() {
-        let mut identity = Identity {
-            id: IdentityId::new(),
-            lifecycle_state: LifecycleState::Deleted,
-        };
+        let mut identity = Identity::new(IdentityId::new());
+        identity.delete();
 
         let result = identity.disable();
 
@@ -142,10 +144,8 @@ mod tests {
 
     #[test]
     fn cannot_enable_deleted_identity() {
-        let mut identity = Identity {
-            id: IdentityId::new(),
-            lifecycle_state: LifecycleState::Deleted,
-        };
+        let mut identity = Identity::new(IdentityId::new());
+        identity.delete();
 
         let result = identity.enable();
 
@@ -156,6 +156,37 @@ mod tests {
                 to: LifecycleState::Active,
             })
         );
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
+    }
+
+    #[test]
+    fn deletes_active_identity() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        identity.delete();
+
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
+    }
+
+    #[test]
+    fn deletes_disabled_identity() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        identity
+            .disable()
+            .expect("active Identity should be disableable");
+
+        identity.delete();
+
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
+    }
+
+    #[test]
+    fn deleting_deleted_identity_is_idempotent() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        identity.delete();
+        identity.delete();
 
         assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
     }
