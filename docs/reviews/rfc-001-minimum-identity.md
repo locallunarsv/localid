@@ -1,99 +1,106 @@
 # RFC-001: Minimum Identity
 
-**Status:** Draft
+**Status:** Accepted
 
----
-
-# Problem
+## Problem
 
 What is the minimum information required for something to be considered an Identity within LocalID?
 
----
-
-# Motivation
+## Context
 
 Identity is the foundational domain concept of LocalID.
 
-Before deciding attributes such as username, email, or display name, we must first understand what fundamentally makes something an Identity.
+Before defining attributes such as username, email, display name, or credentials, LocalID must establish what fundamentally makes something an Identity.
 
-This decision will define the boundary of the Identity component and influence every other component in the platform.
+This decision defines the boundary of the Identity component and influences the design of every component that references an Identity.
 
----
+## Considered Options
 
-# Discussion
+### Option A — Identity as a Stable Reference
 
-Two design approaches are considered.
+Identity is the canonical and stable representation of a digital subject.
 
-## Option A — Identity as a Stable Reference
+Its minimum information consists of:
 
-Identity is a canonical reference representing a digital subject.
+- a unique identity;
+- a lifecycle state.
 
-Profile information, authentication data, and other attributes belong to separate concerns.
+Profile information, credentials, authentication data, and sessions are separate concerns.
 
-Example:
+#### Advantages
 
-- Identity ID
-- Lifecycle Status
+- Keeps the Identity model focused.
+- Remains stable when associated information changes.
+- Reduces coupling with other components.
+- Supports both human and non-human subjects.
+- Allows profile and authentication capabilities to evolve independently.
 
-### Advantages
+#### Trade-offs
 
-- Small and focused domain model.
-- Stable over time.
-- Easier to extend.
-- Lower coupling between components.
+- Related information must be obtained from other components.
+- Additional components may be required as the platform grows.
 
----
+### Option B — Identity as a Digital Profile
 
-## Option B — Identity as a Digital Profile
+Identity directly owns information such as:
 
-Identity owns profile information directly.
+- username;
+- display name;
+- email address;
+- avatar;
+- phone number.
 
-Example:
+#### Advantages
 
-- Identity ID
-- Username
-- Display Name
-- Email
-- Avatar
-- Phone Number
+- Fewer domain concepts for a small system.
+- Profile data can be accessed directly from Identity.
 
-### Advantages
+#### Disadvantages
 
-- Simpler for small applications.
-- Fewer domain objects.
+- Identity accumulates unrelated responsibilities.
+- Profile changes affect the foundational identity model.
+- Human-specific attributes may not apply to service accounts.
+- The component becomes increasingly coupled as features grow.
 
-### Disadvantages
+## Decision
 
-- Higher coupling.
-- Identity grows quickly.
-- Harder to evolve into a larger platform.
+LocalID adopts **Identity as a Stable Reference**.
 
----
+An Identity is the canonical representation of a digital subject within LocalID.
 
-# Preliminary Conclusion
+The minimum Identity consists of:
 
-The current direction favors **Option A**.
+- a unique identity;
+- a lifecycle state.
 
-Identity should primarily represent the canonical identity of a digital subject.
+An Identity does not require:
 
-Profile information should remain a separate concern until there is sufficient domain evidence to merge it into the Identity component.
+- a username;
+- a display name;
+- an email address;
+- profile information;
+- a Credential;
+- a Session.
 
-This is a working conclusion and may be revisited in the future.
+These concepts may reference an Identity, but they do not define whether the Identity exists.
 
----
+## Consequences
 
-# Open Questions
+- Identity remains valid even when it has no Credential.
+- Removing all Credentials does not remove the Identity.
+- Profile information can change without changing the Identity.
+- Human identities and service accounts may share the same foundational Identity model.
+- Other components should reference Identity through its stable identifier.
+- Identity lifecycle rules must be defined separately.
 
-- Is Status part of the minimum Identity?
-- Is Username part of Identity or Profile?
-- Should Display Name belong to Identity?
-- Can an Identity exist without profile information?
-- Can an Identity exist without any Credential?
+## Deferred Questions
 
----
+The following questions are outside this RFC:
 
-# Decision
+- Which lifecycle states exist?
+- What transitions are allowed between lifecycle states?
+- Can an Identity be permanently deleted?
+- Does Username belong to Identity, Profile, or another component?
+- Should human and service-account attributes use separate models?
 
-**Not accepted yet.**
-
-Further discussion is required before this RFC becomes an accepted architectural decision.
+These questions will be addressed in later RFCs.
