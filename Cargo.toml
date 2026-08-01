@@ -8,4 +8,5 @@ members = [
     "crates/localid-repository",
     "crates/localid-authentication",
     "crates/localid-storage-memory",
+    "crates/localid-password",
 ]
