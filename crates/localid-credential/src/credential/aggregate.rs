@@ -1,6 +1,6 @@
 use localid_identity::IdentityId;
 
-use super::{CredentialId, CredentialKind, CredentialLifecycleState};
+use super::{CredentialError, CredentialId, CredentialKind, CredentialLifecycleState};
 
 /// Credential owned by exactly one LocalID Identity.
 ///
@@ -67,6 +67,28 @@ impl Credential {
     pub const fn is_revoked(&self) -> bool {
         self.lifecycle_state.is_revoked()
     }
+
+    /// Temporarily disables this Credential.
+    ///
+    /// Disabling an already disabled Credential is idempotent.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CredentialError::InvalidLifecycleTransition`] when this
+    /// Credential has already been revoked.
+    pub const fn disable(&mut self) -> Result<(), CredentialError> {
+        match self.lifecycle_state {
+            CredentialLifecycleState::Active => {
+                self.lifecycle_state = CredentialLifecycleState::Disabled;
+                Ok(())
+            }
+            CredentialLifecycleState::Disabled => Ok(()),
+            CredentialLifecycleState::Revoked => Err(CredentialError::InvalidLifecycleTransition {
+                from: CredentialLifecycleState::Revoked,
+                to: CredentialLifecycleState::Disabled,
+            }),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -93,5 +115,38 @@ mod tests {
         assert!(credential.is_active());
         assert!(!credential.is_disabled());
         assert!(!credential.is_revoked());
+    }
+    #[test]
+    fn disables_active_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential
+            .disable()
+            .expect("active Credential should be disableable");
+
+        assert!(credential.is_disabled());
+    }
+
+    #[test]
+    fn disabling_disabled_credential_is_idempotent() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential
+            .disable()
+            .expect("active Credential should be disableable");
+
+        credential
+            .disable()
+            .expect("disabling a disabled Credential should succeed");
+
+        assert!(credential.is_disabled());
     }
 }
