@@ -35,6 +35,15 @@ pub enum AuthenticationError {
 
     /// A Session could not be created.
     SessionCreationFailure,
+
+    /// The requested Credential is not a password Credential.
+    InvalidCredentialKind,
+
+    /// Password material associated with the Credential could not be found.
+    PasswordMaterialNotFound,
+
+    /// The Password Material repository could not complete its operation.
+    PasswordMaterialRepositoryFailure,
 }
 
 impl Display for AuthenticationError {
@@ -50,6 +59,13 @@ impl Display for AuthenticationError {
             Self::SessionRepositoryFailure => "session repository operation failed",
             Self::VerificationFailure => "credential verification could not be completed",
             Self::SessionCreationFailure => "session could not be created",
+            Self::InvalidCredentialKind => {
+                "credential kind is incompatible with password authentication"
+            }
+            Self::PasswordMaterialNotFound => "password material not found",
+            Self::PasswordMaterialRepositoryFailure => {
+                "password material repository operation failed"
+            }
         };
 
         formatter.write_str(message)
@@ -101,6 +117,18 @@ mod tests {
             (
                 AuthenticationError::SessionCreationFailure,
                 "session could not be created",
+            ),
+            (
+                AuthenticationError::InvalidCredentialKind,
+                "credential kind is incompatible with password authentication",
+            ),
+            (
+                AuthenticationError::PasswordMaterialNotFound,
+                "password material not found",
+            ),
+            (
+                AuthenticationError::PasswordMaterialRepositoryFailure,
+                "password material repository operation failed",
             ),
         ];
 
