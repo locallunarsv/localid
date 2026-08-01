@@ -72,3 +72,78 @@ These are candidates only. Their meanings and permitted transitions have not yet
 Identity continues to exist independently from Credentials and Sessions.
 
 The meaning of deletion and the final lifecycle state model require further discovery before a formal RFC is written.
+
+## Disabled and Locked Discovery
+
+### Disabled
+
+`Disabled` represents an intentional administrative decision that prevents an Identity from being used normally.
+
+A disabled Identity:
+
+- still exists;
+- remains a canonical historical reference;
+- cannot authenticate;
+- does not become active automatically;
+- requires an explicit administrative action to become enabled again.
+
+Disabling is not necessarily caused by suspicious activity. Possible reasons include:
+
+- temporary suspension;
+- organizational policy;
+- manual deactivation;
+- the subject no longer requiring access.
+
+### Locked
+
+`Locked` represents a security or policy restriction applied because continued authentication attempts may be unsafe.
+
+A locked Identity:
+
+- still exists;
+- cannot authenticate while locked;
+- may be locked automatically by a security policy;
+- may become unlockable after a condition is satisfied;
+- may require manual intervention, automatic expiry, or another recovery process.
+
+Possible causes include:
+
+- repeated failed authentication attempts;
+- suspected credential compromise;
+- risk detection;
+- explicit security action.
+
+### Distinction
+
+`Disabled` and `Locked` have different intent.
+
+| State | Primary intent | Typical initiator | Recovery |
+|---|---|---|---|
+| Disabled | Administrative unavailability | Administrator or management policy | Explicit enable action |
+| Locked | Security protection | Security policy or administrator | Unlock action or policy-defined recovery |
+
+A disabled Identity is unavailable because it should not currently be used.
+
+A locked Identity is unavailable because using it may currently be unsafe.
+
+## Preliminary Rules
+
+The following rules are currently proposed:
+
+- `Disabled` and `Locked` are distinct lifecycle states.
+- Neither state removes the Identity.
+- Neither state permits authentication.
+- Disabling should not be treated as a security incident by default.
+- Locking should preserve enough context to explain why the Identity was locked.
+- Enabling and unlocking are separate domain behaviors.
+- A generic `set_status` operation should not replace these behaviors.
+
+## Additional Open Questions
+
+- Can an Identity be disabled while it is locked?
+- Should locking remember the previous lifecycle state?
+- Can a disabled Identity be automatically locked?
+- Does unlocking always produce `Active`?
+- Can a lock expire automatically?
+- Does enabling a previously locked Identity bypass the lock?
+- Should lock reason and lock expiry belong to Identity or a security-policy component?
