@@ -1,0 +1,244 @@
+RFC-004: Refresh Token Model
+
+Status:
+Draft
+
+Version:
+0.1
+
+
+SUMMARY
+=======
+
+This RFC defines the Refresh Token model in LocalID.
+
+Refresh Token provides a mechanism to obtain new Access Tokens without
+requiring the user to authenticate again.
+
+Refresh Token has a different lifecycle and security purpose compared to
+Access Token.
+
+
+MOTIVATION
+==========
+
+Access Tokens are short-lived credentials used to access authenticated
+resources.
+
+Short lifetime improves security, but requires users to authenticate again
+after expiration.
+
+Refresh Tokens solve this problem by allowing controlled creation of new
+Access Tokens.
+
+
+TOKEN TYPES
+===========
+
+LocalID separates token responsibilities.
+
+Access Token:
+
+- short-lived credential;
+- used for API authentication;
+- validated frequently;
+- may expire quickly.
+
+
+Refresh Token:
+
+- long-lived credential;
+- used only to obtain new Access Tokens;
+- stored securely;
+- rotated after use.
+
+
+MODEL
+=====
+
+Relationship:
+
+Identity
+
+    |
+
+Session
+
+    |
+
++----------------+
+
+|                |
+
+Access Token   Refresh Token
+
+
+Access Token represents active authorization.
+
+Refresh Token represents permission to create new Access Tokens.
+
+
+LIFETIME
+========
+
+Recommended initial lifetime:
+
+Access Token:
+
+- minutes to hours.
+
+
+Refresh Token:
+
+- days to months.
+
+
+Exact values are deployment configuration.
+
+
+ROTATION
+========
+
+Refresh Tokens use rotation.
+
+Flow:
+
+Client sends Refresh Token
+
+        |
+
+Validate Refresh Token
+
+        |
+
+Revoke existing Refresh Token
+
+        |
+
+Create new Refresh Token
+
+        |
+
+Issue new Access Token
+
+
+A Refresh Token must not be reused after successful rotation.
+
+
+REPLAY DETECTION
+================
+
+If a revoked Refresh Token is presented again:
+
+The request must be rejected.
+
+This indicates possible token theft or replay.
+
+
+STORAGE MODEL
+=============
+
+Refresh Token must not store raw secrets.
+
+Stored representation:
+
+RefreshToken
+
+- RefreshTokenId
+- SessionId
+- SecretHash
+- LifecycleState
+- CreatedAt
+- ExpiresAt
+- RevokedAt
+
+
+The raw secret is only returned once during issuance.
+
+
+VALIDATION FLOW
+===============
+
+Incoming Refresh Token Secret
+
+        |
+
+Hash Secret
+
+        |
+
+RefreshTokenRepository lookup
+
+        |
+
+Validate lifecycle
+
+        |
+
+Validate expiration
+
+        |
+
+Validate Session
+
+        |
+
+Rotate Refresh Token
+
+        |
+
+Issue new Access Token
+
+
+SECURITY CONSIDERATIONS
+=======================
+
+Implementation must consider:
+
+- secure random generation;
+- secret hashing;
+- rotation;
+- replay prevention;
+- revocation;
+- expiration handling;
+- secure storage on clients.
+
+
+INITIAL SCOPE
+=============
+
+Implemented:
+
+- Refresh Token domain;
+- Refresh Token lifecycle;
+- Refresh Token repository;
+- Rotation flow.
+
+
+Not implemented:
+
+- device management;
+- multi-device sessions;
+- OAuth2 compatibility;
+- external identity providers.
+
+
+FUTURE WORK
+===========
+
+Possible extensions:
+
+- device binding;
+- session management UI;
+- token family tracking;
+- suspicious reuse detection.
+
+
+CONCLUSION
+==========
+
+Refresh Token is separated from Access Token because their security models
+and lifecycle requirements are different.
+
+This separation allows LocalID to maintain strict control over authentication
+sessions while supporting long-lived user sessions.
