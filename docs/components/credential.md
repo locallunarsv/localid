@@ -1,7 +1,7 @@
 # Credential
 
-**Version:** 0.1
-**Status:** Draft
+**Version:** 0.3  
+**Status:** Implemented (Core v0.1)
 
 ---
 
@@ -9,7 +9,7 @@
 
 Credential is the domain concept representing proof of authentication.
 
-A Credential belongs to exactly one Identity and enables authentication through a specific credential mechanism.
+A Credential belongs to exactly one Identity and represents a single authentication mechanism.
 
 Credential is independent from the Identity lifecycle and owns its own lifecycle.
 
@@ -30,14 +30,13 @@ The minimum Credential consists of:
 - a Credential Kind;
 - a lifecycle state.
 
-Credential does not require:
+Credential does **not** require:
 
-- a password hash;
-- a passkey;
-- an API key;
-- OAuth metadata.
+- a password verifier;
+- passkey data;
+- API key material.
 
-Those are implementation details of specific credential kinds.
+These are implementation details of specific Credential kinds.
 
 ---
 
@@ -47,6 +46,7 @@ Credential is responsible for:
 
 - representing proof of authentication;
 - belonging to exactly one Identity;
+- maintaining the identifier of its owning Identity;
 - maintaining its own lifecycle;
 - identifying its Credential Kind.
 
@@ -54,13 +54,14 @@ Credential is responsible for:
 
 ## Non-Responsibilities
 
-Credential is not responsible for:
+Credential is **not** responsible for:
 
 - authenticating an Identity;
 - creating Sessions;
 - authorizing access;
 - managing Identity lifecycle;
-- storing profile information.
+- storing profile information;
+- enforcing authentication policy.
 
 ---
 
@@ -72,6 +73,8 @@ Credential references its owner through `IdentityId`.
 
 Identity does not own Credential objects.
 
+Changes to a Credential do not require modifications to the Identity aggregate.
+
 ---
 
 ## Invariants
@@ -81,29 +84,96 @@ The following rules must always hold:
 - Every Credential belongs to exactly one Identity.
 - Every Credential has exactly one Credential Kind.
 - Every Credential has exactly one lifecycle state.
-- Removing a Credential does not remove its owning Identity.
 - Credential identifiers are unique.
+- Removing or revoking a Credential does not remove its owning Identity.
 
 ---
 
 ## Credential Kind
 
-Credential currently supports the following conceptual kinds:
+Credential currently supports the following kinds:
 
 - Password;
 - Passkey;
-- ApiKey;
-- OAuth.
+- ApiKey.
 
 Each Credential Kind shares the same ownership model.
+
+Additional kinds may be introduced in future revisions.
 
 ---
 
 ## Lifecycle
 
-Credential lifecycle has not yet been finalized.
+A newly created Credential begins in the `Active` lifecycle state.
 
-Its lifecycle will be specified independently from the Identity lifecycle.
+Credential currently supports the following lifecycle states:
+
+- Active;
+- Disabled;
+- Revoked.
+
+The following lifecycle transitions are supported:
+
+```text
+Active <────> Disabled
+
+Active   ───► Revoked
+Disabled ───► Revoked
+
+Revoked is terminal.
+```
+
+Credential lifecycle is independent from the lifecycle of its owning Identity.
+
+---
+
+## Domain Behaviors
+
+Credential currently supports the following behaviors:
+
+- create;
+- disable;
+- enable;
+- revoke.
+
+Behavior rules:
+
+- disabling is idempotent;
+- enabling is idempotent;
+- revoking is idempotent;
+- revoked Credentials cannot be enabled;
+- revoked Credentials cannot be disabled.
+
+---
+
+## Domain Errors
+
+The current domain error model consists of:
+
+- InvalidLifecycleTransition.
+
+Additional domain errors may be introduced as the Credential domain evolves.
+
+---
+
+## Implementation Status
+
+Implemented:
+
+- CredentialId;
+- CredentialKind;
+- CredentialLifecycleState;
+- CredentialError;
+- Credential.
+
+Not yet implemented:
+
+- Password verifier model;
+- Passkey data model;
+- API key material;
+- Repository abstraction;
+- Domain events.
 
 ---
 
@@ -121,19 +191,23 @@ The following concerns are intentionally outside the Credential component:
 
 ## Open Questions
 
-- What lifecycle states should Credential support?
-- Should all Credential kinds share the same lifecycle?
-- Can multiple Credentials of the same kind belong to one Identity?
-- Should OAuth remain a Credential or become an external identity link?
+The following questions remain unresolved:
+
+- Should additional Credential kinds be introduced?
+- Should Credential expiration be modeled as a lifecycle state or as time-based metadata?
+- Can multiple active Credentials of the same kind belong to one Identity?
 
 ---
 
 ## Notes
 
-This specification intentionally avoids implementation details such as:
+This specification defines the Credential domain model only.
+
+It intentionally excludes implementation details such as:
 
 - password hashing algorithms;
 - passkey formats;
+- API key generation;
 - database schema;
 - transport protocols;
 - programming language.
