@@ -1,3 +1,97 @@
-/// Credential aggregate.
+use localid_identity::IdentityId;
+
+use super::{CredentialId, CredentialKind, CredentialLifecycleState};
+
+/// Credential owned by exactly one LocalID Identity.
+///
+/// A Credential represents one authentication mechanism associated with an
+/// Identity. Authentication verification itself remains outside this domain.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Credential;
+pub struct Credential {
+    id: CredentialId,
+    identity_id: IdentityId,
+    kind: CredentialKind,
+    lifecycle_state: CredentialLifecycleState,
+}
+
+impl Credential {
+    /// Creates a new active Credential.
+    #[must_use]
+    pub const fn new(id: CredentialId, identity_id: IdentityId, kind: CredentialKind) -> Self {
+        Self {
+            id,
+            identity_id,
+            kind,
+            lifecycle_state: CredentialLifecycleState::INITIAL,
+        }
+    }
+
+    /// Returns this Credential's stable identifier.
+    #[must_use]
+    pub const fn id(&self) -> CredentialId {
+        self.id
+    }
+
+    /// Returns the identifier of the owning Identity.
+    #[must_use]
+    pub const fn identity_id(&self) -> IdentityId {
+        self.identity_id
+    }
+
+    /// Returns the authentication mechanism represented by this Credential.
+    #[must_use]
+    pub const fn kind(&self) -> CredentialKind {
+        self.kind
+    }
+
+    /// Returns the current Credential lifecycle state.
+    #[must_use]
+    pub const fn lifecycle_state(&self) -> CredentialLifecycleState {
+        self.lifecycle_state
+    }
+
+    /// Returns `true` when this Credential is active.
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
+        self.lifecycle_state.is_active()
+    }
+
+    /// Returns `true` when this Credential is disabled.
+    #[must_use]
+    pub const fn is_disabled(&self) -> bool {
+        self.lifecycle_state.is_disabled()
+    }
+
+    /// Returns `true` when this Credential is revoked.
+    #[must_use]
+    pub const fn is_revoked(&self) -> bool {
+        self.lifecycle_state.is_revoked()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use localid_identity::IdentityId;
+
+    use super::Credential;
+    use crate::{CredentialId, CredentialKind, CredentialLifecycleState};
+
+    #[test]
+    fn creates_active_credential() {
+        let id = CredentialId::new();
+        let identity_id = IdentityId::new();
+
+        let credential = Credential::new(id, identity_id, CredentialKind::Password);
+
+        assert_eq!(credential.id(), id);
+        assert_eq!(credential.identity_id(), identity_id);
+        assert_eq!(credential.kind(), CredentialKind::Password);
+        assert_eq!(
+            credential.lifecycle_state(),
+            CredentialLifecycleState::Active
+        );
+        assert!(credential.is_active());
+        assert!(!credential.is_disabled());
+        assert!(!credential.is_revoked());
+    }
+}
