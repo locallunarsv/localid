@@ -83,13 +83,27 @@ The following rules are expected to hold:
 
 ## Candidate Lifecycle States
 
-The following states are currently being considered:
+The following lifecycle states are currently proposed:
 
 - Active;
-- Expired;
 - Revoked.
 
-The final lifecycle and transition rules have not yet been accepted.
+Expiration is not modeled as a lifecycle state.
+
+Instead, expiration is derived from the Session expiration timestamp.
+
+## Expiration Model
+
+Session expiration is time-based rather than state-based.
+
+A Session becomes expired when the current time is greater than or equal to its expiration time.
+
+Expiration does not modify the stored lifecycle state.
+
+A Session is considered valid only when:
+
+- its lifecycle state is `Active`; and
+- the current time is before its expiration time.
 
 ---
 
