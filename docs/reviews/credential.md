@@ -24,7 +24,21 @@ Understand the role of Credential before defining its public API and implementat
 
 ## Initial Observations
 
-(To be filled)
+Credential is proof that allows a digital subject to authenticate.
+
+Credential is not the digital subject itself.
+
+Credential always belongs to exactly one Identity.
+
+An Identity may own zero, one, or many Credentials.
+
+Different Credential kinds may exist while sharing the same ownership model.
+
+Removing a Credential does not remove its owning Identity.
+
+Credential existence depends on Identity existence.
+
+Authentication verifies Credentials rather than Identities directly.
 
 ---
 
