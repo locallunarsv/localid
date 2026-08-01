@@ -1,4 +1,4 @@
-use crate::{IdentityError, IdentityId, LifecycleState};
+use super::{IdentityError, IdentityId, LifecycleState};
 
 /// Canonical and stable representation of a digital subject.
 ///

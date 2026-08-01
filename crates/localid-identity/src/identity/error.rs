@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-use crate::LifecycleState;
+use super::LifecycleState;
 
 /// Domain errors produced by Identity lifecycle operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
