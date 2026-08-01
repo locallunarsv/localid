@@ -1,14 +1,17 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::{ collections::HashMap, sync::{ Arc, RwLock } };
 
-use localid_credential::{Credential, CredentialId};
-use localid_identity::{Identity, IdentityId};
+use localid_credential::{ Credential, CredentialId };
+use localid_identity::{ Identity, IdentityId };
 use localid_password::PasswordMaterial;
 use localid_repository::PasswordMaterialRepository;
-use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
-use localid_session::{Session, SessionId};
+use localid_repository::{
+    CredentialRepository,
+    IdentityRepository,
+    SessionRepository,
+    TokenRepository,
+};
+use localid_session::{ Session, SessionId };
+use localid_token::{ Token, TokenId };
 
 use crate::MemoryStorageError;
 
@@ -18,6 +21,7 @@ struct InnerStorage {
     credentials: HashMap<CredentialId, Credential>,
     sessions: HashMap<SessionId, Session>,
     password_materials: HashMap<CredentialId, PasswordMaterial>,
+    tokens: HashMap<TokenId, Token>,
 }
 
 /// Shared in-memory implementation of LocalID repository contracts.
@@ -40,19 +44,13 @@ impl IdentityRepository for MemoryStorage {
     type Error = MemoryStorageError;
 
     fn find_by_id(&self, id: IdentityId) -> Result<Option<Identity>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         Ok(storage.identities.get(&id).cloned())
     }
 
     fn save(&mut self, identity: Identity) -> Result<(), Self::Error> {
-        let mut storage = self
-            .inner
-            .write()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let mut storage = self.inner.write().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage.identities.insert(identity.id(), identity);
 
@@ -64,33 +62,25 @@ impl CredentialRepository for MemoryStorage {
     type Error = MemoryStorageError;
 
     fn find_by_id(&self, id: CredentialId) -> Result<Option<Credential>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         Ok(storage.credentials.get(&id).cloned())
     }
 
     fn find_by_identity_id(&self, identity_id: IdentityId) -> Result<Vec<Credential>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
-        Ok(storage
-            .credentials
-            .values()
-            .filter(|credential| credential.identity_id() == identity_id)
-            .cloned()
-            .collect())
+        Ok(
+            storage.credentials
+                .values()
+                .filter(|credential| credential.identity_id() == identity_id)
+                .cloned()
+                .collect()
+        )
     }
 
     fn save(&mut self, credential: Credential) -> Result<(), Self::Error> {
-        let mut storage = self
-            .inner
-            .write()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let mut storage = self.inner.write().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage.credentials.insert(credential.id(), credential);
 
@@ -103,25 +93,17 @@ impl PasswordMaterialRepository for MemoryStorage {
 
     fn find_by_credential_id(
         &self,
-        credential_id: CredentialId,
+        credential_id: CredentialId
     ) -> Result<Option<PasswordMaterial>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         Ok(storage.password_materials.get(&credential_id).cloned())
     }
 
     fn save(&mut self, material: PasswordMaterial) -> Result<(), Self::Error> {
-        let mut storage = self
-            .inner
-            .write()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let mut storage = self.inner.write().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
-        storage
-            .password_materials
-            .insert(material.credential_id(), material);
+        storage.password_materials.insert(material.credential_id(), material);
 
         Ok(())
     }
@@ -131,33 +113,25 @@ impl SessionRepository for MemoryStorage {
     type Error = MemoryStorageError;
 
     fn find_by_id(&self, id: SessionId) -> Result<Option<Session>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         Ok(storage.sessions.get(&id).cloned())
     }
 
     fn find_by_identity_id(&self, identity_id: IdentityId) -> Result<Vec<Session>, Self::Error> {
-        let storage = self
-            .inner
-            .read()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
-        Ok(storage
-            .sessions
-            .values()
-            .filter(|session| session.identity_id() == identity_id)
-            .cloned()
-            .collect())
+        Ok(
+            storage.sessions
+                .values()
+                .filter(|session| session.identity_id() == identity_id)
+                .cloned()
+                .collect()
+        )
     }
 
     fn save(&mut self, session: Session) -> Result<(), Self::Error> {
-        let mut storage = self
-            .inner
-            .write()
-            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+        let mut storage = self.inner.write().map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage.sessions.insert(session.id(), session);
 
@@ -165,14 +139,37 @@ impl SessionRepository for MemoryStorage {
     }
 }
 
+impl TokenRepository for MemoryStorage {
+    type Error = MemoryStorageError;
+
+    fn find_by_id(&self, id: TokenId) -> Result<Option<Token>, Self::Error> {
+        let storage = self.inner.read().map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage.tokens.get(&id).cloned())
+    }
+
+    fn save(&mut self, token: Token) -> Result<(), Self::Error> {
+        let mut storage = self.inner.write().map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        storage.tokens.insert(token.id(), token);
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeDelta, TimeZone, Utc};
-    use localid_credential::{Credential, CredentialId, CredentialKind};
-    use localid_identity::{Identity, IdentityId};
+    use chrono::{ TimeDelta, TimeZone, Utc };
+    use localid_credential::{ Credential, CredentialId, CredentialKind };
+    use localid_identity::{ Identity, IdentityId };
     use localid_password::PasswordHash;
-    use localid_repository::{CredentialRepository, IdentityRepository, SessionRepository};
-    use localid_session::{Session, SessionId};
+    use localid_repository::{
+        CredentialRepository,
+        IdentityRepository,
+        SessionRepository,
+        TokenRepository,
+    };
+    use localid_session::{ Session, SessionId };
 
     use super::MemoryStorage;
 
@@ -186,8 +183,9 @@ mod tests {
 
         IdentityRepository::save(&mut writer, identity).expect("identity should be stored");
 
-        let stored = IdentityRepository::find_by_id(&reader, identity_id)
-            .expect("identity lookup should succeed");
+        let stored = IdentityRepository::find_by_id(&reader, identity_id).expect(
+            "identity lookup should succeed"
+        );
 
         assert!(stored.is_some());
     }
@@ -197,13 +195,17 @@ mod tests {
         let mut storage = MemoryStorage::new();
         let identity_id = IdentityId::new();
 
-        let credential =
-            Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
+        let credential = Credential::new(
+            CredentialId::new(),
+            identity_id,
+            CredentialKind::Password
+        );
 
         CredentialRepository::save(&mut storage, credential).expect("credential should be stored");
 
-        let credentials = CredentialRepository::find_by_identity_id(&storage, identity_id)
-            .expect("credential lookup should succeed");
+        let credentials = CredentialRepository::find_by_identity_id(&storage, identity_id).expect(
+            "credential lookup should succeed"
+        );
 
         assert_eq!(credentials.len(), 1);
     }
@@ -213,8 +215,7 @@ mod tests {
         let mut storage = MemoryStorage::new();
         let identity_id = IdentityId::new();
 
-        let created_at = Utc
-            .with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
+        let created_at = Utc.with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
             .single()
             .expect("test timestamp should be valid");
 
@@ -222,14 +223,14 @@ mod tests {
             SessionId::new(),
             identity_id,
             created_at,
-            created_at + TimeDelta::hours(1),
-        )
-        .expect("session should be valid");
+            created_at + TimeDelta::hours(1)
+        ).expect("session should be valid");
 
         SessionRepository::save(&mut storage, session).expect("session should be stored");
 
-        let sessions = SessionRepository::find_by_identity_id(&storage, identity_id)
-            .expect("session lookup should succeed");
+        let sessions = SessionRepository::find_by_identity_id(&storage, identity_id).expect(
+            "session lookup should succeed"
+        );
 
         assert_eq!(sessions.len(), 1);
     }
@@ -241,15 +242,47 @@ mod tests {
         let mut storage = MemoryStorage::new();
         let credential_id = CredentialId::new();
 
-        let password =
-            PasswordMaterial::new(credential_id, PasswordHash::new("$example$hash".to_owned()));
+        let password = PasswordMaterial::new(
+            credential_id,
+            PasswordHash::new("$example$hash".to_owned())
+        );
 
-        PasswordMaterialRepository::save(&mut storage, password.clone())
-            .expect("password credential should be stored");
+        PasswordMaterialRepository::save(&mut storage, password.clone()).expect(
+            "password credential should be stored"
+        );
 
-        let stored = PasswordMaterialRepository::find_by_credential_id(&storage, credential_id)
-            .expect("password credential lookup should succeed");
+        let stored = PasswordMaterialRepository::find_by_credential_id(
+            &storage,
+            credential_id
+        ).expect("password credential lookup should succeed");
 
         assert_eq!(stored, Some(password));
+    }
+    #[test]
+    fn stores_tokens() {
+        use localid_token::{ Token, TokenId };
+        let mut storage = MemoryStorage::new();
+
+        let created_at = Utc.with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
+            .single()
+            .expect("test timestamp should be valid");
+
+        let token = Token::new(
+            TokenId::new(),
+            localid_session::SessionId::new(),
+            "hashed-secret".to_owned(),
+            created_at,
+            created_at + TimeDelta::hours(1)
+        ).expect("token should be valid");
+
+        let token_id = token.id();
+
+        TokenRepository::save(&mut storage, token.clone()).expect("token should be stored");
+
+        let stored = TokenRepository::find_by_id(&storage, token_id).expect(
+            "token lookup should succeed"
+        );
+
+        assert_eq!(stored, Some(token));
     }
 }

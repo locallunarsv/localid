@@ -8,3 +8,4 @@ localid-identity = { path = "../localid-identity" }
 localid-credential = { path = "../localid-credential" }
 localid-session = { path = "../localid-session" }
 localid-password = { version = "0.1.0", path = "../localid-password" }
+localid-token = { path = "../localid-token" }
