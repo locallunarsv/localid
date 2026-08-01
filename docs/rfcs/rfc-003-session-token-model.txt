@@ -1,0 +1,262 @@
+RFC-003: Session Token Model
+
+Status:
+Draft
+
+Version:
+0.1
+
+# SUMMARY
+
+This RFC defines the separation between Session and Token in LocalID.
+
+Session represents authenticated server-side state.
+
+Token represents a client-facing credential used to access an authenticated
+Session.
+
+Authentication mechanisms remain independent from token handling.
+
+# MOTIVATION
+
+Authentication mechanisms such as:
+
+- Password
+- API Key
+- OAuth
+
+require a way for clients to prove that authentication has already happened.
+
+A Session represents internal authenticated state, but it is not suitable as
+a client-facing credential.
+
+Therefore Token is introduced as a separate domain concept.
+
+# DESIGN PRINCIPLE
+
+Session and Token are different concepts.
+
+Relationship:
+
+Identity
+|
+|
+Session
+|
+|
+Token
+
+Session owns authentication state.
+
+Token grants access to an authenticated Session.
+
+# SESSION MODEL
+
+Session remains responsible for:
+
+- authenticated interaction lifecycle;
+- Identity ownership;
+- expiration;
+- revocation.
+
+Current Session model:
+
+Session
+
+- SessionId
+- IdentityId
+- LifecycleState
+- CreatedAt
+- ExpiresAt
+
+Session does not know about:
+
+- Token;
+- HTTP;
+- Cookies;
+- Authorization headers;
+- Transport protocols.
+
+# TOKEN MODEL
+
+Token is a separate domain object.
+
+Initial model:
+
+Token
+
+- TokenId
+- SessionId
+- SecretHash
+- LifecycleState
+- CreatedAt
+- ExpiresAt
+
+Raw token values must not be persisted.
+
+Only a secure hash representation is stored.
+
+# TOKEN TYPE
+
+The initial implementation uses opaque tokens.
+
+Flow:
+
+Client
+
+    |
+    |
+    v
+
+Random Token Value
+
+    |
+    |
+    v
+
+LocalID Server
+
+    |
+    |
+    v
+
+Token Hash Validation
+
+The server validates tokens using stored token material.
+
+# WHY NOT JWT INITIALLY
+
+JWT is intentionally not used in the first implementation.
+
+Reasons:
+
+- revocation is more complicated;
+- LocalID initially uses server-side control;
+- distributed verification is not required;
+- opaque tokens provide simpler lifecycle management.
+
+# TOKEN LIFECYCLE
+
+Token lifecycle:
+
+Active
+
+    |
+
+Revoked
+
+A revoked Token cannot be used again.
+
+# TOKEN VALIDATION FLOW
+
+Incoming Token
+
+        |
+
+TokenRepository lookup
+
+        |
+
+Validate Token Lifecycle
+
+        |
+
+Validate Expiration
+
+        |
+
+Resolve Session
+
+        |
+
+Validate Session
+
+        |
+
+Resolve Identity
+
+        |
+
+Authenticated Context
+
+# TOKEN REPOSITORY
+
+New repository contract:
+
+TokenRepository
+
+Responsibilities:
+
+- store token metadata;
+- lookup token;
+- revoke tokens;
+- remove expired tokens.
+
+# AUTHENTICATION INTEGRATION
+
+Authentication flow:
+
+Authentication
+
+        |
+
+Session Creation
+
+        |
+
+Token Creation
+
+        |
+
+Authentication Result
+
+Authentication services do not implement transport-specific token handling.
+
+# SECURITY CONSIDERATIONS
+
+Implementation must consider:
+
+- secure random token generation;
+- token hashing;
+- token expiration;
+- token revocation;
+- token disclosure;
+- replay prevention.
+
+# INITIAL SCOPE
+
+Implemented:
+
+- Token domain model;
+- Token lifecycle;
+- Token repository contract;
+- Token validation flow.
+
+Not implemented:
+
+- JWT;
+- refresh token rotation;
+- device management;
+- token scopes;
+- OAuth compatibility.
+
+# FUTURE WORK
+
+Possible extensions:
+
+- refresh tokens;
+- token scopes;
+- client applications;
+- OAuth2/OIDC compatibility;
+- device sessions.
+
+# CONCLUSION
+
+Session and Token are intentionally separated.
+
+Session represents authenticated state inside LocalID.
+
+Token represents the external credential used by clients to access that state.
+
+This separation allows future authentication mechanisms to share token handling
+without coupling authentication methods together.
