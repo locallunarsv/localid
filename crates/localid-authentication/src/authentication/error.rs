@@ -45,17 +45,34 @@ pub enum AuthenticationError {
     /// A Session could not be created.
     SessionCreationFailure,
 
-    /// Token Error
+    /// A Token could not be created.
     TokenCreationFailure,
+
+    /// The requested Token could not be found.
+    TokenNotFound,
+
+    /// The Token cannot currently be used.
+    TokenUnavailable,
+
+    /// The Token repository could not complete its operation.
+    TokenRepositoryFailure,
+
+    /// The requested Session could not be found.
+    SessionNotFound,
+
+    /// The Session cannot currently be used.
+    SessionUnavailable,
 }
 
 impl Display for AuthenticationError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
             Self::CredentialNotFound => "credential not found",
+
             Self::CredentialUnavailable => "credential is unavailable",
 
             Self::IdentityNotFound => "identity not found",
+
             Self::IdentityUnavailable => "identity is unavailable",
 
             Self::InvalidCredentialKind => {
@@ -80,7 +97,17 @@ impl Display for AuthenticationError {
 
             Self::SessionCreationFailure => "session could not be created",
 
-            Self::TokenCreationFailure => "Token could not be created",
+            Self::TokenCreationFailure => "token could not be created",
+
+            Self::TokenNotFound => "token not found",
+
+            Self::TokenUnavailable => "token is unavailable",
+
+            Self::TokenRepositoryFailure => "token repository operation failed",
+
+            Self::SessionNotFound => "session not found",
+
+            Self::SessionUnavailable => "session is unavailable",
         };
 
         formatter.write_str(message)

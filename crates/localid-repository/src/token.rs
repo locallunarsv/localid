@@ -12,6 +12,13 @@ pub trait TokenRepository {
     /// Returns repository error when lookup cannot be completed.
     fn find_by_id(&self, id: TokenId) -> Result<Option<Token>, Self::Error>;
 
+    /// Finds a Token by its stored secret hash.
+    ///
+    /// # Errors
+    ///
+    /// Returns repository error when lookup cannot be completed.
+    fn find_by_secret_hash(&self, secret_hash: &str) -> Result<Option<Token>, Self::Error>;
+
     /// Persists a Token.
     ///
     /// # Errors

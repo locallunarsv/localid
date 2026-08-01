@@ -1,6 +1,7 @@
 mod error;
 mod password;
 mod shared;
+mod token;
 
 pub use error::AuthenticationError;
 pub use password::{
@@ -8,3 +9,4 @@ pub use password::{
     PasswordAuthenticationService,
 };
 pub use shared::{AuthenticateResult, SessionFactory};
+pub use token::{AuthenticatedContext, DefaultTokenValidator, TokenValidator};

@@ -180,6 +180,18 @@ impl TokenRepository for MemoryStorage {
 
         Ok(storage.tokens.get(&id).cloned())
     }
+    fn find_by_secret_hash(&self, secret_hash: &str) -> Result<Option<Token>, Self::Error> {
+        let storage = self
+            .inner
+            .read()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage
+            .tokens
+            .values()
+            .find(|token| token.secret_hash() == secret_hash)
+            .cloned())
+    }
 
     fn save(&mut self, token: Token) -> Result<(), Self::Error> {
         let mut storage = self
@@ -203,6 +215,7 @@ mod tests {
         CredentialRepository, IdentityRepository, SessionRepository, TokenRepository,
     };
     use localid_session::{Session, SessionId};
+    use localid_token::{Token, TokenId};
 
     use super::MemoryStorage;
 
@@ -307,6 +320,31 @@ mod tests {
 
         let stored =
             TokenRepository::find_by_id(&storage, token_id).expect("token lookup should succeed");
+
+        assert_eq!(stored, Some(token));
+    }
+    #[test]
+    fn finds_tokens_by_secret_hash() {
+        let mut storage = MemoryStorage::new();
+
+        let created_at = Utc
+            .with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
+            .single()
+            .expect("test timestamp should be valid");
+
+        let token = Token::new(
+            TokenId::new(),
+            SessionId::new(),
+            "hashed-secret".to_owned(),
+            created_at,
+            created_at + TimeDelta::hours(1),
+        )
+        .expect("token should be valid");
+
+        TokenRepository::save(&mut storage, token.clone()).expect("token should be stored");
+
+        let stored = TokenRepository::find_by_secret_hash(&storage, "hashed-secret")
+            .expect("token lookup should succeed");
 
         assert_eq!(stored, Some(token));
     }
