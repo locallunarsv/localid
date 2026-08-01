@@ -56,6 +56,21 @@ impl Identity {
     pub const fn delete(&mut self) {
         self.lifecycle_state = LifecycleState::Deleted;
     }
+
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
+        self.lifecycle_state.is_active()
+    }
+
+    #[must_use]
+    pub const fn is_disabled(&self) -> bool {
+        self.lifecycle_state.is_disabled()
+    }
+
+    #[must_use]
+    pub const fn is_deleted(&self) -> bool {
+        self.lifecycle_state.is_deleted()
+    }
 }
 
 #[cfg(test)]
@@ -189,5 +204,28 @@ mod tests {
         identity.delete();
 
         assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
+    }
+
+    #[test]
+    fn reports_current_lifecycle_state() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        assert!(identity.is_active());
+        assert!(!identity.is_disabled());
+        assert!(!identity.is_deleted());
+
+        identity
+            .disable()
+            .expect("active Identity should be disableable");
+
+        assert!(!identity.is_active());
+        assert!(identity.is_disabled());
+        assert!(!identity.is_deleted());
+
+        identity.delete();
+
+        assert!(!identity.is_active());
+        assert!(!identity.is_disabled());
+        assert!(identity.is_deleted());
     }
 }
