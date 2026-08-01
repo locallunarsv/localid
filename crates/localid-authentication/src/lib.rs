@@ -8,6 +8,8 @@
 mod authentication;
 
 pub use authentication::{
-    AuthenticateRequest, AuthenticateResult, AuthenticationError, AuthenticationEvidence,
-    AuthenticationService, CredentialVerifier, DefaultAuthenticationService, SessionFactory,
+    AuthenticatePasswordRequest, AuthenticateRequest, AuthenticateResult, AuthenticationError,
+    AuthenticationEvidence, AuthenticationService, CredentialVerifier,
+    DefaultAuthenticationService, DefaultPasswordAuthenticationService,
+    PasswordAuthenticationService, SessionFactory,
 };

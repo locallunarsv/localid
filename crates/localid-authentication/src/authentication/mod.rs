@@ -1,6 +1,7 @@
 mod default_service;
 mod error;
 mod evidence;
+mod password;
 mod request;
 mod service;
 mod shared;
@@ -15,3 +16,8 @@ pub use service::AuthenticationService;
 pub use shared::{AuthenticateResult, SessionFactory};
 
 pub use verifier::CredentialVerifier;
+
+pub use password::{
+    AuthenticatePasswordRequest, DefaultPasswordAuthenticationService,
+    PasswordAuthenticationService,
+};
