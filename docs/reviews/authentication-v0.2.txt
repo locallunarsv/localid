@@ -1,0 +1,171 @@
+Authentication v0.2 Review
+
+Version:
+0.2
+
+Status:
+Completed
+
+# Overview
+
+Authentication v0.2 introduces credential-specific authentication flows.
+
+The previous generic authentication model was replaced with authentication
+services specialized according to Credential type.
+
+The first implemented flow is password authentication.
+
+# Architectural Decision
+
+Authentication is modeled as credential-specific application services.
+
+Current implementation:
+
+PasswordAuthenticationService
+
+Future authentication mechanisms may introduce:
+
+PasskeyAuthenticationService
+
+ApiKeyAuthenticationService
+
+Each authentication mechanism owns its own request model, verification flow,
+and authentication rules.
+
+# Removed Concepts
+
+The following abstractions were removed:
+
+- AuthenticationEvidence
+- CredentialVerifier
+- Generic AuthenticationService
+- Generic AuthenticateRequest
+
+Reason:
+
+Different authentication mechanisms require different evidence and verification
+processes. A generic abstraction would create unnecessary coupling between
+authentication methods.
+
+# Current Password Flow
+
+AuthenticatePasswordRequest
+
+        |
+        v
+
+PasswordAuthenticationService
+
+        |
+        +--> CredentialRepository
+        |
+        +--> IdentityRepository
+        |
+        +--> PasswordMaterialRepository
+        |
+        +--> PasswordVerifier
+        |
+        +--> SessionFactory
+        |
+        +--> SessionRepository
+
+        |
+        v
+
+AuthenticateResult
+
+# Implemented Components
+
+Password Domain:
+
+- PasswordSecret
+- PasswordHash
+- PasswordMaterial
+- PasswordHasher
+- PasswordVerifier
+
+Password Adapter:
+
+- Argon2 password hashing
+- Argon2 password verification
+
+Authentication Service:
+
+- AuthenticatePasswordRequest
+- PasswordAuthenticationService
+- Credential validation
+- Identity validation
+- Password verification
+- Session creation
+- Session persistence
+
+# Test Coverage
+
+Password authentication flow covers:
+
+- successful password authentication
+- invalid password
+- disabled Credential
+- disabled Identity
+- missing Password Material
+
+# Dependency Boundary Review
+
+Dependency direction:
+
+Authentication
+
+    |
+    +--> Identity
+    +--> Credential
+    +--> Password
+    +--> Repository
+    +--> Session
+
+Password Adapter
+
+    |
+    v
+
+Password Contract
+
+Review result:
+
+- No circular dependency exists.
+- Application orchestration remains separated from domain logic.
+- Password adapter remains isolated.
+
+# Known Limitations
+
+Not implemented:
+
+- password reset
+- password history
+- password expiration
+- password policy
+- account lockout
+- MFA
+- authentication audit
+- token issuance
+- Passkey authentication
+- API Key authentication
+
+# Future Work
+
+Possible future authentication mechanisms:
+
+- Passkey
+- API Key
+- OAuth provider integration
+- Multi-factor authentication
+
+Each mechanism should introduce its own authentication service rather than
+extending a generic authentication abstraction.
+
+# Conclusion
+
+Authentication v0.2 establishes a stable foundation for credential-specific
+authentication.
+
+The architecture is ready for additional authentication mechanisms without
+requiring changes to the existing password authentication flow.
