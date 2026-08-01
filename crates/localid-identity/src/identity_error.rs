@@ -5,10 +5,15 @@ use std::{
 
 use crate::LifecycleState;
 
+/// Domain errors produced by Identity lifecycle operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IdentityError {
+    /// The requested lifecycle transition is not permitted.
     InvalidLifecycleTransition {
+        /// Lifecycle state before the requested transition.
         from: LifecycleState,
+
+        /// Requested destination lifecycle state.
         to: LifecycleState,
     },
 }

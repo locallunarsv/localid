@@ -1,5 +1,9 @@
 use crate::{IdentityError, IdentityId, LifecycleState};
 
+/// Canonical and stable representation of a digital subject.
+///
+/// An Identity owns its identifier and lifecycle state. Credentials, Sessions,
+/// profile information, and authentication policies are separate concerns.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identity {
     id: IdentityId,
@@ -7,6 +11,7 @@ pub struct Identity {
 }
 
 impl Identity {
+    /// Creates a new active Identity with the provided identifier.
     #[must_use]
     pub const fn new(id: IdentityId) -> Self {
         Self {
@@ -15,16 +20,44 @@ impl Identity {
         }
     }
 
+    /// Returns the stable identifier of this Identity.
     #[must_use]
     pub const fn id(&self) -> IdentityId {
         self.id
     }
 
+    /// Returns the current lifecycle state of this Identity.
     #[must_use]
     pub const fn lifecycle_state(&self) -> LifecycleState {
         self.lifecycle_state
     }
 
+    /// Returns `true` when this Identity is active.
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
+        self.lifecycle_state.is_active()
+    }
+
+    /// Returns `true` when this Identity is disabled.
+    #[must_use]
+    pub const fn is_disabled(&self) -> bool {
+        self.lifecycle_state.is_disabled()
+    }
+
+    /// Returns `true` when this Identity is deleted.
+    #[must_use]
+    pub const fn is_deleted(&self) -> bool {
+        self.lifecycle_state.is_deleted()
+    }
+
+    /// Administratively disables this Identity.
+    ///
+    /// Disabling an already disabled Identity is idempotent.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IdentityError::InvalidLifecycleTransition`] when this Identity
+    /// has already been deleted.
     pub const fn disable(&mut self) -> Result<(), IdentityError> {
         match self.lifecycle_state {
             LifecycleState::Active => {
@@ -39,6 +72,14 @@ impl Identity {
         }
     }
 
+    /// Enables a previously disabled Identity.
+    ///
+    /// Enabling an already active Identity is idempotent.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IdentityError::InvalidLifecycleTransition`] when this Identity
+    /// has already been deleted.
     pub const fn enable(&mut self) -> Result<(), IdentityError> {
         match self.lifecycle_state {
             LifecycleState::Active => Ok(()),
@@ -53,23 +94,12 @@ impl Identity {
         }
     }
 
+    /// Permanently removes this Identity from operational use.
+    ///
+    /// Deleting an already deleted Identity is idempotent. A deleted Identity
+    /// remains available as a stable historical reference.
     pub const fn delete(&mut self) {
         self.lifecycle_state = LifecycleState::Deleted;
-    }
-
-    #[must_use]
-    pub const fn is_active(&self) -> bool {
-        self.lifecycle_state.is_active()
-    }
-
-    #[must_use]
-    pub const fn is_disabled(&self) -> bool {
-        self.lifecycle_state.is_disabled()
-    }
-
-    #[must_use]
-    pub const fn is_deleted(&self) -> bool {
-        self.lifecycle_state.is_deleted()
     }
 }
 

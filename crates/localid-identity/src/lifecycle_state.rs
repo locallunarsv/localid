@@ -1,22 +1,38 @@
+/// Lifecycle state of an [`Identity`](crate::Identity).
+///
+/// Lifecycle state represents whether an Identity is operational,
+/// administratively unavailable, or permanently removed from operational use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum LifecycleState {
+    /// The Identity is available for normal operational use.
     #[default]
     Active,
+
+    /// The Identity is administratively unavailable.
+    ///
+    /// A disabled Identity still exists and may later be enabled again.
     Disabled,
+
+    /// The Identity has been permanently removed from operational use.
+    ///
+    /// Deleted is a terminal lifecycle state.
     Deleted,
 }
 
 impl LifecycleState {
+    /// Returns `true` when the lifecycle state is [`Active`](Self::Active).
     #[must_use]
     pub const fn is_active(self) -> bool {
         matches!(self, Self::Active)
     }
 
+    /// Returns `true` when the lifecycle state is [`Disabled`](Self::Disabled).
     #[must_use]
     pub const fn is_disabled(self) -> bool {
         matches!(self, Self::Disabled)
     }
 
+    /// Returns `true` when the lifecycle state is [`Deleted`](Self::Deleted).
     #[must_use]
     pub const fn is_deleted(self) -> bool {
         matches!(self, Self::Deleted)

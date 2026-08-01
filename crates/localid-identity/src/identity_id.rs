@@ -5,25 +5,35 @@ use std::{
 
 use uuid::Uuid;
 
+/// Stable identifier for an [`Identity`](crate::Identity).
+///
+/// `IdentityId` wraps the underlying identifier representation so consumers
+/// of this crate do not need to use raw UUID values throughout the domain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct IdentityId(Uuid);
 
 impl IdentityId {
+    /// Generates a new identity identifier.
+    ///
+    /// The current implementation generates a UUID version 7.
     #[must_use]
     pub fn new() -> Self {
         Self(Uuid::now_v7())
     }
 
+    /// Creates an identity identifier from an existing UUID.
     #[must_use]
     pub const fn from_uuid(value: Uuid) -> Self {
         Self(value)
     }
 
+    /// Returns a reference to the underlying UUID.
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 
+    /// Consumes the identity identifier and returns the underlying UUID.
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
         self.0
