@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 
-members = ["crates/localid-identity"]
+members = ["crates/localid-identity", "crates/localid-credential"]
