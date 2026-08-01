@@ -9,6 +9,8 @@ localid-identity = { path = "../localid-identity" }
 localid-password = { version = "0.1.0", path = "../localid-password" }
 localid-repository = { path = "../localid-repository" }
 localid-session = { path = "../localid-session" }
+localid-token = { path = "../localid-token" }
+localid-token-random = { path = "../localid-token-random" }
 
 [dev-dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }

@@ -2,6 +2,7 @@ use localid_password::PasswordVerifier;
 use localid_repository::{
     CredentialRepository, IdentityRepository, PasswordMaterialRepository, SessionRepository,
 };
+use localid_token::TokenIssuer;
 
 use super::{AuthenticatePasswordRequest, PasswordAuthenticationService};
 use crate::{AuthenticateResult, AuthenticationError, SessionFactory};
@@ -9,18 +10,19 @@ use crate::{AuthenticateResult, AuthenticationError, SessionFactory};
 /// Default password authentication service.
 ///
 /// The service coordinates Credential, Identity, password material, password
-/// verification, Session creation, and Session persistence through injected
-/// ports.
-pub struct DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF> {
+/// verification, Session creation, Token issuance, and persistence through
+/// injected ports.
+pub struct DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF, TI> {
     identity_repository: IR,
     credential_repository: CR,
     password_material_repository: PR,
     session_repository: SR,
     password_verifier: V,
     session_factory: SF,
+    token_issuer: TI,
 }
 
-impl<IR, CR, PR, SR, V, SF> DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF> {
+impl<IR, CR, PR, SR, V, SF, TI> DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF, TI> {
     /// Creates a default password authentication service.
     #[must_use]
     pub const fn new(
@@ -30,6 +32,7 @@ impl<IR, CR, PR, SR, V, SF> DefaultPasswordAuthenticationService<IR, CR, PR, SR,
         session_repository: SR,
         password_verifier: V,
         session_factory: SF,
+        token_issuer: TI,
     ) -> Self {
         Self {
             identity_repository,
@@ -38,12 +41,13 @@ impl<IR, CR, PR, SR, V, SF> DefaultPasswordAuthenticationService<IR, CR, PR, SR,
             session_repository,
             password_verifier,
             session_factory,
+            token_issuer,
         }
     }
 }
 
-impl<IR, CR, PR, SR, V, SF> PasswordAuthenticationService
-    for DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF>
+impl<IR, CR, PR, SR, V, SF, TI> PasswordAuthenticationService
+    for DefaultPasswordAuthenticationService<IR, CR, PR, SR, V, SF, TI>
 where
     IR: IdentityRepository,
     CR: CredentialRepository,
@@ -51,6 +55,7 @@ where
     SR: SessionRepository,
     V: PasswordVerifier,
     SF: SessionFactory,
+    TI: TokenIssuer<Error = localid_token::TokenError>,
 {
     fn authenticate_password(
         &mut self,
@@ -104,6 +109,11 @@ where
             .save(session.clone())
             .map_err(|_| AuthenticationError::SessionRepositoryFailure)?;
 
-        Ok(AuthenticateResult::new(session))
+        let issued_token = self
+            .token_issuer
+            .issue(session.id(), session.expires_at())
+            .map_err(|_| AuthenticationError::TokenCreationFailure)?;
+
+        Ok(AuthenticateResult::new(session, issued_token))
     }
 }

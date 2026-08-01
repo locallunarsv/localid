@@ -12,6 +12,7 @@ use localid_repository::{
 };
 use localid_session::{Session, SessionId};
 use localid_storage_memory::MemoryStorage;
+use localid_token_random::RandomTokenIssuer;
 
 struct FixedSessionFactory;
 
@@ -69,6 +70,7 @@ fn authenticates_password_credential() {
         storage.clone(),
         hasher,
         FixedSessionFactory,
+        RandomTokenIssuer::new(),
     );
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);
@@ -132,6 +134,7 @@ fn rejects_invalid_password() {
         storage.clone(),
         hasher,
         FixedSessionFactory,
+        RandomTokenIssuer::new(),
     );
 
     let request = AuthenticatePasswordRequest::new(credential_id, wrong_password);
@@ -185,6 +188,7 @@ fn rejects_disabled_credential() {
         storage.clone(),
         hasher,
         FixedSessionFactory,
+        RandomTokenIssuer::new(),
     );
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);
@@ -237,6 +241,7 @@ fn rejects_disabled_identity() {
         storage.clone(),
         hasher,
         FixedSessionFactory,
+        RandomTokenIssuer::new(),
     );
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);
@@ -279,6 +284,7 @@ fn rejects_missing_password_material() {
         storage.clone(),
         hasher,
         FixedSessionFactory,
+        RandomTokenIssuer::new(),
     );
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);

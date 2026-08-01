@@ -44,6 +44,9 @@ pub enum AuthenticationError {
 
     /// A Session could not be created.
     SessionCreationFailure,
+
+    /// Token Error
+    TokenCreationFailure,
 }
 
 impl Display for AuthenticationError {
@@ -76,6 +79,8 @@ impl Display for AuthenticationError {
             Self::SessionRepositoryFailure => "session repository operation failed",
 
             Self::SessionCreationFailure => "session could not be created",
+
+            Self::TokenCreationFailure => "Token could not be created",
         };
 
         formatter.write_str(message)
