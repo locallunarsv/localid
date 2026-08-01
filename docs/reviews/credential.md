@@ -69,6 +69,29 @@ Credential is not responsible for:
 
 ---
 
+## Candidate Credential Model
+
+Credential is modeled as a single domain concept.
+
+Different authentication mechanisms are represented by a Credential Kind rather than separate aggregate roots.
+
+Candidate kinds include:
+
+- Password;
+- Passkey;
+- ApiKey;
+- OAuth.
+
+Each Credential:
+
+- belongs to exactly one Identity;
+- has exactly one Credential Kind;
+- owns its own lifecycle.
+
+Authentication behavior depends on the Credential Kind rather than the aggregate structure.
+
 ## Open Questions
 
-(To be filled)
+- Should every Credential Kind share the same lifecycle?
+- Should OAuth be modeled as a Credential or as an external identity link?
+- Can multiple Credentials of the same kind belong to one Identity?
