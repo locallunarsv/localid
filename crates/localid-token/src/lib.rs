@@ -4,4 +4,4 @@
 
 mod token;
 
-pub use token::{Token, TokenError, TokenId, TokenLifecycleState};
+pub use token::{IssuedToken, Token, TokenError, TokenId, TokenIssuer, TokenLifecycleState};
