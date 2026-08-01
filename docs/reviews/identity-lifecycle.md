@@ -272,3 +272,143 @@ Unknown.
 Further domain discovery is required before the behavior can be defined.
 
 This scenario motivates future RFCs.
+
+### Scenario 6 — Active Identity is locked, then administratively disabled
+
+Initial State
+
+- Lifecycle: Active
+- Security: Locked
+
+Action
+
+An administrator disables the Identity.
+
+Expected Result
+
+- Lifecycle becomes Disabled.
+- Security remains Locked.
+- Authentication remains denied.
+
+Rationale
+
+Administrative disabling should not silently remove an existing security restriction.
+
+Questions
+
+- Should the lock remain visible while the Identity is disabled?
+- Should enabling the Identity require the lock to be resolved separately?
+
+---
+
+### Scenario 7 — Disabled and locked Identity is enabled
+
+Initial State
+
+- Lifecycle: Disabled
+- Security: Locked
+
+Action
+
+An administrator enables the Identity.
+
+Expected Result
+
+- Lifecycle becomes Active.
+- Security remains Locked.
+- Authentication remains denied.
+
+Rationale
+
+Enabling changes administrative availability. It should not automatically override a security restriction.
+
+Questions
+
+- Should the administrator receive an explicit warning that the Identity remains locked?
+- Should a combined enable-and-unlock operation ever be allowed?
+
+---
+
+### Scenario 8 — Lock expires while Identity is disabled
+
+Initial State
+
+- Lifecycle: Disabled
+- Security: Locked
+
+Action
+
+The lock duration expires according to security policy.
+
+Expected Result
+
+- Lifecycle remains Disabled.
+- Security becomes Unlocked.
+- Authentication remains denied because the Identity is still disabled.
+
+Rationale
+
+Lifecycle and security restrictions should be evaluated independently.
+
+Questions
+
+- Should lock expiry be automatic?
+- Should the expiry produce a domain event?
+- Which component owns lock-expiration policy?
+
+---
+
+### Scenario 9 — Identity is unlocked while disabled
+
+Initial State
+
+- Lifecycle: Disabled
+- Security: Locked
+
+Action
+
+An authorized actor unlocks the Identity.
+
+Expected Result
+
+- Lifecycle remains Disabled.
+- Security becomes Unlocked.
+- Authentication remains denied.
+
+Rationale
+
+Unlocking removes a security restriction but does not reverse an administrative decision.
+
+Questions
+
+- Who is authorized to unlock an Identity?
+- Should unlocking require a reason or audit context?
+
+---
+
+### Scenario 10 — Authentication is attempted against a deleted Identity
+
+Initial State
+
+- Lifecycle: Deleted
+- Security: Unlocked or Locked
+
+Action
+
+A Client attempts to authenticate as the Identity.
+
+Expected Result
+
+- Authentication is denied.
+- No new Session is created.
+- The Identity remains available only as a historical reference.
+
+Rationale
+
+A deleted Identity should not return to normal use through authentication.
+
+Questions
+
+- Is Security State still meaningful after deletion?
+- Should deletion clear or preserve the previous security state?
+- Should authentication reveal that the Identity is deleted, or return a generic failure?
