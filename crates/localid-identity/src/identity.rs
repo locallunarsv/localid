@@ -38,6 +38,20 @@ impl Identity {
             }),
         }
     }
+
+    pub const fn enable(&mut self) -> Result<(), IdentityError> {
+        match self.lifecycle_state {
+            LifecycleState::Active => Ok(()),
+            LifecycleState::Disabled => {
+                self.lifecycle_state = LifecycleState::Active;
+                Ok(())
+            }
+            LifecycleState::Deleted => Err(IdentityError::InvalidLifecycleTransition {
+                from: LifecycleState::Deleted,
+                to: LifecycleState::Active,
+            }),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -97,6 +111,52 @@ mod tests {
                 to: LifecycleState::Disabled,
             })
         );
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
+    }
+
+    #[test]
+    fn enables_disabled_identity() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        identity
+            .disable()
+            .expect("active Identity should be disableable");
+
+        identity
+            .enable()
+            .expect("disabled Identity should be enableable");
+
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Active);
+    }
+
+    #[test]
+    fn enabling_active_identity_is_idempotent() {
+        let mut identity = Identity::new(IdentityId::new());
+
+        identity
+            .enable()
+            .expect("enabling an active Identity should succeed");
+
+        assert_eq!(identity.lifecycle_state(), LifecycleState::Active);
+    }
+
+    #[test]
+    fn cannot_enable_deleted_identity() {
+        let mut identity = Identity {
+            id: IdentityId::new(),
+            lifecycle_state: LifecycleState::Deleted,
+        };
+
+        let result = identity.enable();
+
+        assert_eq!(
+            result,
+            Err(IdentityError::InvalidLifecycleTransition {
+                from: LifecycleState::Deleted,
+                to: LifecycleState::Active,
+            })
+        );
+
         assert_eq!(identity.lifecycle_state(), LifecycleState::Deleted);
     }
 }
