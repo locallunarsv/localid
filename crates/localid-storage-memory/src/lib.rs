@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![deny(missing_docs)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+//! In-memory storage adapters for LocalID repository contracts.
+//!
+//! This crate is intended for testing, development, and ephemeral LocalID
+//! deployments. Cloned storage handles share the same in-memory state.
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+mod error;
+mod storage;
+
+pub use error::MemoryStorageError;
+pub use storage::MemoryStorage;
