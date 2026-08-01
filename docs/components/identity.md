@@ -1,32 +1,38 @@
 # Identity
 
-**Version:** 0.2
-**Status:** Draft
+**Version:** 0.3  
+**Status:** Implemented (Core v0.1)
+
+---
 
 ## Introduction
 
 Identity is the foundational domain concept of LocalID.
 
-An Identity is the canonical and stable representation of a digital subject recognized and managed by LocalID.
+An Identity is the canonical and stable representation of a digital subject managed by LocalID.
 
-An Identity may represent a human, a service account, or another type of digital subject.
+An Identity may represent a human, a service account, or another digital subject.
 
-Credentials, sessions, profile information, and authentication mechanisms may change throughout its lifetime, but the Identity remains the stable reference to that subject.
+Credentials, Sessions, profile information, authentication mechanisms, and transport technologies may change throughout the lifetime of an Identity. None of these determine whether the Identity exists.
+
+---
 
 ## Purpose
 
-The purpose of Identity is to provide a stable and canonical reference for every digital subject managed by LocalID.
+Identity provides a stable and canonical reference for every digital subject managed by LocalID.
 
-Other components may associate information or behavior with an Identity through its stable identifier.
+Other domain components associate their own information with an Identity through its stable identifier.
+
+---
 
 ## Minimum Identity
 
 The minimum Identity consists of:
 
-- a unique identity;
+- a unique identifier;
 - a lifecycle state.
 
-An Identity does not require:
+Identity does **not** require:
 
 - a username;
 - a display name;
@@ -35,125 +41,68 @@ An Identity does not require:
 - a Credential;
 - a Session.
 
-These concepts may reference an Identity, but they do not define whether the Identity exists.
+These concepts reference an Identity but do not define its existence.
+
+---
 
 ## Responsibilities
 
-An Identity is responsible for:
+Identity is responsible for:
 
-- maintaining its canonical identity;
+- maintaining its stable identifier;
 - maintaining its lifecycle;
-- maintaining its lifecycle state;
-- providing a stable reference for other components.
+- enforcing lifecycle rules;
+- providing a stable reference for other domain components.
+
+---
 
 ## Non-Responsibilities
 
-An Identity is not responsible for:
+Identity is **not** responsible for:
 
 - storing Credentials;
 - storing passwords;
-- authenticating a subject;
+- authenticating subjects;
 - creating Sessions;
 - issuing Tokens;
 - authorizing access;
 - storing profile information;
+- maintaining security lock state;
 - auditing activities.
 
-These responsibilities belong to other components or concerns.
+These concerns belong to other domain components.
+
+---
 
 ## Lifecycle
 
 An Identity begins to exist when it is created.
 
-During its lifetime, its lifecycle state may change. Changes to Credentials, Sessions, or profile information do not change whether the Identity exists.
+A newly created Identity always begins in the **Active** lifecycle state.
 
-The complete lifecycle and allowed state transitions will be defined separately.
+Throughout its lifetime the lifecycle state may change according to domain rules.
+
+Changes to Credentials, Sessions, or profile information never determine whether an Identity exists.
+
+---
 
 ## Lifecycle States
 
-The lifecycle states have not yet been finalized.
-
-The current candidates are:
+Identity currently supports three lifecycle states:
 
 - Active;
 - Disabled;
-- Locked;
 - Deleted.
 
-These states and their transition rules remain subject to a dedicated RFC.
+Deleted is the terminal lifecycle state.
 
-## Invariants
+The following lifecycle transitions are currently supported:
 
-The following statements must always remain true:
+```text
+Active <────> Disabled
 
-- Every Identity is uniquely identifiable.
-- Every Identity has exactly one lifecycle state.
-- Identity exists independently of Credentials.
-- Identity exists independently of Sessions.
-- Identity exists independently of profile information.
-- Removing all Credentials does not remove the Identity.
-- Profile changes do not change the canonical Identity.
-- Other components reference Identity through its stable identifier.
-- Identity does not own authentication or authorization behavior.
+Active   ───► Deleted
+Disabled ───► Deleted
 
-## Domain Events
-
-Potential Identity domain events include:
-
-- IdentityCreated;
-- IdentityStateChanged;
-- IdentityDisabled;
-- IdentityEnabled;
-- IdentityLocked;
-- IdentityUnlocked;
-- IdentityDeleted.
-
-The final event model will be defined after the lifecycle and state-transition rules are accepted.
-
-## Domain Errors
-
-Potential domain errors include:
-
-- IdentityNotFound;
-- InvalidIdentityState;
-- InvalidIdentityStateTransition.
-
-The final error model will be derived from accepted domain rules.
-
-## Out of Scope
-
-The following concerns are intentionally outside the Identity component:
-
-- Credential;
-- Password;
-- Authentication;
-- Authorization;
-- Session;
-- Token;
-- Profile;
-- Client;
-- Audit.
-
-## Accepted Decisions
-
-The following decision has been accepted:
-
-- RFC-001: Identity is a stable and canonical reference, not a digital profile.
-
-## Open Questions
-
-The following questions remain unresolved:
-
-- Which lifecycle states should Identity support?
-- Which transitions should be allowed between lifecycle states?
-- Can an Identity be permanently deleted?
-- Can a deleted Identity be restored?
-- Does Username belong to Identity or another component?
-- Should Profile become a dedicated component?
-- Should human and non-human subjects share the same Identity model?
-
-## Notes
-
-This document describes the Identity domain concept only.
-
-It intentionally avoids implementation details such as programming language, identifier format, database, transport protocol, framework, or API design.
+Deleted is terminal.
+```
