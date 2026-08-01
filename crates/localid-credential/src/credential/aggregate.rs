@@ -89,6 +89,27 @@ impl Credential {
             }),
         }
     }
+    /// Enables a previously disabled Credential.
+    ///
+    /// Enabling an already active Credential is idempotent.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CredentialError::InvalidLifecycleTransition`] when this
+    /// Credential has already been revoked.
+    pub const fn enable(&mut self) -> Result<(), CredentialError> {
+        match self.lifecycle_state {
+            CredentialLifecycleState::Active => Ok(()),
+            CredentialLifecycleState::Disabled => {
+                self.lifecycle_state = CredentialLifecycleState::Active;
+                Ok(())
+            }
+            CredentialLifecycleState::Revoked => Err(CredentialError::InvalidLifecycleTransition {
+                from: CredentialLifecycleState::Revoked,
+                to: CredentialLifecycleState::Active,
+            }),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -148,5 +169,38 @@ mod tests {
             .expect("disabling a disabled Credential should succeed");
 
         assert!(credential.is_disabled());
+    }
+    #[test]
+    fn enables_disabled_credential() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential
+            .disable()
+            .expect("active Credential should be disableable");
+
+        credential
+            .enable()
+            .expect("disabled Credential should be enableable");
+
+        assert!(credential.is_active());
+    }
+
+    #[test]
+    fn enabling_active_credential_is_idempotent() {
+        let mut credential = Credential::new(
+            CredentialId::new(),
+            IdentityId::new(),
+            CredentialKind::Password,
+        );
+
+        credential
+            .enable()
+            .expect("enabling an active Credential should succeed");
+
+        assert!(credential.is_active());
     }
 }
