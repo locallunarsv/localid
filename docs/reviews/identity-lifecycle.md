@@ -156,3 +156,119 @@ Should `Locked` be modeled as:
 2. an independent security state?
 
 Further investigation is required before finalizing the Identity state model.
+
+## Domain Scenarios
+
+The following scenarios are used to validate the proposed Identity lifecycle model.
+
+---
+
+### Scenario 1 — Administrator disables an Identity
+
+Initial State
+
+- Lifecycle: Active
+- Security: Unlocked
+
+Action
+
+Administrator disables the Identity.
+
+Expected Result
+
+- Lifecycle becomes Disabled.
+- Security remains Unlocked.
+- Authentication is denied.
+
+Questions
+
+- Should all active Sessions be revoked?
+- Should all refresh tokens become invalid?
+
+---
+
+### Scenario 2 — Identity is locked after repeated failed authentication
+
+Initial State
+
+- Lifecycle: Active
+- Security: Unlocked
+
+Action
+
+The authentication policy locks the Identity.
+
+Expected Result
+
+- Lifecycle remains Active.
+- Security becomes Locked.
+- Authentication is denied.
+
+Questions
+
+- Is unlocking automatic?
+- Should the lock expire?
+
+---
+
+### Scenario 3 — Administrator enables a previously disabled Identity
+
+Initial State
+
+- Lifecycle: Disabled
+- Security: Unlocked
+
+Action
+
+Administrator enables the Identity.
+
+Expected Result
+
+- Lifecycle becomes Active.
+- Security remains Unlocked.
+
+Questions
+
+- Should enabling restore previous Sessions?
+
+---
+
+### Scenario 4 — Credentials are removed
+
+Initial State
+
+- Lifecycle: Active
+- Security: Unlocked
+
+Action
+
+All Credentials are revoked.
+
+Expected Result
+
+- Identity still exists.
+- Authentication is impossible.
+- New Credentials may be added later.
+
+This validates RFC-001.
+
+---
+
+### Scenario 5 — Identity is deleted
+
+Initial State
+
+- Lifecycle: Active
+- Security: Unlocked
+
+Action
+
+Delete is requested.
+
+Expected Result
+
+Unknown.
+
+Further domain discovery is required before the behavior can be defined.
+
+This scenario motivates future RFCs.
