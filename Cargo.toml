@@ -10,5 +10,5 @@ members = [
     "crates/localid-storage-memory",
     "crates/localid-password",
     "crates/localid-password-argon2",
-    "crates/localid-token",
+    "crates/localid-token", "crates/localid-token-random",
 ]
