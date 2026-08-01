@@ -1,0 +1,9 @@
+[package]
+name = "localid-repository"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+localid-identity = { path = "../localid-identity" }
+localid-credential = { path = "../localid-credential" }
+localid-session = { path = "../localid-session" }

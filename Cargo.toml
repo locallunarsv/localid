@@ -5,4 +5,5 @@ members = [
     "crates/localid-identity",
     "crates/localid-credential",
     "crates/localid-session",
+    "crates/localid-repository",
 ]
