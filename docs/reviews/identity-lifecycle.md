@@ -412,3 +412,123 @@ Questions
 - Is Security State still meaningful after deletion?
 - Should deletion clear or preserve the previous security state?
 - Should authentication reveal that the Identity is deleted, or return a generic failure?
+
+## Deleted State Discovery
+
+`Deleted` is currently considered a candidate terminal lifecycle state.
+
+The purpose of this state is to preserve Identity as a historical and canonical reference while preventing any future operational use.
+
+### Proposed Meaning
+
+A deleted Identity:
+
+- still exists as a historical reference;
+- cannot authenticate;
+- cannot create new Sessions;
+- cannot receive new Credentials;
+- cannot return to Active through ordinary lifecycle behavior;
+- remains referentially valid for audit and historical records.
+
+### Proposed Rules
+
+- Deletion is a deliberate domain action.
+- Deletion is distinct from administrative disabling.
+- Deletion is terminal unless a future RFC introduces restoration.
+- Deletion should revoke all active Sessions.
+- Existing Credentials become unusable.
+- Physical data removal is outside the Identity lifecycle.
+
+### Deleted State Scenarios
+
+#### Scenario 11 — Active Identity is deleted
+
+**Initial State**
+
+- Lifecycle: Active
+- Security: Unlocked
+
+**Expected Result**
+
+- Lifecycle becomes Deleted.
+- Authentication is denied.
+- Active Sessions are revoked.
+- Identity remains available as a historical reference.
+
+---
+
+#### Scenario 12 — Disabled Identity is deleted
+
+**Initial State**
+
+- Lifecycle: Disabled
+- Security: Unlocked
+
+**Expected Result**
+
+- Lifecycle becomes Deleted.
+- Authentication remains denied.
+- Identity remains available as a historical reference.
+
+---
+
+#### Scenario 13 — Locked Identity is deleted
+
+**Initial State**
+
+- Lifecycle: Active
+- Security: Locked
+
+**Expected Result**
+
+- Lifecycle becomes Deleted.
+- Authentication remains denied.
+- Historical lock information may still be retained for audit.
+
+---
+
+#### Scenario 14 — Enable is requested for a deleted Identity
+
+**Expected Result**
+
+- Operation is rejected.
+- Lifecycle remains Deleted.
+
+---
+
+#### Scenario 15 — A new Credential is added to a deleted Identity
+
+**Expected Result**
+
+- Operation is rejected.
+- No Credential is created.
+
+## Candidate Lifecycle Model
+
+Current candidate:
+
+```text
+Lifecycle
+
+Active <────> Disabled
+
+Active   ───► Deleted
+Disabled ───► Deleted
+
+Deleted is terminal.
+```
+
+Security remains independent:
+
+```text
+Security
+
+Unlocked <────> Locked
+```
+
+## Remaining Questions
+
+- Who is allowed to delete an Identity?
+- Is deletion reversible?
+- Should deleted Identities ever be physically removed?
+- How long should deleted Identities be retained?
