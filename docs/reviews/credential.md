@@ -104,8 +104,53 @@ Changes to a Credential do not require modifications to the Identity aggregate.
 
 Removing a Credential does not remove its owning Identity.
 
+## Lifecycle Discovery
+
+Credential has a lifecycle independent from its owning Identity.
+
+A Credential may become unusable without changing the lifecycle state of its owning Identity.
+
+### Candidate States
+
+The following lifecycle states are currently being considered:
+
+- Active;
+- Disabled;
+- Revoked.
+
+### Candidate Meanings
+
+#### Active
+
+The Credential is available for authentication verification.
+
+Whether authentication succeeds still depends on the Credential Kind, supplied evidence, Identity state, and authentication policy.
+
+#### Disabled
+
+The Credential is temporarily unavailable.
+
+A disabled Credential still exists and may be enabled again through an explicit administrative or recovery action.
+
+#### Revoked
+
+The Credential has been permanently removed from operational use.
+
+Revocation is terminal. A revoked Credential cannot be enabled or reused.
+
+### Candidate Transitions
+
+```text
+Active <────> Disabled
+
+Active   ───► Revoked
+Disabled ───► Revoked
+
+Revoked is terminal.
+
 ## Open Questions
 
 - Should every Credential Kind share the same lifecycle?
 - Should OAuth be modeled as a Credential or as an external identity link?
 - Can multiple Credentials of the same kind belong to one Identity?
+```
