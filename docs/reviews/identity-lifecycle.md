@@ -117,10 +117,10 @@ Possible causes include:
 
 `Disabled` and `Locked` have different intent.
 
-| State | Primary intent | Typical initiator | Recovery |
-|---|---|---|---|
-| Disabled | Administrative unavailability | Administrator or management policy | Explicit enable action |
-| Locked | Security protection | Security policy or administrator | Unlock action or policy-defined recovery |
+| State    | Primary intent                | Typical initiator                  | Recovery                                 |
+| -------- | ----------------------------- | ---------------------------------- | ---------------------------------------- |
+| Disabled | Administrative unavailability | Administrator or management policy | Explicit enable action                   |
+| Locked   | Security protection           | Security policy or administrator   | Unlock action or policy-defined recovery |
 
 A disabled Identity is unavailable because it should not currently be used.
 
@@ -147,3 +147,12 @@ The following rules are currently proposed:
 - Can a lock expire automatically?
 - Does enabling a previously locked Identity bypass the lock?
 - Should lock reason and lock expiry belong to Identity or a security-policy component?
+
+## Design Question
+
+Should `Locked` be modeled as:
+
+1. a lifecycle state; or
+2. an independent security state?
+
+Further investigation is required before finalizing the Identity state model.
