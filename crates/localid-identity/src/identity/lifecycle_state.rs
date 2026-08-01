@@ -2,24 +2,22 @@
 ///
 /// Lifecycle state represents whether an Identity is operational,
 /// administratively unavailable, or permanently removed from operational use.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LifecycleState {
     /// The Identity is available for normal operational use.
-    #[default]
     Active,
 
     /// The Identity is administratively unavailable.
-    ///
-    /// A disabled Identity still exists and may later be enabled again.
     Disabled,
 
     /// The Identity has been permanently removed from operational use.
-    ///
-    /// Deleted is a terminal lifecycle state.
     Deleted,
 }
 
 impl LifecycleState {
+    /// Initial lifecycle state assigned to a newly created Identity.
+    pub const INITIAL: Self = Self::Active;
+
     /// Returns `true` when the lifecycle state is [`Active`](Self::Active).
     #[must_use]
     pub const fn is_active(self) -> bool {
@@ -44,8 +42,8 @@ mod tests {
     use super::LifecycleState;
 
     #[test]
-    fn default_state_is_active() {
-        assert_eq!(LifecycleState::default(), LifecycleState::Active);
+    fn initial_state_is_active() {
+        assert_eq!(LifecycleState::INITIAL, LifecycleState::Active);
     }
 
     #[test]

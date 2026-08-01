@@ -12,11 +12,12 @@ pub struct Identity {
 
 impl Identity {
     /// Creates a new active Identity with the provided identifier.
+    /// Creates a new Identity in its initial lifecycle state.
     #[must_use]
     pub const fn new(id: IdentityId) -> Self {
         Self {
             id,
-            lifecycle_state: LifecycleState::Active,
+            lifecycle_state: LifecycleState::INITIAL,
         }
     }
 
