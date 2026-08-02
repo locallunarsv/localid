@@ -1,0 +1,10 @@
+[package]
+name = "localid-refresh-token"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4"
+uuid = { version = "1", features = ["v7"] }
+
+localid-session = { path = "../localid-session" }

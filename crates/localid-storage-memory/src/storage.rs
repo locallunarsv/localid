@@ -6,7 +6,9 @@ use std::{
 use localid_credential::{Credential, CredentialId};
 use localid_identity::{Identity, IdentityId};
 use localid_password::PasswordMaterial;
+use localid_refresh_token::{RefreshToken, RefreshTokenId};
 use localid_repository::PasswordMaterialRepository;
+use localid_repository::RefreshTokenRepository;
 use localid_repository::{
     CredentialRepository, IdentityRepository, SessionRepository, TokenRepository,
 };
@@ -22,6 +24,7 @@ struct InnerStorage {
     sessions: HashMap<SessionId, Session>,
     password_materials: HashMap<CredentialId, PasswordMaterial>,
     tokens: HashMap<TokenId, Token>,
+    refresh_tokens: HashMap<RefreshTokenId, RefreshToken>,
 }
 
 /// Shared in-memory implementation of LocalID repository contracts.
@@ -59,6 +62,43 @@ impl IdentityRepository for MemoryStorage {
             .map_err(|_| MemoryStorageError::LockPoisoned)?;
 
         storage.identities.insert(identity.id(), identity);
+
+        Ok(())
+    }
+}
+
+impl RefreshTokenRepository for MemoryStorage {
+    type Error = MemoryStorageError;
+
+    fn find_by_id(&self, id: RefreshTokenId) -> Result<Option<RefreshToken>, Self::Error> {
+        let storage = self
+            .inner
+            .read()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage.refresh_tokens.get(&id).cloned())
+    }
+
+    fn find_by_secret_hash(&self, secret_hash: &str) -> Result<Option<RefreshToken>, Self::Error> {
+        let storage = self
+            .inner
+            .read()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage
+            .refresh_tokens
+            .values()
+            .find(|token| token.secret_hash() == secret_hash)
+            .cloned())
+    }
+
+    fn save(&mut self, token: RefreshToken) -> Result<(), Self::Error> {
+        let mut storage = self
+            .inner
+            .write()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        storage.refresh_tokens.insert(token.id(), token);
 
         Ok(())
     }
@@ -211,6 +251,8 @@ mod tests {
     use localid_credential::{Credential, CredentialId, CredentialKind};
     use localid_identity::{Identity, IdentityId};
     use localid_password::PasswordHash;
+    use localid_refresh_token::{RefreshToken, RefreshTokenId};
+    use localid_repository::RefreshTokenRepository;
     use localid_repository::{
         CredentialRepository, IdentityRepository, SessionRepository, TokenRepository,
     };
@@ -347,5 +389,31 @@ mod tests {
             .expect("token lookup should succeed");
 
         assert_eq!(stored, Some(token));
+    }
+    #[test]
+    fn finds_refresh_tokens_by_secret_hash() {
+        let mut storage = MemoryStorage::new();
+
+        let created_at = Utc
+            .with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
+            .single()
+            .expect("timestamp should be valid");
+
+        let refresh_token = RefreshToken::new(
+            RefreshTokenId::new(),
+            SessionId::new(),
+            "refresh-hash".to_owned(),
+            created_at,
+            created_at + TimeDelta::days(30),
+        )
+        .expect("refresh token should be valid");
+
+        RefreshTokenRepository::save(&mut storage, refresh_token.clone())
+            .expect("refresh token should save");
+
+        let stored = RefreshTokenRepository::find_by_secret_hash(&storage, "refresh-hash")
+            .expect("lookup should succeed");
+
+        assert_eq!(stored, Some(refresh_token));
     }
 }

@@ -11,6 +11,7 @@ localid-repository = { path = "../localid-repository" }
 localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
 localid-token-random = { path = "../localid-token-random" }
+localid-refresh-token-random = { path = "../localid-refresh-token-random" }
 sha2 = "0.10"
 hex = "0.4"
 chrono = "0.4"
