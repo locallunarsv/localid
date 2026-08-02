@@ -15,3 +15,15 @@ fn creates_refresh_token_service() {
         RandomTokenIssuer::new(),
     );
 }
+
+#[test]
+fn refresh_rotates_refresh_token() {
+    // TODO:
+    // 1. create identity
+    // 2. create session
+    // 3. issue refresh token
+    // 4. save refresh token
+    // 5. call refresh()
+    // 6. assert old token revoked
+    // 7. assert new token exists
+}
