@@ -1,7 +1,7 @@
 use localid_refresh_token_random::IssuedRefreshToken;
 use localid_token_random::IssuedToken;
 
-/// Successful refresh token operation result.
+/// Result returned after refreshing tokens.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RefreshResult {
     access_token: IssuedToken,

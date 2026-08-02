@@ -8,9 +8,11 @@ pub use error::AuthenticationError;
 
 pub use password::{
     AuthenticatePasswordRequest, DefaultPasswordAuthenticationService,
-    PasswordAuthenticationService,
+    PasswordAuthenticationDependencies, PasswordAuthenticationService,
 };
 
 pub use shared::{AuthenticateResult, SessionFactory};
 
 pub use token::{AuthenticatedContext, DefaultTokenValidator, TokenValidator};
+
+pub use refresh_token::{DefaultRefreshTokenService, RefreshResult, RefreshTokenService};

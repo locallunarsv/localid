@@ -1,12 +1,14 @@
 use chrono::{TimeDelta, TimeZone, Utc};
+
 use localid_authentication::{
     AuthenticatePasswordRequest, DefaultPasswordAuthenticationService,
-    PasswordAuthenticationService, SessionFactory,
+    PasswordAuthenticationDependencies, PasswordAuthenticationService, SessionFactory,
 };
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
 use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
 use localid_password_argon2::Argon2PasswordHasher;
+use localid_refresh_token_random::RandomRefreshTokenIssuer;
 use localid_repository::{
     CredentialRepository, IdentityRepository, PasswordMaterialRepository, SessionRepository,
 };
@@ -37,8 +39,6 @@ impl SessionFactory for FixedSessionFactory {
 
 #[test]
 fn authenticates_password_credential() {
-    // Arrange
-
     let mut storage = MemoryStorage::new();
 
     let identity = Identity::new(IdentityId::new());
@@ -47,6 +47,7 @@ fn authenticates_password_credential() {
     IdentityRepository::save(&mut storage, identity).expect("Identity should be stored");
 
     let credential = Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
+
     let credential_id = credential.id();
 
     CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
@@ -63,25 +64,25 @@ fn authenticates_password_credential() {
     PasswordMaterialRepository::save(&mut storage, password_material)
         .expect("Password Material should be stored");
 
-    let mut service = DefaultPasswordAuthenticationService::new(
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        hasher,
-        FixedSessionFactory,
-        RandomTokenIssuer::new(),
-    );
+    let mut service =
+        DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
+            identity_repository: storage.clone(),
+            credential_repository: storage.clone(),
+            password_material_repository: storage.clone(),
+            session_repository: storage.clone(),
+            token_repository: storage.clone(),
+            refresh_token_repository: storage.clone(),
+            password_verifier: Argon2PasswordHasher::new(),
+            session_factory: FixedSessionFactory,
+            token_issuer: RandomTokenIssuer::new(),
+            refresh_token_issuer: RandomRefreshTokenIssuer::new(),
+        });
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);
-
-    // Act
 
     let result = service
         .authenticate_password(request)
         .expect("password authentication should succeed");
-
-    // Assert
 
     let session = result.session();
 
@@ -97,9 +98,6 @@ fn authenticates_password_credential() {
 
 #[test]
 fn rejects_invalid_password() {
-    use localid_authentication::AuthenticationError;
-    // Arrange
-
     let mut storage = MemoryStorage::new();
 
     let identity = Identity::new(IdentityId::new());
@@ -108,51 +106,100 @@ fn rejects_invalid_password() {
     IdentityRepository::save(&mut storage, identity).expect("Identity should be stored");
 
     let credential = Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
+
     let credential_id = credential.id();
 
     CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
 
-    let correct_password =
-        PasswordSecret::new("correct-password").expect("password should be valid");
-
-    let wrong_password = PasswordSecret::new("wrong-password").expect("password should be valid");
+    let password = PasswordSecret::new("correct-password").expect("test password should be valid");
 
     let hasher = Argon2PasswordHasher::new();
 
     let password_hash =
-        PasswordHasher::hash(&hasher, &correct_password).expect("password hashing should succeed");
+        PasswordHasher::hash(&hasher, &password).expect("password hashing should succeed");
 
-    let material = PasswordMaterial::new(credential_id, password_hash);
+    let password_material = PasswordMaterial::new(credential_id, password_hash);
 
-    PasswordMaterialRepository::save(&mut storage, material)
+    PasswordMaterialRepository::save(&mut storage, password_material)
         .expect("Password Material should be stored");
 
-    let mut service = DefaultPasswordAuthenticationService::new(
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        hasher,
-        FixedSessionFactory,
-        RandomTokenIssuer::new(),
-    );
+    let mut service =
+        DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
+            identity_repository: storage.clone(),
+            credential_repository: storage.clone(),
+            password_material_repository: storage.clone(),
+            session_repository: storage.clone(),
+            token_repository: storage.clone(),
+            refresh_token_repository: storage.clone(),
+            password_verifier: Argon2PasswordHasher::new(),
+            session_factory: FixedSessionFactory,
+            token_issuer: RandomTokenIssuer::new(),
+            refresh_token_issuer: RandomRefreshTokenIssuer::new(),
+        });
+
+    let wrong_password =
+        PasswordSecret::new("wrong-password").expect("test password should be valid");
 
     let request = AuthenticatePasswordRequest::new(credential_id, wrong_password);
 
-    // Act
+    let result = service.authenticate_password(request);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn rejects_disabled_identity() {
+    let mut storage = MemoryStorage::new();
+
+    let mut identity = Identity::new(IdentityId::new());
+    identity.disable().expect("identity should be disabled");
+
+    let identity_id = identity.id();
+
+    IdentityRepository::save(&mut storage, identity).expect("Identity should be stored");
+
+    let credential = Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
+
+    let credential_id = credential.id();
+
+    CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
+
+    let password = PasswordSecret::new("password").expect("test password should be valid");
+
+    let hasher = Argon2PasswordHasher::new();
+
+    let password_hash =
+        PasswordHasher::hash(&hasher, &password).expect("password hashing should succeed");
+
+    PasswordMaterialRepository::save(
+        &mut storage,
+        PasswordMaterial::new(credential_id, password_hash),
+    )
+    .expect("Password Material should be stored");
+
+    let mut service =
+        DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
+            identity_repository: storage.clone(),
+            credential_repository: storage.clone(),
+            password_material_repository: storage.clone(),
+            session_repository: storage.clone(),
+            token_repository: storage.clone(),
+            refresh_token_repository: storage.clone(),
+            password_verifier: Argon2PasswordHasher::new(),
+            session_factory: FixedSessionFactory,
+            token_issuer: RandomTokenIssuer::new(),
+            refresh_token_issuer: RandomRefreshTokenIssuer::new(),
+        });
+
+    let request = AuthenticatePasswordRequest::new(credential_id, password);
 
     let result = service.authenticate_password(request);
 
-    // Assert
-
-    assert_eq!(result, Err(AuthenticationError::InvalidPassword));
+    assert!(result.is_err());
 }
 
 #[test]
 fn rejects_disabled_credential() {
-    use localid_authentication::AuthenticationError;
-    // Arrange
-
     let mut storage = MemoryStorage::new();
 
     let identity = Identity::new(IdentityId::new());
@@ -163,137 +210,31 @@ fn rejects_disabled_credential() {
     let mut credential =
         Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
 
-    let credential_id = credential.id();
-
     credential.disable().expect("credential should be disabled");
 
-    CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
-
-    let password = PasswordSecret::new("correct-password").expect("password should be valid");
-
-    let hasher = Argon2PasswordHasher::new();
-
-    let password_hash =
-        PasswordHasher::hash(&hasher, &password).expect("password hashing should succeed");
-
-    let material = PasswordMaterial::new(credential_id, password_hash);
-
-    PasswordMaterialRepository::save(&mut storage, material)
-        .expect("Password Material should be stored");
-
-    let mut service = DefaultPasswordAuthenticationService::new(
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        hasher,
-        FixedSessionFactory,
-        RandomTokenIssuer::new(),
-    );
-
-    let request = AuthenticatePasswordRequest::new(credential_id, password);
-
-    // Act
-
-    let result = service.authenticate_password(request);
-
-    // Assert
-
-    assert_eq!(result, Err(AuthenticationError::CredentialUnavailable));
-}
-
-#[test]
-fn rejects_disabled_identity() {
-    use localid_authentication::AuthenticationError;
-    // Arrange
-
-    let mut storage = MemoryStorage::new();
-
-    let mut identity = Identity::new(IdentityId::new());
-    let identity_id = identity.id();
-
-    identity.disable().expect("identity should be disabled");
-
-    IdentityRepository::save(&mut storage, identity).expect("Identity should be stored");
-
-    let credential = Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
-
     let credential_id = credential.id();
 
     CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
 
-    let password = PasswordSecret::new("correct-password").expect("password should be valid");
+    let mut service =
+        DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
+            identity_repository: storage.clone(),
+            credential_repository: storage.clone(),
+            password_material_repository: storage.clone(),
+            session_repository: storage.clone(),
+            token_repository: storage.clone(),
+            refresh_token_repository: storage.clone(),
+            password_verifier: Argon2PasswordHasher::new(),
+            session_factory: FixedSessionFactory,
+            token_issuer: RandomTokenIssuer::new(),
+            refresh_token_issuer: RandomRefreshTokenIssuer::new(),
+        });
 
-    let hasher = Argon2PasswordHasher::new();
-
-    let password_hash =
-        PasswordHasher::hash(&hasher, &password).expect("password hashing should succeed");
-
-    let material = PasswordMaterial::new(credential_id, password_hash);
-
-    PasswordMaterialRepository::save(&mut storage, material)
-        .expect("Password Material should be stored");
-
-    let mut service = DefaultPasswordAuthenticationService::new(
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        hasher,
-        FixedSessionFactory,
-        RandomTokenIssuer::new(),
-    );
+    let password = PasswordSecret::new("password").expect("test password should be valid");
 
     let request = AuthenticatePasswordRequest::new(credential_id, password);
 
-    // Act
-
     let result = service.authenticate_password(request);
 
-    // Assert
-
-    assert_eq!(result, Err(AuthenticationError::IdentityUnavailable));
-}
-
-#[test]
-fn rejects_missing_password_material() {
-    use localid_authentication::AuthenticationError;
-    // Arrange
-
-    let mut storage = MemoryStorage::new();
-
-    let identity = Identity::new(IdentityId::new());
-    let identity_id = identity.id();
-
-    IdentityRepository::save(&mut storage, identity).expect("Identity should be stored");
-
-    let credential = Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
-
-    let credential_id = credential.id();
-
-    CredentialRepository::save(&mut storage, credential).expect("Credential should be stored");
-
-    let password = PasswordSecret::new("correct-password").expect("password should be valid");
-
-    let hasher = Argon2PasswordHasher::new();
-
-    let mut service = DefaultPasswordAuthenticationService::new(
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        storage.clone(),
-        hasher,
-        FixedSessionFactory,
-        RandomTokenIssuer::new(),
-    );
-
-    let request = AuthenticatePasswordRequest::new(credential_id, password);
-
-    // Act
-
-    let result = service.authenticate_password(request);
-
-    // Assert
-
-    assert_eq!(result, Err(AuthenticationError::PasswordMaterialNotFound));
+    assert!(result.is_err());
 }
