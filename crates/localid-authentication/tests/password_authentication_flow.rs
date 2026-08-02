@@ -1,4 +1,4 @@
-use chrono::{TimeDelta, TimeZone, Utc};
+use chrono::{TimeDelta, Utc};
 
 use localid_authentication::{
     AuthenticatePasswordRequest, DefaultPasswordAuthenticationService,
@@ -22,10 +22,7 @@ impl SessionFactory for FixedSessionFactory {
     type Error = ();
 
     fn create_session(&self, identity_id: IdentityId) -> Result<Session, Self::Error> {
-        let created_at = Utc
-            .with_ymd_and_hms(2026, 8, 2, 0, 0, 0)
-            .single()
-            .expect("test timestamp should be valid");
+        let created_at = Utc::now();
 
         Session::new(
             SessionId::new(),
