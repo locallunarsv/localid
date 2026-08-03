@@ -21,6 +21,9 @@ localid-refresh-token-random = { path = "../localid-refresh-token-random" }
 localid-token-random = { path = "../localid-token-random" }
 localid-identity = { path = "../localid-identity" }
 localid-repository = { path = "../localid-repository" }
+localid-refresh-token = { path = "../localid-refresh-token" }
+localid-session = { path = "../localid-session" }
+localid-token = { path = "../localid-token" }
 
 [dev-dependencies]
 tower = "0.5"

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-use localid_application::LoginResponse;
+use localid_application::TokenResponse;
 
 /// HTTP login response.
 #[derive(Debug, Serialize)]
@@ -11,8 +11,8 @@ pub struct LoginResponseBody {
     pub expires_at: DateTime<Utc>,
 }
 
-impl From<LoginResponse> for LoginResponseBody {
-    fn from(response: LoginResponse) -> Self {
+impl From<TokenResponse> for LoginResponseBody {
+    fn from(response: TokenResponse) -> Self {
         Self {
             access_token: response.access_token().to_owned(),
             refresh_token: response.refresh_token().to_owned(),

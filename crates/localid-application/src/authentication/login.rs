@@ -2,7 +2,7 @@
 ///
 /// Coordinates authentication flow between
 /// external input and authentication domain.
-use super::{AuthenticationPort, LoginCommand, LoginResponse, map_authentication_error};
+use super::{AuthenticationPort, LoginCommand, TokenResponse, map_authentication_error};
 
 use crate::ApplicationError;
 
@@ -25,10 +25,10 @@ where
     }
 
     /// Executes login flow.
-    pub fn execute(&mut self, command: LoginCommand) -> Result<LoginResponse, ApplicationError> {
+    pub fn execute(&mut self, command: LoginCommand) -> Result<TokenResponse, ApplicationError> {
         self.authentication_service
             .authenticate(command)
-            .map(|result| LoginResponse::from_authentication_result(&result))
+            .map(|result| TokenResponse::from_authentication_result(&result))
             .map_err(map_authentication_error)
     }
 }

@@ -1,13 +1,21 @@
+mod repository;
 mod seed;
 
 pub use seed::seed_demo_identity;
 
 use localid_credential::CredentialId;
 
-use localid_application::{authentication::PasswordAuthenticationAdapter, LoginUseCase};
+use crate::bootstrap::repository::SharedRepository;
+use crate::AppState;
+
+use localid_application::{
+    authentication::PasswordAuthenticationAdapter, LoginUseCase, RefreshTokenAdapter,
+    RefreshTokenUseCase,
+};
 
 use localid_authentication::{
-    DefaultPasswordAuthenticationService, DefaultSessionFactory, PasswordAuthenticationDependencies,
+    DefaultPasswordAuthenticationService, DefaultRefreshTokenService, DefaultSessionFactory,
+    PasswordAuthenticationDependencies,
 };
 
 use localid_password_argon2::Argon2PasswordHasher;
@@ -21,25 +29,27 @@ use localid_repository_memory::{
 
 use localid_token_random::RandomTokenIssuer;
 
-use crate::AppState;
-
 /// Result of application bootstrap initialization.
-pub struct BootstrapContext<A> {
+pub struct BootstrapContext<L, R> {
     /// Ready-to-use application state.
-    pub state: AppState<A>,
+    pub state: AppState<L, R>,
 
     /// Credential identifier created during development seed.
     pub credential_id: CredentialId,
 }
+
+type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
+type SharedTokenRepository = SharedRepository<MemoryTokenRepository>;
+type SharedRefreshTokenRepository = SharedRepository<MemoryRefreshTokenRepository>;
 
 type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
     DefaultPasswordAuthenticationService<
         MemoryIdentityRepository,
         MemoryCredentialRepository,
         MemoryPasswordMaterialRepository,
-        MemorySessionRepository,
-        MemoryTokenRepository,
-        MemoryRefreshTokenRepository,
+        SharedSessionRepository,
+        SharedTokenRepository,
+        SharedRefreshTokenRepository,
         Argon2PasswordHasher,
         DefaultSessionFactory,
         RandomTokenIssuer,
@@ -47,8 +57,18 @@ type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
     >,
 >;
 
+type BootstrapRefreshService = RefreshTokenAdapter<
+    DefaultRefreshTokenService<
+        SharedRefreshTokenRepository,
+        SharedTokenRepository,
+        SharedSessionRepository,
+        RandomRefreshTokenIssuer,
+        RandomTokenIssuer,
+    >,
+>;
+
 /// Creates application state with in-memory authentication dependencies.
-pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService> {
+pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService, BootstrapRefreshService> {
     let mut identity_repository = MemoryIdentityRepository::new();
     let mut credential_repository = MemoryCredentialRepository::new();
     let mut password_material_repository = MemoryPasswordMaterialRepository::new();
@@ -59,26 +79,44 @@ pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService> {
         &mut password_material_repository,
     );
 
+    let session_repository = SharedRepository::new(MemorySessionRepository::new());
+
+    let token_repository = SharedRepository::new(MemoryTokenRepository::new());
+
+    let refresh_token_repository = SharedRepository::new(MemoryRefreshTokenRepository::new());
+
     let authentication_service =
         DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
             identity_repository,
             credential_repository,
             password_material_repository,
-            session_repository: MemorySessionRepository::new(),
-            token_repository: MemoryTokenRepository::new(),
-            refresh_token_repository: MemoryRefreshTokenRepository::new(),
+            session_repository: session_repository.clone(),
+            token_repository: token_repository.clone(),
+            refresh_token_repository: refresh_token_repository.clone(),
             password_verifier: Argon2PasswordHasher::new(),
             session_factory: DefaultSessionFactory::new(),
             token_issuer: RandomTokenIssuer::new(),
             refresh_token_issuer: RandomRefreshTokenIssuer::new(),
         });
 
+    let refresh_service = DefaultRefreshTokenService::new(
+        refresh_token_repository,
+        token_repository,
+        session_repository,
+        RandomRefreshTokenIssuer::new(),
+        RandomTokenIssuer::new(),
+    );
+
+    let refresh_adapter = RefreshTokenAdapter::new(refresh_service);
+
+    let refresh_use_case = RefreshTokenUseCase::new(refresh_adapter);
+
     let adapter = PasswordAuthenticationAdapter::new(authentication_service);
 
-    let use_case = LoginUseCase::new(adapter);
+    let login_use_case = LoginUseCase::new(adapter);
 
     BootstrapContext {
-        state: AppState::new(use_case),
+        state: AppState::new(login_use_case, refresh_use_case),
         credential_id,
     }
 }

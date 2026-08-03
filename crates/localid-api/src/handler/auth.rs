@@ -1,17 +1,23 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
-use localid_application::LoginCommand;
+use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort};
 
-use crate::{request::login::LoginRequest, response::login::LoginResponseBody, ApiError, AppState};
+use crate::{
+    request::{LoginRequest, RefreshRequest},
+    response::login::LoginResponseBody,
+    ApiError, AppState,
+};
 
-use localid_application::AuthenticationPort;
-
-pub async fn login<A>(
-    State(state): State<AppState<A>>,
+pub async fn login<L, R>(
+    State(state): State<AppState<L, R>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
-    A: AuthenticationPort<Error = localid_authentication::AuthenticationError> + Send + Sync,
+    L: AuthenticationPort<Error = localid_authentication::AuthenticationError>
+        + Send
+        + Sync
+        + 'static,
+    R: Send + Sync + 'static,
 {
     let credential_id = match request.credential_id() {
         Ok(value) => value,
@@ -32,6 +38,26 @@ where
     let mut use_case = state.login_use_case.lock().await;
 
     match use_case.execute(command) {
+        Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
+
+        Err(error) => ApiError::from(error).into_response(),
+    }
+}
+
+pub async fn refresh<L, R>(
+    State(state): State<AppState<L, R>>,
+    Json(request): Json<RefreshRequest>,
+) -> impl IntoResponse
+where
+    L: Send + Sync + 'static,
+    R: RefreshTokenPort<Error = localid_authentication::AuthenticationError>
+        + Send
+        + Sync
+        + 'static,
+{
+    let mut use_case = state.refresh_use_case.lock().await;
+
+    match use_case.execute(request.refresh_token()) {
         Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
 
         Err(error) => ApiError::from(error).into_response(),
