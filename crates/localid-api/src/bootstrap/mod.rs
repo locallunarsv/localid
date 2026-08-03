@@ -32,23 +32,23 @@ pub struct BootstrapContext<A> {
     pub credential_id: CredentialId,
 }
 
-/// Creates application state with in-memory authentication dependencies.
-pub fn create_state() -> BootstrapContext<
-    PasswordAuthenticationAdapter<
-        DefaultPasswordAuthenticationService<
-            MemoryIdentityRepository,
-            MemoryCredentialRepository,
-            MemoryPasswordMaterialRepository,
-            MemorySessionRepository,
-            MemoryTokenRepository,
-            MemoryRefreshTokenRepository,
-            Argon2PasswordHasher,
-            DefaultSessionFactory,
-            RandomTokenIssuer,
-            RandomRefreshTokenIssuer,
-        >,
+type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
+    DefaultPasswordAuthenticationService<
+        MemoryIdentityRepository,
+        MemoryCredentialRepository,
+        MemoryPasswordMaterialRepository,
+        MemorySessionRepository,
+        MemoryTokenRepository,
+        MemoryRefreshTokenRepository,
+        Argon2PasswordHasher,
+        DefaultSessionFactory,
+        RandomTokenIssuer,
+        RandomRefreshTokenIssuer,
     >,
-> {
+>;
+
+/// Creates application state with in-memory authentication dependencies.
+pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService> {
     let mut identity_repository = MemoryIdentityRepository::new();
     let mut credential_repository = MemoryCredentialRepository::new();
     let mut password_material_repository = MemoryPasswordMaterialRepository::new();
