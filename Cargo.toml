@@ -13,5 +13,8 @@ members = [
     "crates/localid-token",
     "crates/localid-token-random",
     "crates/localid-refresh-token",
-    "crates/localid-refresh-token-random", "crates/localid-authorization",
+    "crates/localid-refresh-token-random",
+    "crates/localid-authorization",
+    "crates/localid-application",
+    "crates/localid-api", "crates/localid-repository-memory",
 ]

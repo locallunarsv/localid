@@ -1,0 +1,35 @@
+[package]
+name = "localid-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = "1"
+
+localid-application = { path = "../localid-application" }
+localid-authentication = { path = "../localid-authentication" }
+localid-credential = { path = "../localid-credential" }
+localid-password = { path = "../localid-password" }
+localid-password-argon2 = { path = "../localid-password-argon2" }
+localid-repository-memory = { path = "../localid-repository-memory" }
+localid-refresh-token-random = { path = "../localid-refresh-token-random" }
+localid-token-random = { path = "../localid-token-random" }
+localid-identity = { path = "../localid-identity" }
+localid-repository = { path = "../localid-repository" }
+
+[dev-dependencies]
+tower = "0.5"
+serde_json = "1"
+
+localid-credential = { path = "../localid-credential" }
+localid-identity = { path = "../localid-identity" }
+localid-session = { path = "../localid-session" }
+localid-token = { path = "../localid-token" }
+localid-token-random = { path = "../localid-token-random" }
+localid-refresh-token = { path = "../localid-refresh-token" }
+localid-refresh-token-random = { path = "../localid-refresh-token-random" }

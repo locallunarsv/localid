@@ -1,0 +1,22 @@
+[package]
+name = "localid-application"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4"
+localid-authentication = { path = "../localid-authentication" }
+localid-credential = { path = "../localid-credential" }
+localid-password = { path = "../localid-password" }
+
+[dev-dependencies]
+chrono = "0.4"
+localid-authentication = { path = "../localid-authentication" }
+localid-credential = { path = "../localid-credential" }
+localid-identity = { path = "../localid-identity" }
+localid-password = { path = "../localid-password" }
+localid-refresh-token = { path = "../localid-refresh-token" }
+localid-refresh-token-random = { path = "../localid-refresh-token-random" }
+localid-session = { path = "../localid-session" }
+localid-token = { path = "../localid-token" }
+localid-token-random = { path = "../localid-token-random" }

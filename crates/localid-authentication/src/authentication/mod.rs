@@ -11,7 +11,7 @@ pub use password::{
     PasswordAuthenticationDependencies, PasswordAuthenticationService,
 };
 
-pub use shared::{AuthenticateResult, SessionFactory};
+pub use shared::{AuthenticateResult, DefaultSessionFactory, SessionFactory};
 
 pub use token::{AuthenticatedContext, DefaultTokenValidator, TokenValidator};
 

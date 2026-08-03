@@ -9,7 +9,7 @@ mod authentication;
 
 pub use authentication::{
     AuthenticatePasswordRequest, AuthenticateResult, AuthenticatedContext, AuthenticationError,
-    DefaultPasswordAuthenticationService, DefaultRefreshTokenService, DefaultTokenValidator,
-    PasswordAuthenticationDependencies, PasswordAuthenticationService, RefreshResult,
-    RefreshTokenService, SessionFactory, TokenValidator,
+    DefaultPasswordAuthenticationService, DefaultRefreshTokenService, DefaultSessionFactory,
+    DefaultTokenValidator, PasswordAuthenticationDependencies, PasswordAuthenticationService,
+    RefreshResult, RefreshTokenService, SessionFactory, TokenValidator,
 };
