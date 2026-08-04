@@ -1,6 +1,5 @@
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
     middleware::Next,
     response::Response,
 };
@@ -8,14 +7,14 @@ use axum::{
 use localid_application::VerifyTokenQuery;
 use localid_authentication::TokenVerificationService;
 
-use crate::{context::IdentityContext, middleware::AuthMiddlewareState};
+use crate::{context::IdentityContext, error::ApiError, middleware::AuthMiddlewareState};
 
 /// Authentication middleware.
 pub async fn require_auth<V>(
     State(state): State<AuthMiddlewareState<V>>,
     mut request: Request,
     next: Next,
-) -> Result<Response, StatusCode>
+) -> Result<Response, ApiError>
 where
     V: TokenVerificationService<Error = localid_authentication::AuthenticationError>
         + Send
@@ -25,13 +24,15 @@ where
     let header = request
         .headers()
         .get("Authorization")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or(ApiError::AuthenticationFailed)?;
 
-    let value = header.to_str().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let value = header
+        .to_str()
+        .map_err(|_| ApiError::AuthenticationFailed)?;
 
     let token = value
         .strip_prefix("Bearer ")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or(ApiError::AuthenticationFailed)?;
 
     let query = VerifyTokenQuery::new(token);
 
@@ -39,7 +40,7 @@ where
 
     let identity = use_case
         .execute(query)
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        .map_err(|_| ApiError::AuthenticationFailed)?;
 
     let context = IdentityContext::new(identity.identity_id(), identity.session_id());
 
