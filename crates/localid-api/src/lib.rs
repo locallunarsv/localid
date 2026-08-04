@@ -2,6 +2,8 @@
 
 //! HTTP API layer for LocalID.
 
+/// Authentication utilities for protected API access.
+pub mod auth;
 mod error;
 mod handler;
 mod request;

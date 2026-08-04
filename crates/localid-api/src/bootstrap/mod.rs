@@ -9,13 +9,13 @@ use crate::bootstrap::repository::SharedRepository;
 use crate::AppState;
 
 use localid_application::{
-    authentication::PasswordAuthenticationAdapter, LoginUseCase, RefreshTokenAdapter,
-    RefreshTokenUseCase,
+    authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
+    LoginUseCase, RefreshTokenAdapter, RefreshTokenUseCase, VerifyTokenUseCase,
 };
 
 use localid_authentication::{
     DefaultPasswordAuthenticationService, DefaultRefreshTokenService, DefaultSessionFactory,
-    PasswordAuthenticationDependencies,
+    DefaultTokenVerificationService, PasswordAuthenticationDependencies,
 };
 
 use localid_password_argon2::Argon2PasswordHasher;
@@ -30,9 +30,9 @@ use localid_repository_memory::{
 use localid_token_random::RandomTokenIssuer;
 
 /// Result of application bootstrap initialization.
-pub struct BootstrapContext<L, R> {
+pub struct BootstrapContext<L, R, V> {
     /// Ready-to-use application state.
-    pub state: AppState<L, R>,
+    pub state: AppState<L, R, V>,
 
     /// Credential identifier created during development seed.
     pub credential_id: CredentialId,
@@ -67,8 +67,16 @@ type BootstrapRefreshService = RefreshTokenAdapter<
     >,
 >;
 
+type BootstrapVerificationService = TokenVerificationAdapter<
+    DefaultTokenVerificationService<SharedTokenRepository, SharedSessionRepository>,
+>;
+
 /// Creates application state with in-memory authentication dependencies.
-pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService, BootstrapRefreshService> {
+pub fn create_state() -> BootstrapContext<
+    BootstrapAuthenticationService,
+    BootstrapRefreshService,
+    BootstrapVerificationService,
+> {
     let mut identity_repository = MemoryIdentityRepository::new();
     let mut credential_repository = MemoryCredentialRepository::new();
     let mut password_material_repository = MemoryPasswordMaterialRepository::new();
@@ -80,9 +88,7 @@ pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService, Bootst
     );
 
     let session_repository = SharedRepository::new(MemorySessionRepository::new());
-
     let token_repository = SharedRepository::new(MemoryTokenRepository::new());
-
     let refresh_token_repository = SharedRepository::new(MemoryRefreshTokenRepository::new());
 
     let authentication_service =
@@ -100,23 +106,29 @@ pub fn create_state() -> BootstrapContext<BootstrapAuthenticationService, Bootst
         });
 
     let refresh_service = DefaultRefreshTokenService::new(
-        refresh_token_repository,
-        token_repository,
-        session_repository,
+        refresh_token_repository.clone(),
+        token_repository.clone(),
+        session_repository.clone(),
         RandomRefreshTokenIssuer::new(),
         RandomTokenIssuer::new(),
     );
 
     let refresh_adapter = RefreshTokenAdapter::new(refresh_service);
-
     let refresh_use_case = RefreshTokenUseCase::new(refresh_adapter);
+
+    let verification_service =
+        DefaultTokenVerificationService::new(token_repository.clone(), session_repository.clone());
+
+    let verification_adapter = TokenVerificationAdapter::new(verification_service);
+
+    let verify_token_use_case = VerifyTokenUseCase::new(verification_adapter);
 
     let adapter = PasswordAuthenticationAdapter::new(authentication_service);
 
     let login_use_case = LoginUseCase::new(adapter);
 
     BootstrapContext {
-        state: AppState::new(login_use_case, refresh_use_case),
+        state: AppState::new(login_use_case, refresh_use_case, verify_token_use_case),
         credential_id,
     }
 }

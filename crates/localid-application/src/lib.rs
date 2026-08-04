@@ -10,8 +10,8 @@ pub mod authentication;
 mod error;
 
 pub use authentication::{
-    AuthenticationPort, LoginCommand, LoginUseCase, PasswordAuthenticationAdapter,
-    RefreshTokenAdapter, RefreshTokenPort, RefreshTokenUseCase, TokenResponse,
+    AuthenticationPort, LoginCommand, LoginUseCase, RefreshTokenAdapter, RefreshTokenPort,
+    RefreshTokenUseCase, TokenResponse, VerifyTokenQuery, VerifyTokenResponse, VerifyTokenUseCase,
 };
 
 pub use error::ApplicationError;

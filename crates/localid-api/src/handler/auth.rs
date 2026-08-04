@@ -8,8 +8,8 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R>(
-    State(state): State<AppState<L, R>>,
+pub async fn login<L, R, V>(
+    State(state): State<AppState<L, R, V>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
@@ -18,6 +18,7 @@ where
         + Sync
         + 'static,
     R: Send + Sync + 'static,
+    V: Send + Sync + 'static,
 {
     let credential_id = match request.credential_id() {
         Ok(value) => value,
@@ -44,8 +45,8 @@ where
     }
 }
 
-pub async fn refresh<L, R>(
-    State(state): State<AppState<L, R>>,
+pub async fn refresh<L, R, V>(
+    State(state): State<AppState<L, R, V>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
@@ -54,6 +55,7 @@ where
         + Send
         + Sync
         + 'static,
+    V: Send + Sync + 'static,
 {
     let mut use_case = state.refresh_use_case.lock().await;
 
