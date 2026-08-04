@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::State, response::IntoResponse, Json};
 
 use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort, VerifyTokenQuery};
 
@@ -25,14 +25,14 @@ where
     let credential_id = match request.credential_id() {
         Ok(value) => value,
         Err(_) => {
-            return (StatusCode::BAD_REQUEST, "invalid credential id").into_response();
+            return ApiError::InvalidRequest.into_response();
         }
     };
 
     let password = match request.password() {
         Ok(value) => value,
         Err(_) => {
-            return (StatusCode::BAD_REQUEST, "invalid password").into_response();
+            return ApiError::InvalidRequest.into_response();
         }
     };
 

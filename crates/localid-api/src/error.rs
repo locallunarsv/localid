@@ -11,13 +11,19 @@ use localid_application::ApplicationError;
 /// API error response body.
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
-    code: &'static str,
-    message: &'static str,
+    /// Machine-readable error code.
+    pub code: &'static str,
+
+    /// Human-readable error message.
+    pub message: &'static str,
 }
 
 /// API layer error.
 #[derive(Debug)]
 pub enum ApiError {
+    /// Invalid client request.
+    InvalidRequest,
+
     /// Authentication failed.
     AuthenticationFailed,
 
@@ -28,6 +34,14 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, body) = match self {
+            Self::InvalidRequest => (
+                StatusCode::BAD_REQUEST,
+                ErrorResponse {
+                    code: "invalid_request",
+                    message: "invalid request",
+                },
+            ),
+
             Self::AuthenticationFailed => (
                 StatusCode::UNAUTHORIZED,
                 ErrorResponse {
