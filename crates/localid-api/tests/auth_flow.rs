@@ -1,13 +1,10 @@
-use axum::{
-    body::Body,
-    http::{Request, StatusCode},
-};
+use axum::{ body::Body, http::{ Request, StatusCode } };
 
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{ bootstrap::create_state, create_router };
 
 struct AuthTokens {
     access_token: String,
@@ -19,9 +16,10 @@ async fn login() -> AuthTokens {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state);
+    let app = create_router(context.state, context.auth_state);
 
-    let payload = serde_json::json!({
+    let payload =
+        serde_json::json!({
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });
@@ -42,10 +40,7 @@ async fn login() -> AuthTokens {
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     AuthTokens {
-        access_token: json["access_token"]
-            .as_str()
-            .expect("access token should exist")
-            .to_owned(),
+        access_token: json["access_token"].as_str().expect("access token should exist").to_owned(),
 
         refresh_token: json["refresh_token"]
             .as_str()
@@ -68,10 +63,11 @@ async fn verify_access_token_should_work() {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state);
+    let app = create_router(context.state, context.auth_state);
 
     // login dulu
-    let login_payload = serde_json::json!({
+    let login_payload =
+        serde_json::json!({
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });
@@ -85,18 +81,11 @@ async fn verify_access_token_should_work() {
 
     let login_response = app.clone().oneshot(login_request).await.unwrap();
 
-    let login_body = login_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
+    let login_body = login_response.into_body().collect().await.unwrap().to_bytes();
 
     let login_json: Value = serde_json::from_slice(&login_body).unwrap();
 
-    let access_token = login_json["access_token"]
-        .as_str()
-        .expect("access token should exist");
+    let access_token = login_json["access_token"].as_str().expect("access token should exist");
 
     // verify token
     let verify_payload = serde_json::json!({
@@ -114,12 +103,7 @@ async fn verify_access_token_should_work() {
 
     assert_eq!(verify_response.status(), StatusCode::OK);
 
-    let body = verify_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
+    let body = verify_response.into_body().collect().await.unwrap().to_bytes();
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
@@ -133,9 +117,10 @@ async fn refresh_token_should_issue_new_tokens() {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state);
+    let app = create_router(context.state, context.auth_state);
 
-    let login_payload = serde_json::json!({
+    let login_payload =
+        serde_json::json!({
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });
@@ -149,18 +134,11 @@ async fn refresh_token_should_issue_new_tokens() {
 
     let login_response = app.clone().oneshot(login_request).await.unwrap();
 
-    let login_body = login_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
+    let login_body = login_response.into_body().collect().await.unwrap().to_bytes();
 
     let login_json: Value = serde_json::from_slice(&login_body).unwrap();
 
-    let refresh_token = login_json["refresh_token"]
-        .as_str()
-        .expect("refresh token should exist");
+    let refresh_token = login_json["refresh_token"].as_str().expect("refresh token should exist");
 
     let refresh_payload = serde_json::json!({
         "refresh_token": refresh_token
@@ -177,16 +155,24 @@ async fn refresh_token_should_issue_new_tokens() {
 
     assert_eq!(refresh_response.status(), StatusCode::OK);
 
-    let body = refresh_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
+    let body = refresh_response.into_body().collect().await.unwrap().to_bytes();
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     assert!(json["access_token"].as_str().is_some());
     assert!(json["refresh_token"].as_str().is_some());
     assert!(json["expires_at"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn protected_route_requires_valid_token() {
+    let context = create_state();
+
+    let app = create_router(context.state, context.auth_state);
+
+    let request = Request::builder().method("GET").uri("/me").body(Body::empty()).unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }

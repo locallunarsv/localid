@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
 mod repository;
 mod seed;
 
@@ -6,7 +10,7 @@ pub use seed::seed_demo_identity;
 use localid_credential::CredentialId;
 
 use crate::bootstrap::repository::SharedRepository;
-use crate::AppState;
+use crate::{middleware::AuthMiddlewareState, AppState};
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
@@ -19,7 +23,6 @@ use localid_authentication::{
 };
 
 use localid_password_argon2::Argon2PasswordHasher;
-
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
 
 use localid_repository_memory::{
@@ -33,6 +36,9 @@ use localid_token_random::RandomTokenIssuer;
 pub struct BootstrapContext<L, R, V> {
     /// Ready-to-use application state.
     pub state: AppState<L, R, V>,
+
+    /// Authentication middleware state.
+    pub auth_state: AuthMiddlewareState<V>,
 
     /// Credential identifier created during development seed.
     pub credential_id: CredentialId,
@@ -106,7 +112,7 @@ pub fn create_state() -> BootstrapContext<
         });
 
     let refresh_service = DefaultRefreshTokenService::new(
-        refresh_token_repository.clone(),
+        refresh_token_repository,
         token_repository.clone(),
         session_repository.clone(),
         RandomRefreshTokenIssuer::new(),
@@ -114,14 +120,17 @@ pub fn create_state() -> BootstrapContext<
     );
 
     let refresh_adapter = RefreshTokenAdapter::new(refresh_service);
+
     let refresh_use_case = RefreshTokenUseCase::new(refresh_adapter);
 
     let verification_service =
-        DefaultTokenVerificationService::new(token_repository.clone(), session_repository.clone());
+        DefaultTokenVerificationService::new(token_repository, session_repository);
 
     let verification_adapter = TokenVerificationAdapter::new(verification_service);
 
-    let verify_token_use_case = VerifyTokenUseCase::new(verification_adapter);
+    let verify_token_use_case = Arc::new(Mutex::new(VerifyTokenUseCase::new(verification_adapter)));
+
+    let auth_state = AuthMiddlewareState::new(verify_token_use_case.clone());
 
     let adapter = PasswordAuthenticationAdapter::new(authentication_service);
 
@@ -129,6 +138,7 @@ pub fn create_state() -> BootstrapContext<
 
     BootstrapContext {
         state: AppState::new(login_use_case, refresh_use_case, verify_token_use_case),
+        auth_state,
         credential_id,
     }
 }

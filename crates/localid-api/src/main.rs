@@ -6,7 +6,7 @@ use localid_api::{bootstrap::create_state, create_router};
 async fn main() {
     let bootstrap = create_state();
 
-    let app = create_router(bootstrap.state);
+    let app = create_router(bootstrap.state, bootstrap.auth_state);
 
     let address = SocketAddr::from(([127, 0, 0, 1], 8080));
 

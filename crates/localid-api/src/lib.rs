@@ -16,3 +16,8 @@ pub use router::create_router;
 pub use state::AppState;
 /// Application bootstrap and dependency wiring.
 pub mod bootstrap;
+/// Request authentication context.
+pub mod context;
+
+/// HTTP middleware components.
+pub mod middleware;
