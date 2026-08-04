@@ -1,10 +1,12 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
-use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort};
+use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort, VerifyTokenQuery};
+
+use localid_authentication::TokenVerificationService;
 
 use crate::{
-    request::{LoginRequest, RefreshRequest},
-    response::login::LoginResponseBody,
+    request::{LoginRequest, RefreshRequest, VerifyTokenRequest},
+    response::{LoginResponseBody, VerifyTokenResponseBody},
     ApiError, AppState,
 };
 
@@ -40,7 +42,6 @@ where
 
     match use_case.execute(command) {
         Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
-
         Err(error) => ApiError::from(error).into_response(),
     }
 }
@@ -61,7 +62,28 @@ where
 
     match use_case.execute(request.refresh_token()) {
         Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
+        Err(error) => ApiError::from(error).into_response(),
+    }
+}
 
+pub async fn verify<L, R, V>(
+    State(state): State<AppState<L, R, V>>,
+    Json(request): Json<VerifyTokenRequest>,
+) -> impl IntoResponse
+where
+    L: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+    V: TokenVerificationService<Error = localid_authentication::AuthenticationError>
+        + Send
+        + Sync
+        + 'static,
+{
+    let query = VerifyTokenQuery::new(request.token());
+
+    let mut use_case = state.verify_token_use_case.lock().await;
+
+    match use_case.execute(query) {
+        Ok(response) => Json(VerifyTokenResponseBody::from(response)).into_response(),
         Err(error) => ApiError::from(error).into_response(),
     }
 }

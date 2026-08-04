@@ -28,6 +28,7 @@ localid-token = { path = "../localid-token" }
 [dev-dependencies]
 tower = "0.5"
 serde_json = "1"
+http-body-util = "0.1"
 
 localid-credential = { path = "../localid-credential" }
 localid-identity = { path = "../localid-identity" }
