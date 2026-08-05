@@ -19,7 +19,11 @@ async fn login() -> AuthTokens {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state, context.auth_state);
+    let app = create_router(
+        context.state,
+        context.auth_state,
+        context.authorization_state,
+    );
 
     let payload = serde_json::json!({
         "credential_id": credential_id.to_string(),
@@ -68,7 +72,11 @@ async fn verify_access_token_should_work() {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state, context.auth_state);
+    let app = create_router(
+        context.state,
+        context.auth_state,
+        context.authorization_state,
+    );
 
     // login dulu
     let login_payload = serde_json::json!({
@@ -133,7 +141,11 @@ async fn refresh_token_should_issue_new_tokens() {
 
     let credential_id = context.credential_id;
 
-    let app = create_router(context.state, context.auth_state);
+    let app = create_router(
+        context.state,
+        context.auth_state,
+        context.authorization_state,
+    );
 
     let login_payload = serde_json::json!({
         "credential_id": credential_id.to_string(),
@@ -195,7 +207,11 @@ async fn refresh_token_should_issue_new_tokens() {
 async fn protected_route_requires_valid_token() {
     let context = create_state();
 
-    let app = create_router(context.state, context.auth_state);
+    let app = create_router(
+        context.state,
+        context.auth_state,
+        context.authorization_state,
+    );
 
     let request = Request::builder()
         .method("GET")

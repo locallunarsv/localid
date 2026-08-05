@@ -10,7 +10,11 @@ use localid_api::{bootstrap::create_state, create_router};
 async fn login_rejects_malformed_credential_id() {
     let bootstrap = create_state();
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let response = app
         .oneshot(
@@ -38,7 +42,11 @@ async fn login_returns_success_response() {
 
     let credential_id = bootstrap.credential_id;
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let response = app
         .oneshot(
@@ -78,7 +86,11 @@ async fn login_rejects_invalid_password() {
 
     let credential_id = bootstrap.credential_id;
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let response = app
         .oneshot(
@@ -107,7 +119,11 @@ async fn login_rejects_unknown_credential() {
 
     let credential_id = localid_credential::CredentialId::new();
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let response = app
         .oneshot(

@@ -4,32 +4,48 @@ use axum::{
     Router,
 };
 
-use localid_application::{AuthenticationPort, RefreshTokenPort, SessionPort};
+use localid_application::{
+    AuthenticationPort, AuthorizationContextResolver, IdentityRolePort, RefreshTokenPort,
+    SessionPort,
+};
+
 use tower_http::trace::TraceLayer;
 
 use localid_authentication::{AuthenticationError, TokenVerificationService};
 
 use crate::middleware::request_id::request_id_layers;
+
 use crate::{
     handler::{self, auth},
-    middleware::AuthMiddlewareState,
+    middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
     AppState,
 };
 
 /// Creates the application HTTP router.
-pub fn create_router<L, R, V, S>(
+pub fn create_router<L, R, V, S, IR>(
     state: AppState<L, R, V, S>,
     auth_state: AuthMiddlewareState<V>,
+    authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 ) -> Router
 where
     L: AuthenticationPort<Error = AuthenticationError> + Send + Sync + 'static,
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
+    IR: IdentityRolePort + Send + Sync + 'static,
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
         .route("/session/current", get(handler::session::current))
+        .route(
+            "/authorization/context",
+            get(handler::authorization::context),
+        )
+        .route("/auth/logout", post(auth::logout::<L, R, V, S>))
+        .layer(middleware::from_fn_with_state(
+            authorization_state,
+            crate::middleware::authorization::resolve_authorization,
+        ))
         .layer(middleware::from_fn_with_state(
             auth_state,
             crate::middleware::auth::require_auth,

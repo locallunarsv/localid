@@ -82,7 +82,7 @@ mod tests {
     fn allows_existing_permission() {
         let permission = Permission::new("user.read").expect("permission should be valid");
 
-        let role = Role::new("reader", vec![permission.clone()]);
+        let role = Role::new("reader", vec![permission.clone()]).expect("role should be valid");
 
         let context = context_with_role(role);
 
@@ -102,7 +102,8 @@ mod tests {
         let role = Role::new(
             "reader",
             vec![Permission::new("user.read").expect("permission should be valid")],
-        );
+        )
+        .expect("role should be valid");
 
         let context = context_with_role(role);
 

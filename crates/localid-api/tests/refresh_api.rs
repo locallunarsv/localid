@@ -11,7 +11,11 @@ use localid_api::{bootstrap::create_state, create_router};
 async fn refresh_returns_new_tokens() {
     let bootstrap = create_state();
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let login_response = app
         .clone()

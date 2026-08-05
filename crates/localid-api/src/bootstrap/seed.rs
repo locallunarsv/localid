@@ -1,10 +1,12 @@
-// crates/localid-api/src/bootstrap/seed.rs
-
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
 use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
 use localid_password_argon2::Argon2PasswordHasher;
+
+use localid_permission::Permission;
 use localid_repository::{CredentialRepository, IdentityRepository, PasswordMaterialRepository};
+use localid_repository_memory::MemoryIdentityRoleRepository;
+use localid_role::Role;
 
 /// Seeds a demo password identity.
 ///
@@ -13,6 +15,7 @@ pub fn seed_demo_identity<IR, CR, PR>(
     identity_repository: &mut IR,
     credential_repository: &mut CR,
     password_material_repository: &mut PR,
+    identity_role_repository: &mut MemoryIdentityRoleRepository,
 ) -> CredentialId
 where
     IR: IdentityRepository,
@@ -48,6 +51,12 @@ where
     password_material_repository
         .save(material)
         .unwrap_or_else(|_| panic!("password material seed should succeed"));
+
+    let permission = Permission::new("user.read").expect("demo permission should be valid");
+
+    let role = Role::new("admin", vec![permission]).expect("demo role should be valid");
+
+    identity_role_repository.assign(identity_id, vec![role]);
 
     credential_id
 }

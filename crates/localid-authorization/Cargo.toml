@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+localid-permission = { path = "../localid-permission" }
+localid-role = { path = "../localid-role" }
 localid-identity = { path = "../localid-identity" }
 localid-session = { path = "../localid-session" }
 chrono = "0.4"

@@ -1,8 +1,12 @@
-use axum::{extract::State, response::IntoResponse, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
-use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort, VerifyTokenQuery};
+use localid_application::{
+    AuthenticationPort, LoginCommand, RefreshTokenPort, SessionPort, VerifyTokenQuery,
+};
 
 use localid_authentication::{AuthenticationError, TokenVerificationService};
+
+use crate::auth::AuthenticatedIdentity;
 
 use crate::{
     request::{LoginRequest, RefreshRequest, VerifyTokenRequest},
@@ -40,6 +44,7 @@ where
 
     match use_case.execute(command) {
         Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
+
         Err(error) => ApiError::from(error).into_response(),
     }
 }
@@ -58,6 +63,7 @@ where
 
     match use_case.execute(request.refresh_token()) {
         Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
+
         Err(error) => ApiError::from(error).into_response(),
     }
 }
@@ -78,6 +84,28 @@ where
 
     match use_case.execute(query) {
         Ok(response) => Json(VerifyTokenResponseBody::from(response)).into_response(),
+
+        Err(error) => ApiError::from(error).into_response(),
+    }
+}
+
+pub async fn logout<L, R, V, S>(
+    State(state): State<AppState<L, R, V, S>>,
+    AuthenticatedIdentity(identity): AuthenticatedIdentity,
+) -> impl IntoResponse
+where
+    L: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+    V: Send + Sync + 'static,
+    S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
+{
+    let session_id = identity.session_id();
+
+    let mut use_case = state.logout_use_case.lock().await;
+
+    match use_case.execute(session_id) {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+
         Err(error) => ApiError::from(error).into_response(),
     }
 }

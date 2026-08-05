@@ -73,7 +73,7 @@ mod tests {
 
         let permission = Permission::new("document.delete").expect("permission should be valid");
 
-        let role = Role::new("admin", vec![permission.clone()]);
+        let role = Role::new("admin", vec![permission.clone()]).expect("role should be valid");
 
         let context = AuthorizationContext::new(identity, SessionId::new(), vec![role]);
 
@@ -121,7 +121,7 @@ mod tests {
 
         let permission = Permission::new("document.delete").expect("permission should be valid");
 
-        let role = Role::new("admin", vec![permission.clone()]);
+        let role = Role::new("admin", vec![permission.clone()]).expect("role should be valid");
 
         let context = AuthorizationContext::new(identity, SessionId::new(), vec![role]);
 

@@ -10,7 +10,11 @@ async fn main() {
 
     println!("Demo credential_id: {}", bootstrap.credential_id);
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let address = SocketAddr::from(([127, 0, 0, 1], 8080));
 

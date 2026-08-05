@@ -27,3 +27,28 @@ impl<V> AuthMiddlewareState<V> {
         }
     }
 }
+
+/// Authorization middleware state.
+/// Authorization middleware state.
+pub struct AuthorizationMiddlewareState<R> {
+    /// Authorization context resolver.
+    pub resolver: Arc<Mutex<R>>,
+}
+
+impl<R> Clone for AuthorizationMiddlewareState<R> {
+    fn clone(&self) -> Self {
+        Self {
+            resolver: Arc::clone(&self.resolver),
+        }
+    }
+}
+
+impl<R> AuthorizationMiddlewareState<R> {
+    /// Creates authorization middleware state.
+    #[must_use]
+    pub fn new(resolver: R) -> Self {
+        Self {
+            resolver: Arc::new(Mutex::new(resolver)),
+        }
+    }
+}

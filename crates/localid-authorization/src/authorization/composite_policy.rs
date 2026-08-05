@@ -77,7 +77,7 @@ mod tests {
 
         let permission = Permission::new("document.read").expect("permission should be valid");
 
-        let role = Role::new("reader", vec![permission.clone()]);
+        let role = Role::new("reader", vec![permission.clone()]).expect("role should be valid");
 
         let context = AuthorizationContext::new(identity, SessionId::new(), vec![role]);
 

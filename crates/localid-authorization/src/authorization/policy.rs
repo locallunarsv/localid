@@ -88,7 +88,7 @@ mod tests {
     fn allows_permission_from_role() {
         let permission = Permission::new("user.read").expect("permission should be valid");
 
-        let role = Role::new("reader", vec![permission.clone()]);
+        let role = Role::new("reader", vec![permission.clone()]).expect("role should be valid");
 
         let context = AuthorizationContext::new(IdentityId::new(), SessionId::new(), vec![role]);
 
@@ -104,7 +104,8 @@ mod tests {
         let role = Role::new(
             "reader",
             vec![Permission::new("user.read").expect("permission should be valid")],
-        );
+        )
+        .expect("role should be valid");
 
         let context = AuthorizationContext::new(IdentityId::new(), SessionId::new(), vec![role]);
 

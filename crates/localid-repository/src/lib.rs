@@ -4,6 +4,7 @@
 
 mod credential;
 mod identity;
+mod identity_role;
 mod password_material;
 mod refresh_token;
 mod session;
@@ -15,3 +16,5 @@ pub use password_material::PasswordMaterialRepository;
 pub use refresh_token::RefreshTokenRepository;
 pub use session::SessionRepository;
 pub use token::TokenRepository;
+
+pub use identity_role::IdentityRoleRepository;

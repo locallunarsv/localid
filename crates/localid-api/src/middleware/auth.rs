@@ -38,9 +38,13 @@ where
 
     let mut use_case = state.verify_token_use_case.lock().await;
 
-    let identity = use_case
-        .execute(query)
-        .map_err(|_| ApiError::AuthenticationFailed)?;
+    // let identity = use_case
+    //     .execute(query)
+    //     .map_err(|_| ApiError::AuthenticationFailed)?;
+    let identity = use_case.execute(query).map_err(|error| {
+        println!("VERIFY TOKEN ERROR: {:?}", error);
+        ApiError::AuthenticationFailed
+    })?;
 
     let context = IdentityContext::new(identity.identity_id(), identity.session_id());
 

@@ -27,6 +27,9 @@ localid-repository = { path = "../localid-repository" }
 localid-refresh-token = { path = "../localid-refresh-token" }
 localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
+localid-authorization = { path = "../localid-authorization" }
+localid-permission = { path = "../localid-permission" }
+localid-role = { path = "../localid-role" }
 
 [dev-dependencies]
 tower = "0.5"

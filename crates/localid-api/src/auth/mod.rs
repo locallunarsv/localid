@@ -1,5 +1,5 @@
-mod context;
+mod authorization;
 mod extractor;
 
-pub use context::IdentityContext;
+pub use authorization::AuthorizedContext;
 pub use extractor::AuthenticatedIdentity;

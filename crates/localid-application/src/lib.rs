@@ -6,15 +6,23 @@
 //! domain services.
 
 pub mod authentication;
+pub mod authorization;
 pub mod session;
-
-pub use session::{GetCurrentSessionUseCase, SessionAdapter, SessionPort, SessionResponse};
-
-mod error;
 
 pub use authentication::{
     AuthenticationPort, LoginCommand, LoginUseCase, RefreshTokenAdapter, RefreshTokenPort,
     RefreshTokenUseCase, TokenResponse, VerifyTokenQuery, VerifyTokenResponse, VerifyTokenUseCase,
 };
+
+pub use authorization::{
+    AuthorizationApplicationError, AuthorizationContextResolver, IdentityRoleAdapter,
+    IdentityRolePort,
+};
+
+pub use session::{
+    GetCurrentSessionUseCase, LogoutSessionUseCase, SessionAdapter, SessionPort, SessionResponse,
+};
+
+mod error;
 
 pub use error::ApplicationError;
