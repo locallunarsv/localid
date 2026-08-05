@@ -2,7 +2,7 @@ use axum::{extract::State, response::IntoResponse, Json};
 
 use localid_application::{AuthenticationPort, LoginCommand, RefreshTokenPort, VerifyTokenQuery};
 
-use localid_authentication::TokenVerificationService;
+use localid_authentication::{AuthenticationError, TokenVerificationService};
 
 use crate::{
     request::{LoginRequest, RefreshRequest, VerifyTokenRequest},
@@ -10,17 +10,15 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R, V>(
-    State(state): State<AppState<L, R, V>>,
+pub async fn login<L, R, V, S>(
+    State(state): State<AppState<L, R, V, S>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
-    L: AuthenticationPort<Error = localid_authentication::AuthenticationError>
-        + Send
-        + Sync
-        + 'static,
-    R: Send + Sync + 'static,
-    V: Send + Sync + 'static,
+    L: AuthenticationPort<Error = AuthenticationError> + Send + Sync + 'static,
+    R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
+    V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
+    S: Send + Sync + 'static,
 {
     let credential_id = match request.credential_id() {
         Ok(value) => value,
@@ -46,17 +44,15 @@ where
     }
 }
 
-pub async fn refresh<L, R, V>(
-    State(state): State<AppState<L, R, V>>,
+pub async fn refresh<L, R, V, S>(
+    State(state): State<AppState<L, R, V, S>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,
-    R: RefreshTokenPort<Error = localid_authentication::AuthenticationError>
-        + Send
-        + Sync
-        + 'static,
-    V: Send + Sync + 'static,
+    R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
+    V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
+    S: Send + Sync + 'static,
 {
     let mut use_case = state.refresh_use_case.lock().await;
 
@@ -66,17 +62,15 @@ where
     }
 }
 
-pub async fn verify<L, R, V>(
-    State(state): State<AppState<L, R, V>>,
+pub async fn verify<L, R, V, S>(
+    State(state): State<AppState<L, R, V, S>>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,
     R: Send + Sync + 'static,
-    V: TokenVerificationService<Error = localid_authentication::AuthenticationError>
-        + Send
-        + Sync
-        + 'static,
+    V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
+    S: Send + Sync + 'static,
 {
     let query = VerifyTokenQuery::new(request.token());
 

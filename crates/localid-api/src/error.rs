@@ -68,6 +68,8 @@ impl From<ApplicationError> for ApiError {
         match error {
             ApplicationError::AuthenticationFailed => Self::AuthenticationFailed,
 
+            ApplicationError::SessionNotFound => Self::AuthenticationFailed,
+
             ApplicationError::InternalFailure => Self::InternalFailure,
         }
     }

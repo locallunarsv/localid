@@ -6,6 +6,9 @@
 //! domain services.
 
 pub mod authentication;
+pub mod session;
+
+pub use session::{GetCurrentSessionUseCase, SessionAdapter, SessionPort, SessionResponse};
 
 mod error;
 

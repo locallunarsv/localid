@@ -1,6 +1,7 @@
 mod error;
 mod password;
 mod refresh_token;
+mod session;
 mod shared;
 mod token;
 mod token_verification;
@@ -21,3 +22,5 @@ pub use refresh_token::{DefaultRefreshTokenService, RefreshResult, RefreshTokenS
 pub use token_verification::{
     DefaultTokenVerificationService, TokenVerificationResult, TokenVerificationService,
 };
+
+pub use session::{DefaultSessionService, SessionService};
