@@ -4,6 +4,7 @@ use localid_authentication::{
     AuthenticatePasswordRequest, DefaultPasswordAuthenticationService,
     PasswordAuthenticationDependencies, PasswordAuthenticationService, SessionFactory,
 };
+use localid_client::ClientId;
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
 use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
@@ -21,12 +22,17 @@ struct FixedSessionFactory;
 impl SessionFactory for FixedSessionFactory {
     type Error = ();
 
-    fn create_session(&self, identity_id: IdentityId) -> Result<Session, Self::Error> {
+    fn create_session(
+        &self,
+        identity_id: IdentityId,
+        client_id: ClientId,
+    ) -> Result<Session, Self::Error> {
         let created_at = Utc::now();
 
         Session::new(
             SessionId::new(),
             identity_id,
+            client_id,
             created_at,
             created_at + TimeDelta::hours(1),
         )
@@ -75,7 +81,7 @@ fn authenticates_password_credential() {
             refresh_token_issuer: RandomRefreshTokenIssuer::new(),
         });
 
-    let request = AuthenticatePasswordRequest::new(credential_id, password);
+    let request = AuthenticatePasswordRequest::new(ClientId::new(), credential_id, password);
 
     let result = service
         .authenticate_password(request)
@@ -115,10 +121,11 @@ fn rejects_invalid_password() {
     let password_hash =
         PasswordHasher::hash(&hasher, &password).expect("password hashing should succeed");
 
-    let password_material = PasswordMaterial::new(credential_id, password_hash);
-
-    PasswordMaterialRepository::save(&mut storage, password_material)
-        .expect("Password Material should be stored");
+    PasswordMaterialRepository::save(
+        &mut storage,
+        PasswordMaterial::new(credential_id, password_hash),
+    )
+    .expect("Password Material should be stored");
 
     let mut service =
         DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
@@ -137,7 +144,7 @@ fn rejects_invalid_password() {
     let wrong_password =
         PasswordSecret::new("wrong-password").expect("test password should be valid");
 
-    let request = AuthenticatePasswordRequest::new(credential_id, wrong_password);
+    let request = AuthenticatePasswordRequest::new(ClientId::new(), credential_id, wrong_password);
 
     let result = service.authenticate_password(request);
 
@@ -149,6 +156,7 @@ fn rejects_disabled_identity() {
     let mut storage = MemoryStorage::new();
 
     let mut identity = Identity::new(IdentityId::new());
+
     identity.disable().expect("identity should be disabled");
 
     let identity_id = identity.id();
@@ -188,7 +196,7 @@ fn rejects_disabled_identity() {
             refresh_token_issuer: RandomRefreshTokenIssuer::new(),
         });
 
-    let request = AuthenticatePasswordRequest::new(credential_id, password);
+    let request = AuthenticatePasswordRequest::new(ClientId::new(), credential_id, password);
 
     let result = service.authenticate_password(request);
 
@@ -229,7 +237,7 @@ fn rejects_disabled_credential() {
 
     let password = PasswordSecret::new("password").expect("test password should be valid");
 
-    let request = AuthenticatePasswordRequest::new(credential_id, password);
+    let request = AuthenticatePasswordRequest::new(ClientId::new(), credential_id, password);
 
     let result = service.authenticate_password(request);
 

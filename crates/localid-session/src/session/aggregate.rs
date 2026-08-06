@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use localid_client::ClientId;
 use localid_identity::IdentityId;
 
 use super::{SessionError, SessionId, SessionLifecycleState};
@@ -12,6 +13,7 @@ use super::{SessionError, SessionId, SessionLifecycleState};
 pub struct Session {
     id: SessionId,
     identity_id: IdentityId,
+    client_id: ClientId,
     lifecycle_state: SessionLifecycleState,
     created_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
@@ -27,6 +29,7 @@ impl Session {
     pub fn new(
         id: SessionId,
         identity_id: IdentityId,
+        client_id: ClientId,
         created_at: DateTime<Utc>,
         expires_at: DateTime<Utc>,
     ) -> Result<Self, SessionError> {
@@ -37,6 +40,7 @@ impl Session {
         Ok(Self {
             id,
             identity_id,
+            client_id,
             lifecycle_state: SessionLifecycleState::INITIAL,
             created_at,
             expires_at,
@@ -53,6 +57,12 @@ impl Session {
     #[must_use]
     pub const fn identity_id(&self) -> IdentityId {
         self.identity_id
+    }
+
+    /// Returns the identifier of the Client associated with this Session.
+    #[must_use]
+    pub const fn client_id(&self) -> ClientId {
+        self.client_id
     }
 
     /// Returns the current lifecycle state.
@@ -111,6 +121,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use chrono::{TimeDelta, TimeZone, Utc};
+    use localid_client::ClientId;
     use localid_identity::IdentityId;
 
     use super::Session;
@@ -126,14 +137,16 @@ mod tests {
     fn creates_active_session() {
         let id = SessionId::new();
         let identity_id = IdentityId::new();
+        let client_id = ClientId::new();
         let created_at = creation_time();
         let expires_at = created_at + TimeDelta::hours(1);
 
-        let session = Session::new(id, identity_id, created_at, expires_at)
+        let session = Session::new(id, identity_id, client_id, created_at, expires_at)
             .expect("expiration after creation should be valid");
 
         assert_eq!(session.id(), id);
         assert_eq!(session.identity_id(), identity_id);
+        assert_eq!(session.client_id(), client_id);
         assert_eq!(session.lifecycle_state(), SessionLifecycleState::Active);
         assert_eq!(session.created_at(), created_at);
         assert_eq!(session.expires_at(), expires_at);
@@ -145,7 +158,13 @@ mod tests {
     fn rejects_expiration_equal_to_creation() {
         let created_at = creation_time();
 
-        let result = Session::new(SessionId::new(), IdentityId::new(), created_at, created_at);
+        let result = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            created_at,
+        );
 
         assert_eq!(result, Err(SessionError::InvalidExpirationTime));
     }
@@ -155,7 +174,13 @@ mod tests {
         let created_at = creation_time();
         let expires_at = created_at - TimeDelta::seconds(1);
 
-        let result = Session::new(SessionId::new(), IdentityId::new(), created_at, expires_at);
+        let result = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            expires_at,
+        );
 
         assert_eq!(result, Err(SessionError::InvalidExpirationTime));
     }
@@ -165,8 +190,14 @@ mod tests {
         let created_at = creation_time();
         let expires_at = created_at + TimeDelta::hours(1);
 
-        let session = Session::new(SessionId::new(), IdentityId::new(), created_at, expires_at)
-            .expect("expiration after creation should be valid");
+        let session = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            expires_at,
+        )
+        .expect("expiration after creation should be valid");
 
         assert!(session.is_valid_at(created_at));
         assert!(session.is_valid_at(expires_at - TimeDelta::seconds(1)));
@@ -177,8 +208,14 @@ mod tests {
         let created_at = creation_time();
         let expires_at = created_at + TimeDelta::hours(1);
 
-        let session = Session::new(SessionId::new(), IdentityId::new(), created_at, expires_at)
-            .expect("expiration after creation should be valid");
+        let session = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            expires_at,
+        )
+        .expect("expiration after creation should be valid");
 
         assert!(session.is_expired_at(expires_at));
         assert!(!session.is_valid_at(expires_at));
@@ -189,8 +226,14 @@ mod tests {
         let created_at = creation_time();
         let expires_at = created_at + TimeDelta::hours(1);
 
-        let mut session = Session::new(SessionId::new(), IdentityId::new(), created_at, expires_at)
-            .expect("expiration after creation should be valid");
+        let mut session = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            expires_at,
+        )
+        .expect("expiration after creation should be valid");
 
         session.revoke();
 
@@ -203,8 +246,14 @@ mod tests {
         let created_at = creation_time();
         let expires_at = created_at + TimeDelta::hours(1);
 
-        let mut session = Session::new(SessionId::new(), IdentityId::new(), created_at, expires_at)
-            .expect("expiration after creation should be valid");
+        let mut session = Session::new(
+            SessionId::new(),
+            IdentityId::new(),
+            ClientId::new(),
+            created_at,
+            expires_at,
+        )
+        .expect("expiration after creation should be valid");
 
         session.revoke();
         session.revoke();

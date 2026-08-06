@@ -14,6 +14,7 @@ async fn authorization_context_should_resolve_roles() {
     let bootstrap = create_state();
 
     let credential_id = bootstrap.credential_id;
+    let client_id = bootstrap.client_id;
 
     let app = create_router(
         bootstrap.state,
@@ -22,6 +23,7 @@ async fn authorization_context_should_resolve_roles() {
     );
 
     let payload = serde_json::json!({
+        "client_id": client_id.to_string(),
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });

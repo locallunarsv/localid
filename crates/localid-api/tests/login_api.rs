@@ -10,37 +10,7 @@ use localid_api::{bootstrap::create_state, create_router};
 async fn login_rejects_malformed_credential_id() {
     let bootstrap = create_state();
 
-    let app = create_router(
-        bootstrap.state,
-        bootstrap.auth_state,
-        bootstrap.authorization_state,
-    );
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/auth/login")
-                .header("content-type", "application/json")
-                .body(Body::from(
-                    r#"{
-                        "credential_id": "invalid",
-                        "password": "wrong-password"
-                    }"#,
-                ))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
-
-#[tokio::test]
-async fn login_returns_success_response() {
-    let bootstrap = create_state();
-
-    let credential_id = bootstrap.credential_id;
+    let client_id = bootstrap.client_id;
 
     let app = create_router(
         bootstrap.state,
@@ -56,10 +26,46 @@ async fn login_returns_success_response() {
                 .header("content-type", "application/json")
                 .body(Body::from(format!(
                     r#"{{
+                        "client_id": "{}",
+                        "credential_id": "invalid",
+                        "password": "wrong-password"
+                    }}"#,
+                    client_id
+                )))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn login_returns_success_response() {
+    let bootstrap = create_state();
+
+    let credential_id = bootstrap.credential_id;
+    let client_id = bootstrap.client_id;
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(format!(
+                    r#"{{
+                        "client_id":"{}",
                         "credential_id":"{}",
                         "password":"correct-password"
                     }}"#,
-                    credential_id
+                    client_id, credential_id
                 )))
                 .unwrap(),
         )
@@ -85,6 +91,7 @@ async fn login_rejects_invalid_password() {
     let bootstrap = create_state();
 
     let credential_id = bootstrap.credential_id;
+    let client_id = bootstrap.client_id;
 
     let app = create_router(
         bootstrap.state,
@@ -100,10 +107,11 @@ async fn login_rejects_invalid_password() {
                 .header("content-type", "application/json")
                 .body(Body::from(format!(
                     r#"{{
+                        "client_id":"{}",
                         "credential_id":"{}",
                         "password":"wrong-password"
                     }}"#,
-                    credential_id
+                    client_id, credential_id
                 )))
                 .unwrap(),
         )
@@ -117,6 +125,7 @@ async fn login_rejects_invalid_password() {
 async fn login_rejects_unknown_credential() {
     let bootstrap = create_state();
 
+    let client_id = bootstrap.client_id;
     let credential_id = localid_credential::CredentialId::new();
 
     let app = create_router(
@@ -133,10 +142,11 @@ async fn login_rejects_unknown_credential() {
                 .header("content-type", "application/json")
                 .body(Body::from(format!(
                     r#"{{
+                        "client_id":"{}",
                         "credential_id":"{}",
                         "password":"correct-password"
                     }}"#,
-                    credential_id
+                    client_id, credential_id
                 )))
                 .unwrap(),
         )

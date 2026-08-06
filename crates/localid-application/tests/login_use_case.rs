@@ -4,6 +4,7 @@ use localid_application::{ApplicationError, AuthenticationPort, LoginCommand, Lo
 
 use localid_authentication::{AuthenticateResult, AuthenticationError};
 
+use localid_client::ClientId;
 use localid_credential::CredentialId;
 use localid_identity::IdentityId;
 use localid_password::PasswordSecret;
@@ -38,12 +39,14 @@ impl AuthenticationPort for FakeAuthenticationService {
 
 fn authenticated_result() -> AuthenticateResult {
     let identity_id = IdentityId::new();
+    let client_id = ClientId::new();
 
     let created_at = Utc::now();
 
     let session = Session::new(
         SessionId::new(),
         identity_id,
+        client_id,
         created_at,
         created_at + TimeDelta::hours(1),
     )
@@ -85,6 +88,7 @@ fn authentication_failure_maps_to_application_error() {
     let mut use_case = LoginUseCase::new(service);
 
     let command = LoginCommand::new(
+        ClientId::new(),
         CredentialId::new(),
         PasswordSecret::new("wrong-password").expect("password should be valid"),
     );
@@ -106,6 +110,7 @@ fn successful_authentication_returns_response() {
     let mut use_case = LoginUseCase::new(service);
 
     let command = LoginCommand::new(
+        ClientId::new(),
         CredentialId::new(),
         PasswordSecret::new("correct-password").expect("password should be valid"),
     );

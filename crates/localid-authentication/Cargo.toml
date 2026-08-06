@@ -13,6 +13,8 @@ localid-token = { path = "../localid-token" }
 localid-token-random = { path = "../localid-token-random" }
 localid-refresh-token-random = { path = "../localid-refresh-token-random" }
 localid-refresh-token = { path = "../localid-refresh-token" }
+localid-client = { path = "../localid-client" }
+
 sha2 = "0.10"
 hex = "0.4"
 chrono = "0.4"

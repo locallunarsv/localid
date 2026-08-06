@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 
+use localid_client::ClientId;
 use localid_identity::IdentityId;
 use localid_session::{Session, SessionId};
 
@@ -9,7 +10,11 @@ pub trait SessionFactory {
     type Error;
 
     /// Creates a new session.
-    fn create_session(&self, identity_id: IdentityId) -> Result<Session, Self::Error>;
+    fn create_session(
+        &self,
+        identity_id: IdentityId,
+        client_id: ClientId,
+    ) -> Result<Session, Self::Error>;
 }
 
 /// Default session factory.
@@ -33,12 +38,17 @@ impl Default for DefaultSessionFactory {
 impl SessionFactory for DefaultSessionFactory {
     type Error = localid_session::SessionError;
 
-    fn create_session(&self, identity_id: IdentityId) -> Result<Session, Self::Error> {
+    fn create_session(
+        &self,
+        identity_id: IdentityId,
+        client_id: ClientId,
+    ) -> Result<Session, Self::Error> {
         let created_at = Utc::now();
 
         Session::new(
             SessionId::new(),
             identity_id,
+            client_id,
             created_at,
             created_at + Duration::hours(1),
         )

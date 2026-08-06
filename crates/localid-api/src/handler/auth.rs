@@ -23,8 +23,14 @@ where
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
-    C: Send + Sync + 'static,
 {
+    let client_id = match request.client_id() {
+        Ok(value) => value,
+        Err(_) => {
+            return ApiError::InvalidRequest.into_response();
+        }
+    };
+
     let credential_id = match request.credential_id() {
         Ok(value) => value,
         Err(_) => {
@@ -39,7 +45,7 @@ where
         }
     };
 
-    let command = LoginCommand::new(credential_id, password);
+    let command = LoginCommand::new(client_id, credential_id, password);
 
     let mut use_case = state.login_use_case.lock().await;
 
@@ -59,7 +65,6 @@ where
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
-    C: Send + Sync + 'static,
 {
     let mut use_case = state.refresh_use_case.lock().await;
 
@@ -79,7 +84,6 @@ where
     R: Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
-    C: Send + Sync + 'static,
 {
     let query = VerifyTokenQuery::new(request.token());
 
@@ -101,7 +105,6 @@ where
     R: Send + Sync + 'static,
     V: Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
-    C: Send + Sync + 'static,
 {
     let session_id = identity.session_id();
 

@@ -25,8 +25,11 @@ where
     type Error = AuthenticationError;
 
     fn authenticate(&mut self, command: LoginCommand) -> Result<AuthenticateResult, Self::Error> {
-        let request =
-            AuthenticatePasswordRequest::new(command.credential_id(), command.password().clone());
+        let request = AuthenticatePasswordRequest::new(
+            command.client_id(),
+            command.credential_id(),
+            command.password().clone(),
+        );
 
         self.service.authenticate_password(request)
     }

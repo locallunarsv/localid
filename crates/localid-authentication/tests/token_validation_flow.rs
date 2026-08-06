@@ -1,5 +1,6 @@
 use chrono::{TimeDelta, Utc};
 use localid_authentication::{DefaultTokenValidator, TokenValidator};
+use localid_client::ClientId;
 use localid_repository::{SessionRepository, TokenRepository};
 use localid_session::{Session, SessionId};
 use localid_storage_memory::MemoryStorage;
@@ -23,6 +24,7 @@ fn validates_active_token() {
     let session = Session::new(
         SessionId::new(),
         localid_identity::IdentityId::new(),
+        ClientId::new(),
         created_at,
         created_at + TimeDelta::hours(1),
     )
@@ -75,6 +77,7 @@ fn rejects_expired_token() {
     let session = Session::new(
         SessionId::new(),
         localid_identity::IdentityId::new(),
+        ClientId::new(),
         created_at,
         created_at + TimeDelta::hours(1),
     )
@@ -114,6 +117,7 @@ fn rejects_invalid_session() {
     let mut session = Session::new(
         SessionId::new(),
         localid_identity::IdentityId::new(),
+        ClientId::new(),
         created_at,
         created_at + TimeDelta::hours(1),
     )

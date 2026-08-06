@@ -47,6 +47,7 @@ impl AuthenticateResult {
 #[cfg(test)]
 mod tests {
     use chrono::{TimeDelta, TimeZone, Utc};
+    use localid_client::ClientId;
     use localid_identity::IdentityId;
     use localid_refresh_token::RefreshToken;
     use localid_refresh_token_random::IssuedRefreshToken;
@@ -62,6 +63,7 @@ mod tests {
         Session::new(
             SessionId::new(),
             IdentityId::new(),
+            ClientId::new(),
             created_at,
             created_at + TimeDelta::hours(1),
         )
@@ -99,5 +101,6 @@ mod tests {
         let result = AuthenticateResult::new(session.clone(), token, refresh_token);
 
         assert_eq!(result.session(), &session);
+        assert_eq!(result.session().client_id(), session.client_id());
     }
 }

@@ -248,6 +248,7 @@ impl TokenRepository for MemoryStorage {
 #[cfg(test)]
 mod tests {
     use chrono::{TimeDelta, TimeZone, Utc};
+    use localid_client::ClientId;
     use localid_credential::{Credential, CredentialId, CredentialKind};
     use localid_identity::{Identity, IdentityId};
     use localid_password::PasswordHash;
@@ -306,6 +307,7 @@ mod tests {
         let session = Session::new(
             SessionId::new(),
             identity_id,
+            ClientId::new(),
             created_at,
             created_at + TimeDelta::hours(1),
         )

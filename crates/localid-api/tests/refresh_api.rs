@@ -11,6 +11,9 @@ use localid_api::{bootstrap::create_state, create_router};
 async fn refresh_returns_new_tokens() {
     let bootstrap = create_state();
 
+    let client_id = bootstrap.client_id;
+    let credential_id = bootstrap.credential_id;
+
     let app = create_router(
         bootstrap.state,
         bootstrap.auth_state,
@@ -26,10 +29,11 @@ async fn refresh_returns_new_tokens() {
                 .header("content-type", "application/json")
                 .body(Body::from(format!(
                     r#"{{
+                        "client_id":"{}",
                         "credential_id":"{}",
                         "password":"correct-password"
                     }}"#,
-                    bootstrap.credential_id
+                    client_id, credential_id
                 )))
                 .unwrap(),
         )
@@ -44,7 +48,9 @@ async fn refresh_returns_new_tokens() {
 
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
-    let refresh_token = json["refresh_token"].as_str().unwrap();
+    let refresh_token = json["refresh_token"]
+        .as_str()
+        .expect("refresh token should exist");
 
     let refresh_response = app
         .oneshot(

@@ -127,7 +127,7 @@ where
 
         let session = self
             .session_factory
-            .create_session(identity.id())
+            .create_session(identity.id(), request.client_id())
             .map_err(|_| AuthenticationError::SessionCreationFailure)?;
 
         self.session_repository

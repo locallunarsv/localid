@@ -18,6 +18,7 @@ async fn login() -> AuthTokens {
     let context = create_state();
 
     let credential_id = context.credential_id;
+    let client_id = context.client_id;
 
     let app = create_router(
         context.state,
@@ -26,6 +27,7 @@ async fn login() -> AuthTokens {
     );
 
     let payload = serde_json::json!({
+        "client_id": client_id.to_string(),
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });
@@ -71,6 +73,7 @@ async fn verify_access_token_should_work() {
     let context = create_state();
 
     let credential_id = context.credential_id;
+    let client_id = context.client_id;
 
     let app = create_router(
         context.state,
@@ -78,8 +81,8 @@ async fn verify_access_token_should_work() {
         context.authorization_state,
     );
 
-    // login dulu
     let login_payload = serde_json::json!({
+        "client_id": client_id.to_string(),
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });
@@ -106,7 +109,6 @@ async fn verify_access_token_should_work() {
         .as_str()
         .expect("access token should exist");
 
-    // verify token
     let verify_payload = serde_json::json!({
         "token": access_token
     });
@@ -140,6 +142,7 @@ async fn refresh_token_should_issue_new_tokens() {
     let context = create_state();
 
     let credential_id = context.credential_id;
+    let client_id = context.client_id;
 
     let app = create_router(
         context.state,
@@ -148,6 +151,7 @@ async fn refresh_token_should_issue_new_tokens() {
     );
 
     let login_payload = serde_json::json!({
+        "client_id": client_id.to_string(),
         "credential_id": credential_id.to_string(),
         "password": "correct-password"
     });

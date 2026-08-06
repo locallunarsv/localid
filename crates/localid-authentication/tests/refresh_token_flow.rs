@@ -1,6 +1,7 @@
 use chrono::{Duration, Utc};
 
 use localid_authentication::{DefaultRefreshTokenService, RefreshTokenService};
+use localid_client::ClientId;
 use localid_identity::IdentityId;
 use localid_refresh_token_random::{RandomRefreshTokenIssuer, RefreshTokenIssuer};
 use localid_repository::{RefreshTokenRepository, SessionRepository};
@@ -17,6 +18,7 @@ fn refreshes_valid_refresh_token() {
     let session = Session::new(
         SessionId::new(),
         IdentityId::new(),
+        ClientId::new(),
         now,
         now + Duration::hours(1),
     )
