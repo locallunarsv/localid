@@ -3,6 +3,8 @@ use localid_client::Client;
 use super::{ClientApplicationError, ClientPort, FindClientQuery};
 
 /// Use case for finding a client.
+/// Use case for finding a client.
+#[derive(Debug)]
 pub struct GetClientUseCase<P> {
     port: P,
 }
@@ -21,9 +23,16 @@ where
 {
     /// Executes client lookup.
     pub fn execute(&self, query: FindClientQuery) -> Result<Client, ClientApplicationError> {
-        self.port
+        let client = self
+            .port
             .find_by_client_id(query.client_id())
             .map_err(|_| ClientApplicationError::RepositoryFailure)?
-            .ok_or(ClientApplicationError::ClientNotFound)
+            .ok_or(ClientApplicationError::ClientNotFound)?;
+
+        if !client.is_active() {
+            return Err(ClientApplicationError::ClientUnavailable);
+        }
+
+        Ok(client)
     }
 }

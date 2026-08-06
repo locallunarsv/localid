@@ -17,4 +17,16 @@ impl ClientLifecycleState {
     pub const fn is_active(self) -> bool {
         matches!(self, Self::Active)
     }
+
+    /// Returns whether client is disabled.
+    #[must_use]
+    pub const fn is_disabled(self) -> bool {
+        matches!(self, Self::Disabled)
+    }
+
+    /// Returns whether client is deleted.
+    #[must_use]
+    pub const fn is_deleted(self) -> bool {
+        matches!(self, Self::Deleted)
+    }
 }

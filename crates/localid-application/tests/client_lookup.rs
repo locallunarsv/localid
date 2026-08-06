@@ -4,6 +4,7 @@ use localid_client::{Client, ClientId};
 
 use localid_repository::ClientRepository;
 use localid_repository_memory::MemoryClientRepository;
+
 #[test]
 fn get_client_should_resolve_existing_client() {
     let mut repository = MemoryClientRepository::new();

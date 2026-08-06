@@ -15,6 +15,9 @@ localid-role = { path = "../localid-role" }
 localid-repository = { path = "../localid-repository" }
 localid-client = { path = "../localid-client" }
 
+localid-oauth-authorization = { path = "../localid-oauth-authorization" }
+localid-oauth-client = { path = "../localid-oauth-client" }
+
 [dev-dependencies]
 chrono = "0.4"
 localid-authentication = { path = "../localid-authentication" }

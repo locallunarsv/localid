@@ -21,4 +21,8 @@ members = [
     "crates/localid-role",
     "crates/localid-permission",
     "crates/localid-client",
+    "crates/localid-oauth-client",
+    "crates/localid-oauth-authorization",
+    "crates/localid-oauth-token",
+    "crates/localid-oauth", "crates/localid-oauth-client-repository-memory", "crates/localid-oauth-authorization-repository-memory",
 ]

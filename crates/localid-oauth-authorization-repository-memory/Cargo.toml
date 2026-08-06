@@ -1,0 +1,13 @@
+[package]
+name = "localid-oauth-authorization-repository-memory"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+localid-oauth-authorization = { path = "../localid-oauth-authorization" }
+
+[dev-dependencies]
+chrono = { version = "0.4.45" }
+
+localid-identity = { path = "../localid-identity" }
+localid-oauth-client = { path = "../localid-oauth-client" }

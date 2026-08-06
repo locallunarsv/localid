@@ -1,0 +1,12 @@
+[package]
+name = "localid-oauth-authorization"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+uuid = { version = "1.24.0", features = ["v7"] }
+
+localid-client = { path = "../localid-client" }
+localid-identity = { path = "../localid-identity" }
+localid-oauth-client = { path = "../localid-oauth-client" }

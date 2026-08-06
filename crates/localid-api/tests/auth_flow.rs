@@ -223,7 +223,7 @@ async fn protected_route_requires_valid_token() {
         .body(Body::empty())
         .unwrap();
 
-    let response = app.clone().oneshot(request).await.unwrap();
+    let response = app.oneshot(request).await.unwrap();
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }

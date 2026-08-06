@@ -6,4 +6,7 @@ pub enum ClientApplicationError {
 
     /// Client was not found.
     ClientNotFound,
+
+    /// Client exists but cannot be used.
+    ClientUnavailable,
 }

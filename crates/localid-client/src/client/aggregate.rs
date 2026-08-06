@@ -67,6 +67,24 @@ impl Client {
         Ok(())
     }
 
+    /// Returns whether this client can be used.
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
+        self.state.is_active()
+    }
+
+    /// Returns whether this client has been disabled.
+    #[must_use]
+    pub const fn is_disabled(&self) -> bool {
+        self.state.is_disabled()
+    }
+
+    /// Returns whether this client has been deleted.
+    #[must_use]
+    pub const fn is_deleted(&self) -> bool {
+        self.state.is_deleted()
+    }
+
     /// Deletes client.
     pub fn delete(&mut self) -> Result<(), ClientError> {
         if self.state == ClientLifecycleState::Deleted {

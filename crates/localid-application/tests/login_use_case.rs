@@ -1,10 +1,12 @@
 use chrono::{TimeDelta, Utc};
 
-use localid_application::{ApplicationError, AuthenticationPort, LoginCommand, LoginUseCase};
+use localid_application::{
+    ApplicationError, AuthenticationPort, ClientPort, GetClientUseCase, LoginCommand, LoginUseCase,
+};
 
 use localid_authentication::{AuthenticateResult, AuthenticationError};
 
-use localid_client::ClientId;
+use localid_client::{Client, ClientId};
 use localid_credential::CredentialId;
 use localid_identity::IdentityId;
 use localid_password::PasswordSecret;
@@ -35,6 +37,30 @@ impl AuthenticationPort for FakeAuthenticationService {
             FakeAuthenticationResponse::Failure(error) => Err(error),
         }
     }
+}
+
+struct FakeClientRepository {
+    client: Client,
+}
+
+impl ClientPort for FakeClientRepository {
+    type Error = ();
+
+    fn find_by_client_id(&self, _client_id: &str) -> Result<Option<Client>, Self::Error> {
+        Ok(Some(self.client.clone()))
+    }
+
+    fn find_by_id(&self, _id: ClientId) -> Result<Option<Client>, Self::Error> {
+        Ok(Some(self.client.clone()))
+    }
+}
+
+fn client() -> Client {
+    Client::new(ClientId::new(), "test-client", "Test Client")
+}
+
+fn client_use_case() -> GetClientUseCase<FakeClientRepository> {
+    GetClientUseCase::new(FakeClientRepository { client: client() })
 }
 
 fn authenticated_result() -> AuthenticateResult {
@@ -85,7 +111,7 @@ fn authentication_failure_maps_to_application_error() {
         response: FakeAuthenticationResponse::Failure(AuthenticationError::InvalidPassword),
     };
 
-    let mut use_case = LoginUseCase::new(service);
+    let mut use_case = LoginUseCase::new(service, client_use_case());
 
     let command = LoginCommand::new(
         ClientId::new(),
@@ -107,7 +133,7 @@ fn successful_authentication_returns_response() {
         response: FakeAuthenticationResponse::Success(Box::new(authenticated_result())),
     };
 
-    let mut use_case = LoginUseCase::new(service);
+    let mut use_case = LoginUseCase::new(service, client_use_case());
 
     let command = LoginCommand::new(
         ClientId::new(),

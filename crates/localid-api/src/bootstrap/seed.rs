@@ -65,13 +65,14 @@ where
 }
 
 /// Seeds a demo client application.
+/// Seeds a demo client application.
 pub fn seed_demo_client<CR>(client_repository: &mut CR) -> ClientId
 where
     CR: ClientRepository,
 {
     let client_id = ClientId::new();
 
-    let client = Client::new(client_id, "localid-demo", "LocalID Demo Application");
+    let client = Client::new(client_id, client_id.to_string(), "LocalID Demo Application");
 
     client_repository
         .save(client)

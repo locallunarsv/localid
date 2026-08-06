@@ -3,14 +3,14 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use localid_application::{
-    GetClientUseCase, GetCurrentSessionUseCase, LoginUseCase, LogoutSessionUseCase,
+    AuthorizeUseCase, GetCurrentSessionUseCase, LoginUseCase, LogoutSessionUseCase,
     RefreshTokenUseCase, VerifyTokenUseCase,
 };
 
 /// Shared application state.
-pub struct AppState<L, R, V, S, C> {
+pub struct AppState<L, R, V, S, C, O> {
     /// Login authentication use case.
-    pub login_use_case: Arc<Mutex<LoginUseCase<L>>>,
+    pub login_use_case: Arc<Mutex<LoginUseCase<L, C>>>,
 
     /// Refresh token use case.
     pub refresh_use_case: Arc<Mutex<RefreshTokenUseCase<R>>>,
@@ -24,11 +24,11 @@ pub struct AppState<L, R, V, S, C> {
     /// Logout session use case.
     pub logout_use_case: Arc<Mutex<LogoutSessionUseCase<S>>>,
 
-    /// Client lookup use case.
-    pub client_use_case: Arc<Mutex<GetClientUseCase<C>>>,
+    /// OAuth authorization use case.
+    pub authorize_use_case: Arc<Mutex<AuthorizeUseCase<O>>>,
 }
 
-impl<L, R, V, S, C> Clone for AppState<L, R, V, S, C> {
+impl<L, R, V, S, C, O> Clone for AppState<L, R, V, S, C, O> {
     fn clone(&self) -> Self {
         Self {
             login_use_case: Arc::clone(&self.login_use_case),
@@ -36,21 +36,21 @@ impl<L, R, V, S, C> Clone for AppState<L, R, V, S, C> {
             verify_token_use_case: Arc::clone(&self.verify_token_use_case),
             current_session_use_case: Arc::clone(&self.current_session_use_case),
             logout_use_case: Arc::clone(&self.logout_use_case),
-            client_use_case: Arc::clone(&self.client_use_case),
+            authorize_use_case: Arc::clone(&self.authorize_use_case),
         }
     }
 }
 
-impl<L, R, V, S, C> AppState<L, R, V, S, C> {
-    /// Creates shared application state from application use cases.
+impl<L, R, V, S, C, O> AppState<L, R, V, S, C, O> {
+    /// Creates shared application state.
     #[must_use]
     pub fn new(
-        login_use_case: LoginUseCase<L>,
+        login_use_case: LoginUseCase<L, C>,
         refresh_use_case: RefreshTokenUseCase<R>,
         verify_token_use_case: Arc<Mutex<VerifyTokenUseCase<V>>>,
         current_session_use_case: GetCurrentSessionUseCase<S>,
         logout_use_case: LogoutSessionUseCase<S>,
-        client_use_case: GetClientUseCase<C>,
+        authorize_use_case: AuthorizeUseCase<O>,
     ) -> Self {
         Self {
             login_use_case: Arc::new(Mutex::new(login_use_case)),
@@ -58,7 +58,7 @@ impl<L, R, V, S, C> AppState<L, R, V, S, C> {
             verify_token_use_case,
             current_session_use_case: Arc::new(Mutex::new(current_session_use_case)),
             logout_use_case: Arc::new(Mutex::new(logout_use_case)),
-            client_use_case: Arc::new(Mutex::new(client_use_case)),
+            authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
         }
     }
 }

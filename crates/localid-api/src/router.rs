@@ -5,8 +5,8 @@ use axum::{
 };
 
 use localid_application::{
-    AuthenticationPort, AuthorizationContextResolver, IdentityRolePort, RefreshTokenPort,
-    SessionPort,
+    AuthenticationPort, AuthorizationContextResolver, AuthorizationPort, ClientPort,
+    IdentityRolePort, RefreshTokenPort, SessionPort,
 };
 
 use tower_http::trace::TraceLayer;
@@ -22,8 +22,8 @@ use crate::{
 };
 
 /// Creates the application HTTP router.
-pub fn create_router<L, R, V, S, C, IR>(
-    state: AppState<L, R, V, S, C>,
+pub fn create_router<L, R, V, S, C, O, IR>(
+    state: AppState<L, R, V, S, C, O>,
     auth_state: AuthMiddlewareState<V>,
     authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 ) -> Router
@@ -32,7 +32,8 @@ where
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
-    C: Send + Sync + 'static,
+    C: ClientPort + Send + Sync + 'static,
+    O: AuthorizationPort + Send + Sync + 'static,
     IR: IdentityRolePort + Send + Sync + 'static,
 {
     let protected = Router::new()
@@ -42,7 +43,7 @@ where
             "/authorization/context",
             get(handler::authorization::context),
         )
-        .route("/auth/logout", post(auth::logout::<L, R, V, S, C>))
+        .route("/auth/logout", post(auth::logout::<L, R, V, S, C, O>))
         .layer(middleware::from_fn_with_state(
             authorization_state,
             crate::middleware::authorization::resolve_authorization,
@@ -55,9 +56,13 @@ where
     let (request_id_layer, propagate_request_id_layer) = request_id_layers();
 
     Router::new()
-        .route("/auth/login", post(auth::login::<L, R, V, S, C>))
-        .route("/auth/refresh", post(auth::refresh::<L, R, V, S, C>))
-        .route("/auth/verify", post(auth::verify::<L, R, V, S, C>))
+        .route("/auth/login", post(auth::login::<L, R, V, S, C, O>))
+        .route("/auth/refresh", post(auth::refresh::<L, R, V, S, C, O>))
+        .route("/auth/verify", post(auth::verify::<L, R, V, S, C, O>))
+        .route(
+            "/oauth/authorize",
+            get(handler::oauth::authorize::<L, R, V, S, C, O>),
+        )
         .merge(protected)
         .layer(TraceLayer::new_for_http())
         .layer(propagate_request_id_layer)
