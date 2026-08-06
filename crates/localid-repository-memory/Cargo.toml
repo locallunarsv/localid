@@ -13,5 +13,6 @@ localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
 localid-refresh-token = { path = "../localid-refresh-token" }
 localid-role = { path = "../localid-role" }
+localid-client = { path = "../localid-client" }
 
 thiserror = "1"

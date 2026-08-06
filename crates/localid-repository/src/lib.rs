@@ -2,6 +2,7 @@
 
 //! Repository contracts for LocalID domain aggregates.
 
+mod client;
 mod credential;
 mod identity;
 mod identity_role;
@@ -17,4 +18,5 @@ pub use refresh_token::RefreshTokenRepository;
 pub use session::SessionRepository;
 pub use token::TokenRepository;
 
+pub use client::ClientRepository;
 pub use identity_role::IdentityRoleRepository;

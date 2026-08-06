@@ -5,8 +5,8 @@ use crate::{auth::AuthenticatedIdentity, response::SessionResponseBody, ApiError
 use localid_application::SessionPort;
 use localid_authentication::AuthenticationError;
 
-pub async fn current<L, R, V, S>(
-    State(state): State<AppState<L, R, V, S>>,
+pub async fn current<L, R, V, S, C>(
+    State(state): State<AppState<L, R, V, S, C>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where
@@ -14,6 +14,7 @@ where
     R: Send + Sync + 'static,
     V: Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     let session_id = identity.session_id();
 

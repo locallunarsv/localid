@@ -18,5 +18,7 @@ members = [
     "crates/localid-application",
     "crates/localid-api",
     "crates/localid-repository-memory",
-    "crates/localid-role", "crates/localid-permission",
+    "crates/localid-role",
+    "crates/localid-permission",
+    "crates/localid-client",
 ]

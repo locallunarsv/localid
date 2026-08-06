@@ -11,3 +11,4 @@ localid-password = { version = "0.1.0", path = "../localid-password" }
 localid-token = { path = "../localid-token" }
 localid-refresh-token = { path = "../localid-refresh-token" }
 localid-role = { path = "../localid-role" }
+localid-client = { path = "../localid-client" }

@@ -30,6 +30,7 @@ localid-token = { path = "../localid-token" }
 localid-authorization = { path = "../localid-authorization" }
 localid-permission = { path = "../localid-permission" }
 localid-role = { path = "../localid-role" }
+localid-client = { path = "../localid-client" }
 
 [dev-dependencies]
 tower = "0.5"

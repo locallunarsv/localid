@@ -2,6 +2,7 @@
 
 //! In-memory repository implementations.
 
+mod client;
 mod credential;
 mod error;
 mod identity;
@@ -20,3 +21,5 @@ pub use session::MemorySessionRepository;
 pub use token::MemoryTokenRepository;
 
 pub use identity_role::MemoryIdentityRoleRepository;
+
+pub use client::MemoryClientRepository;

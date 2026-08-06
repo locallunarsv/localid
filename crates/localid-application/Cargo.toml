@@ -13,6 +13,7 @@ localid-session = { path = "../localid-session" }
 localid-authorization = { path = "../localid-authorization" }
 localid-role = { path = "../localid-role" }
 localid-repository = { path = "../localid-repository" }
+localid-client = { path = "../localid-client" }
 
 [dev-dependencies]
 chrono = "0.4"
@@ -25,3 +26,4 @@ localid-refresh-token-random = { path = "../localid-refresh-token-random" }
 localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
 localid-token-random = { path = "../localid-token-random" }
+localid-repository-memory = { path = "../localid-repository-memory" }

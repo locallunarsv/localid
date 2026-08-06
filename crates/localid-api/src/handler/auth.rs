@@ -14,8 +14,8 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R, V, S>(
-    State(state): State<AppState<L, R, V, S>>,
+pub async fn login<L, R, V, S, C>(
+    State(state): State<AppState<L, R, V, S, C>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
@@ -23,6 +23,7 @@ where
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     let credential_id = match request.credential_id() {
         Ok(value) => value,
@@ -49,8 +50,8 @@ where
     }
 }
 
-pub async fn refresh<L, R, V, S>(
-    State(state): State<AppState<L, R, V, S>>,
+pub async fn refresh<L, R, V, S, C>(
+    State(state): State<AppState<L, R, V, S, C>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
@@ -58,6 +59,7 @@ where
     R: RefreshTokenPort<Error = AuthenticationError> + Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     let mut use_case = state.refresh_use_case.lock().await;
 
@@ -68,8 +70,8 @@ where
     }
 }
 
-pub async fn verify<L, R, V, S>(
-    State(state): State<AppState<L, R, V, S>>,
+pub async fn verify<L, R, V, S, C>(
+    State(state): State<AppState<L, R, V, S, C>>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> impl IntoResponse
 where
@@ -77,6 +79,7 @@ where
     R: Send + Sync + 'static,
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     let query = VerifyTokenQuery::new(request.token());
 
@@ -89,8 +92,8 @@ where
     }
 }
 
-pub async fn logout<L, R, V, S>(
-    State(state): State<AppState<L, R, V, S>>,
+pub async fn logout<L, R, V, S, C>(
+    State(state): State<AppState<L, R, V, S, C>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where
@@ -98,6 +101,7 @@ where
     R: Send + Sync + 'static,
     V: Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     let session_id = identity.session_id();
 

@@ -5,8 +5,10 @@ use tokio::sync::Mutex;
 mod repository;
 mod seed;
 
-pub use seed::seed_demo_identity;
+pub use seed::{seed_demo_client, seed_demo_identity};
 
+use localid_application::{ClientRepositoryAdapter, GetClientUseCase};
+use localid_client::ClientId;
 use localid_credential::CredentialId;
 
 use crate::{
@@ -30,9 +32,9 @@ use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
 
 use localid_repository_memory::{
-    MemoryCredentialRepository, MemoryIdentityRepository, MemoryIdentityRoleRepository,
-    MemoryPasswordMaterialRepository, MemoryRefreshTokenRepository, MemorySessionRepository,
-    MemoryTokenRepository,
+    MemoryClientRepository, MemoryCredentialRepository, MemoryIdentityRepository,
+    MemoryIdentityRoleRepository, MemoryPasswordMaterialRepository, MemoryRefreshTokenRepository,
+    MemorySessionRepository, MemoryTokenRepository,
 };
 
 use localid_token_random::RandomTokenIssuer;
@@ -40,9 +42,9 @@ use localid_token_random::RandomTokenIssuer;
 use crate::bootstrap::repository::SharedRepository;
 
 /// Result of application bootstrap initialization.
-pub struct BootstrapContext<L, R, V, S, A> {
+pub struct BootstrapContext<L, R, V, S, A, C> {
     /// Ready-to-use application state.
-    pub state: AppState<L, R, V, S>,
+    pub state: AppState<L, R, V, S, C>,
 
     /// Authentication middleware state.
     pub auth_state: AuthMiddlewareState<V>,
@@ -52,6 +54,9 @@ pub struct BootstrapContext<L, R, V, S, A> {
 
     /// Credential identifier created during development seed.
     pub credential_id: CredentialId,
+
+    /// Client identifier created during development seed.
+    pub client_id: ClientId,
 }
 
 type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
@@ -99,11 +104,11 @@ pub fn create_state() -> BootstrapContext<
     BootstrapVerificationService,
     BootstrapSessionService,
     BootstrapAuthorizationResolver,
+    ClientRepositoryAdapter<MemoryClientRepository>,
 > {
     let mut identity_repository = MemoryIdentityRepository::new();
     let mut credential_repository = MemoryCredentialRepository::new();
     let mut password_material_repository = MemoryPasswordMaterialRepository::new();
-
     let mut identity_role_repository = MemoryIdentityRoleRepository::new();
 
     let credential_id = seed_demo_identity(
@@ -112,6 +117,14 @@ pub fn create_state() -> BootstrapContext<
         &mut password_material_repository,
         &mut identity_role_repository,
     );
+
+    let mut client_repository = MemoryClientRepository::new();
+
+    let client_id = seed_demo_client(&mut client_repository);
+
+    let client_adapter = ClientRepositoryAdapter::new(client_repository);
+
+    let client_use_case = GetClientUseCase::new(client_adapter);
 
     let session_repository = SharedRepository::new(MemorySessionRepository::new());
 
@@ -124,14 +137,11 @@ pub fn create_state() -> BootstrapContext<
             identity_repository,
             credential_repository,
             password_material_repository,
-
             session_repository: session_repository.clone(),
             token_repository: token_repository.clone(),
             refresh_token_repository: refresh_token_repository.clone(),
-
             password_verifier: Argon2PasswordHasher::new(),
             session_factory: DefaultSessionFactory::new(),
-
             token_issuer: RandomTokenIssuer::new(),
             refresh_token_issuer: RandomRefreshTokenIssuer::new(),
         });
@@ -186,10 +196,11 @@ pub fn create_state() -> BootstrapContext<
             verify_token_use_case,
             current_session_use_case,
             logout_session_use_case,
+            client_use_case,
         ),
-
         auth_state,
         authorization_state,
         credential_id,
+        client_id,
     }
 }

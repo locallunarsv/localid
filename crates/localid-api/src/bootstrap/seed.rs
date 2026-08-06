@@ -8,6 +8,9 @@ use localid_repository::{CredentialRepository, IdentityRepository, PasswordMater
 use localid_repository_memory::MemoryIdentityRoleRepository;
 use localid_role::Role;
 
+use localid_client::{Client, ClientId};
+use localid_repository::ClientRepository;
+
 /// Seeds a demo password identity.
 ///
 /// Returns the generated Credential identifier.
@@ -59,4 +62,20 @@ where
     identity_role_repository.assign(identity_id, vec![role]);
 
     credential_id
+}
+
+/// Seeds a demo client application.
+pub fn seed_demo_client<CR>(client_repository: &mut CR) -> ClientId
+where
+    CR: ClientRepository,
+{
+    let client_id = ClientId::new();
+
+    let client = Client::new(client_id, "localid-demo", "LocalID Demo Application");
+
+    client_repository
+        .save(client)
+        .unwrap_or_else(|_| panic!("client seed should succeed"));
+
+    client_id
 }

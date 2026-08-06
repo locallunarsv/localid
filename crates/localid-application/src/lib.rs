@@ -7,6 +7,7 @@
 
 pub mod authentication;
 pub mod authorization;
+pub mod client;
 pub mod session;
 
 pub use authentication::{
@@ -21,6 +22,10 @@ pub use authorization::{
 
 pub use session::{
     GetCurrentSessionUseCase, LogoutSessionUseCase, SessionAdapter, SessionPort, SessionResponse,
+};
+
+pub use client::{
+    ClientApplicationError, ClientPort, ClientRepositoryAdapter, FindClientQuery, GetClientUseCase,
 };
 
 mod error;
