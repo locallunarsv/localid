@@ -30,7 +30,7 @@ where
     ) -> Result<AuthorizationResult, ApplicationError> {
         let client = self
             .port
-            .find_client(&command.client_id().to_string())
+            .find_client(&command.client_id())
             .map_err(|_| ApplicationError::InternalFailure)?
             .ok_or(ApplicationError::InternalFailure)?;
 

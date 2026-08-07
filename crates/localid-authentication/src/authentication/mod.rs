@@ -4,6 +4,7 @@ mod refresh_token;
 mod session;
 mod shared;
 mod token;
+mod token_issuance;
 mod token_verification;
 
 pub use error::AuthenticationError;
@@ -19,6 +20,7 @@ pub use token::{AuthenticatedContext, DefaultTokenValidator, TokenValidator};
 
 pub use refresh_token::{DefaultRefreshTokenService, RefreshResult, RefreshTokenService};
 
+pub use token_issuance::{DefaultTokenIssuanceService, TokenIssuanceService};
 pub use token_verification::{
     DefaultTokenVerificationService, TokenVerificationResult, TokenVerificationService,
 };

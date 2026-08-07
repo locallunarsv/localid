@@ -6,7 +6,7 @@ pub trait AuthorizationPort {
     /// Error returned by authorization operations.
     type Error;
 
-    /// Finds a registered OAuth client.
+    /// Finds a registered OAuth client by public client identifier.
     fn find_client(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error>;
 
     /// Stores generated authorization code.

@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use localid_client::ClientId;
 use localid_identity::IdentityId;
 use serde::Deserialize;
 
@@ -15,8 +14,8 @@ pub struct AuthorizeRequest {
 
 impl AuthorizeRequest {
     /// Returns OAuth client identifier.
-    pub fn client_id(&self) -> Result<ClientId, uuid::Error> {
-        ClientId::from_str(&self.client_id)
+    pub fn client_id(&self) -> &str {
+        &self.client_id
     }
 
     /// Returns identity identifier.

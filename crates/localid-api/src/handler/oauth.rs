@@ -16,15 +16,6 @@ pub async fn authorize<L, R, V, S, C, O>(
 where
     O: AuthorizationPort + Send + Sync + 'static,
 {
-    let client_id = match request.client_id() {
-        Ok(value) => value,
-        Err(_) => {
-            return Json(serde_json::json!({
-                "error": "invalid_client_id"
-            }));
-        }
-    };
-
     let identity_id = match request.identity_id() {
         Ok(value) => value,
         Err(_) => {
@@ -35,7 +26,7 @@ where
     };
 
     let command = AuthorizeCommand::new(
-        client_id,
+        request.client_id(),
         identity_id,
         request.redirect_uri(),
         request.scope(),

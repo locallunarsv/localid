@@ -1,25 +1,27 @@
+use localid_client::{Client, ClientId};
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
+use localid_oauth_client::OAuthClientRepository;
+use localid_oauth_client::{OAuthClient, OAuthClientId};
+use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
 use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
 use localid_password_argon2::Argon2PasswordHasher;
-
 use localid_permission::Permission;
-use localid_repository::{CredentialRepository, IdentityRepository, PasswordMaterialRepository};
+use localid_repository::{
+    ClientRepository, CredentialRepository, IdentityRepository, PasswordMaterialRepository,
+};
 use localid_repository_memory::MemoryIdentityRoleRepository;
 use localid_role::Role;
 
-use localid_client::{Client, ClientId};
-use localid_repository::ClientRepository;
-
 /// Seeds a demo password identity.
 ///
-/// Returns the generated Credential identifier.
+/// Returns credential identifier and identity identifier.
 pub fn seed_demo_identity<IR, CR, PR>(
     identity_repository: &mut IR,
     credential_repository: &mut CR,
     password_material_repository: &mut PR,
     identity_role_repository: &mut MemoryIdentityRoleRepository,
-) -> CredentialId
+) -> (CredentialId, IdentityId)
 where
     IR: IdentityRepository,
     CR: CredentialRepository,
@@ -61,11 +63,12 @@ where
 
     identity_role_repository.assign(identity_id, vec![role]);
 
-    credential_id
+    (credential_id, identity_id)
 }
 
-/// Seeds a demo client application.
-/// Seeds a demo client application.
+/// Seeds a demo local client application.
+///
+/// Returns client identifier.
 pub fn seed_demo_client<CR>(client_repository: &mut CR) -> ClientId
 where
     CR: ClientRepository,
@@ -79,4 +82,29 @@ where
         .unwrap_or_else(|_| panic!("client seed should succeed"));
 
     client_id
+}
+
+/// Seeds a demo OAuth client.
+///
+/// Returns internal OAuth client id and public OAuth client id.
+pub fn seed_demo_oauth_client(
+    repository: &mut MemoryOAuthClientRepository,
+) -> (OAuthClientId, String) {
+    let public_client_id = "demo-client".to_string();
+
+    let client = OAuthClient::new(
+        OAuthClientId::new(),
+        public_client_id.clone(),
+        "LocalID Demo Client",
+        "demo-secret-hash",
+        vec!["http://localhost:3000/callback".to_string()],
+    );
+
+    let internal_id = client.id();
+
+    repository
+        .save(client)
+        .expect("oauth client seed should succeed");
+
+    (internal_id, public_client_id)
 }
