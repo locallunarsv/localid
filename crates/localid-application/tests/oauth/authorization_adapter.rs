@@ -4,6 +4,7 @@ use localid_oauth_authorization::{ AuthorizationCode, AuthorizationCodeId };
 
 use localid_oauth_authorization_repository_memory::{ MemoryAuthorizationCodeRepository };
 
+use localid_client::ClientId;
 use localid_oauth_client::{ OAuthClient, OAuthClientId };
 
 use localid_oauth_client_repository_memory::{ MemoryOAuthClientRepository };
@@ -11,6 +12,7 @@ use localid_oauth_client_repository_memory::{ MemoryOAuthClientRepository };
 fn create_client() -> OAuthClient {
     OAuthClient::new(
         OAuthClientId::new(),
+        ClientId::new(),
         "demo-client",
         "Demo OAuth Client",
         "secret-hash",

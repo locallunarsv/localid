@@ -1,25 +1,29 @@
-use chrono::{TimeDelta, Utc};
+use chrono::{ TimeDelta, Utc };
 
 use localid_authentication::{
-    AuthenticatePasswordRequest, AuthenticateResult, DefaultPasswordAuthenticationService,
-    PasswordAuthenticationDependencies, PasswordAuthenticationService, TokenIssuanceService,
+    AuthenticatePasswordRequest,
+    AuthenticateResult,
+    DefaultPasswordAuthenticationService,
+    PasswordAuthenticationDependencies,
+    PasswordAuthenticationService,
+    TokenIssuanceService,
 };
 
 use localid_client::ClientId;
-use localid_credential::{Credential, CredentialId, CredentialKind};
-use localid_identity::{Identity, IdentityId};
+use localid_credential::{ Credential, CredentialId, CredentialKind };
+use localid_identity::{ Identity, IdentityId };
 
-use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
+use localid_password::{ PasswordHasher, PasswordMaterial, PasswordSecret };
 
 use localid_password_argon2::Argon2PasswordHasher;
 
-use localid_repository::{CredentialRepository, IdentityRepository, PasswordMaterialRepository};
+use localid_repository::{ CredentialRepository, IdentityRepository, PasswordMaterialRepository };
 
-use localid_session::{Session, SessionId};
+use localid_session::{ Session, SessionId };
 
 use localid_storage_memory::MemoryStorage;
 
-use localid_refresh_token::{RefreshToken, RefreshTokenId};
+use localid_refresh_token::{ RefreshToken, RefreshTokenId };
 use localid_refresh_token_random::IssuedRefreshToken;
 
 use localid_token::Token;
@@ -33,7 +37,7 @@ impl TokenIssuanceService for FakeTokenIssuanceService {
     fn issue(
         &mut self,
         identity_id: IdentityId,
-        client_id: ClientId,
+        client_id: ClientId
     ) -> Result<AuthenticateResult, Self::Error> {
         let created_at = Utc::now();
 
@@ -42,49 +46,44 @@ impl TokenIssuanceService for FakeTokenIssuanceService {
             identity_id,
             client_id,
             created_at,
-            created_at + TimeDelta::hours(1),
-        )
-        .map_err(|_| Self::Error::SessionCreationFailure)?;
+            created_at + TimeDelta::hours(1)
+        ).map_err(|_| Self::Error::SessionCreationFailure)?;
 
         let token = Token::new(
             localid_token::TokenId::new(),
             session.id(),
-            "token-hash",
+            "token-hash".to_string(),
             session.created_at(),
-            session.expires_at(),
-        )
-        .map_err(|_| Self::Error::TokenCreationFailure)?;
+            session.expires_at()
+        ).map_err(|_| Self::Error::TokenCreationFailure)?;
 
         let issued_token = IssuedToken::new(token, "access-token".to_string());
 
         let refresh_token = RefreshToken::new(
             RefreshTokenId::new(),
             session.id(),
-            "refresh-hash",
+            "refresh-hash".to_string(),
             session.created_at(),
-            session.expires_at(),
-        )
-        .map_err(|_| Self::Error::TokenCreationFailure)?;
+            session.expires_at()
+        ).map_err(|_| Self::Error::TokenCreationFailure)?;
 
-        let issued_refresh_token =
-            IssuedRefreshToken::new(refresh_token, "refresh-token".to_string());
+        let issued_refresh_token = IssuedRefreshToken::new(
+            refresh_token,
+            "refresh-token".to_string()
+        );
 
-        Ok(AuthenticateResult::new(
-            session,
-            issued_token,
-            issued_refresh_token,
-        ))
+        Ok(AuthenticateResult::new(session, issued_token, issued_refresh_token))
     }
 }
 
 fn create_service(
-    storage: &MemoryStorage,
+    storage: &MemoryStorage
 ) -> DefaultPasswordAuthenticationService<
     MemoryStorage,
     MemoryStorage,
     MemoryStorage,
     Argon2PasswordHasher,
-    FakeTokenIssuanceService,
+    FakeTokenIssuanceService
 > {
     DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
         identity_repository: storage.clone(),
@@ -118,17 +117,14 @@ fn authenticates_password_credential() {
 
     PasswordMaterialRepository::save(
         &mut storage,
-        PasswordMaterial::new(credential_id, password_hash),
-    )
-    .expect("password material should be stored");
+        PasswordMaterial::new(credential_id, password_hash)
+    ).expect("password material should be stored");
 
     let mut service = create_service(&storage);
 
     let request = AuthenticatePasswordRequest::new(ClientId::new(), credential_id, password);
 
-    let result = service
-        .authenticate_password(request)
-        .expect("authentication should succeed");
+    let result = service.authenticate_password(request).expect("authentication should succeed");
 
     assert_eq!(result.session().identity_id(), identity_id);
 }
@@ -152,8 +148,10 @@ fn rejects_invalid_password() {
 
     let hash = Argon2PasswordHasher::new().hash(&password).unwrap();
 
-    PasswordMaterialRepository::save(&mut storage, PasswordMaterial::new(credential_id, hash))
-        .unwrap();
+    PasswordMaterialRepository::save(
+        &mut storage,
+        PasswordMaterial::new(credential_id, hash)
+    ).unwrap();
 
     let mut service = create_service(&storage);
 
@@ -186,8 +184,10 @@ fn rejects_disabled_identity() {
 
     let hash = Argon2PasswordHasher::new().hash(&password).unwrap();
 
-    PasswordMaterialRepository::save(&mut storage, PasswordMaterial::new(credential_id, hash))
-        .unwrap();
+    PasswordMaterialRepository::save(
+        &mut storage,
+        PasswordMaterial::new(credential_id, hash)
+    ).unwrap();
 
     let mut service = create_service(&storage);
 
@@ -206,8 +206,11 @@ fn rejects_disabled_credential() {
 
     IdentityRepository::save(&mut storage, identity).unwrap();
 
-    let mut credential =
-        Credential::new(CredentialId::new(), identity_id, CredentialKind::Password);
+    let mut credential = Credential::new(
+        CredentialId::new(),
+        identity_id,
+        CredentialKind::Password
+    );
 
     credential.disable().unwrap();
 

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use localid_application::{ AuthorizationPort, AuthorizeCommand, AuthorizeUseCase };
 
+use localid_client::ClientId;
 use localid_identity::IdentityId;
 
 use localid_oauth_authorization::AuthorizationCode;
@@ -43,6 +44,7 @@ impl AuthorizationPort for FakeAuthorizationAdapter {
 fn create_client() -> OAuthClient {
     OAuthClient::new(
         OAuthClientId::new(),
+        ClientId::new(),
         "demo-client",
         "Demo OAuth Client",
         "secret-hash",

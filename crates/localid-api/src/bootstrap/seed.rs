@@ -87,13 +87,19 @@ where
 /// Seeds a demo OAuth client.
 ///
 /// Returns internal OAuth client id and public OAuth client id.
+/// Seeds a demo OAuth client.
+///
+/// Returns the internal OAuth client identifier and public OAuth client id.
 pub fn seed_demo_oauth_client(
     repository: &mut MemoryOAuthClientRepository,
 ) -> (OAuthClientId, String) {
     let public_client_id = "demo-client".to_string();
 
+    let local_client_id = ClientId::new();
+
     let client = OAuthClient::new(
         OAuthClientId::new(),
+        local_client_id,
         public_client_id.clone(),
         "LocalID Demo Client",
         "demo-secret-hash",

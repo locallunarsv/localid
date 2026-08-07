@@ -1,13 +1,24 @@
+use localid_client::ClientId;
+
 use super::{OAuthClientError, OAuthClientId, OAuthClientLifecycleState};
 
 /// OAuth client application aggregate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OAuthClient {
     id: OAuthClientId,
+
+    /// Internal LocalID client reference.
+    local_client_id: ClientId,
+
+    /// Public OAuth client identifier.
     client_id: String,
+
     name: String,
+
     secret_hash: String,
+
     redirect_uris: Vec<String>,
+
     state: OAuthClientLifecycleState,
 }
 
@@ -16,6 +27,7 @@ impl OAuthClient {
     #[must_use]
     pub fn new(
         id: OAuthClientId,
+        local_client_id: ClientId,
         client_id: impl Into<String>,
         name: impl Into<String>,
         secret_hash: impl Into<String>,
@@ -23,6 +35,7 @@ impl OAuthClient {
     ) -> Self {
         Self {
             id,
+            local_client_id,
             client_id: client_id.into(),
             name: name.into(),
             secret_hash: secret_hash.into(),
@@ -37,7 +50,13 @@ impl OAuthClient {
         self.id
     }
 
-    /// Returns public client identifier.
+    /// Returns related LocalID client identifier.
+    #[must_use]
+    pub const fn local_client_id(&self) -> ClientId {
+        self.local_client_id
+    }
+
+    /// Returns public OAuth client identifier.
     #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id

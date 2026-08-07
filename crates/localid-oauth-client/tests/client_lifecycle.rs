@@ -1,8 +1,10 @@
+use localid_client::ClientId;
 use localid_oauth_client::{OAuthClient, OAuthClientId, OAuthClientLifecycleState};
 
 fn create_client() -> OAuthClient {
     OAuthClient::new(
         OAuthClientId::new(),
+        ClientId::new(),
         "github-client",
         "GitHub Application",
         "secret-hash",
