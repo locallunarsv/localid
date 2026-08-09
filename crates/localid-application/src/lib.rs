@@ -19,6 +19,9 @@ pub mod oauth;
 /// Session application services.
 pub mod session;
 
+/// Identity application services.
+pub mod identity;
+
 pub use error::ApplicationError;
 
 /// Authentication exports.
@@ -52,4 +55,11 @@ pub use oauth::token_exchange::{
 /// Session exports.
 pub use session::{
     GetCurrentSessionUseCase, LogoutSessionUseCase, SessionAdapter, SessionPort, SessionResponse,
+};
+
+/// Identity exports.
+/// Identity exports.
+pub use identity::{
+    GetIdentityUseCase, IdentityLookupPort, IdentityLookupService, IdentityRepositoryAdapter,
+    IdentityResult,
 };

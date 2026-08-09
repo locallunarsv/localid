@@ -8,7 +8,7 @@ use localid_application::{
 };
 
 /// Shared application state.
-pub struct AppState<L, R, V, S, C, O, REX, TEX> {
+pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
     /// Login authentication use case.
     pub login_use_case: Arc<Mutex<LoginUseCase<L, C>>>,
 
@@ -29,9 +29,12 @@ pub struct AppState<L, R, V, S, C, O, REX, TEX> {
 
     /// OAuth token exchange use case.
     pub token_exchange_use_case: Arc<Mutex<TokenExchangeUseCase<REX, TEX>>>,
+
+    /// Identity lookup use case.
+    pub identity_use_case: Arc<Mutex<I>>,
 }
 
-impl<L, R, V, S, C, O, REX, TEX> Clone for AppState<L, R, V, S, C, O, REX, TEX> {
+impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TEX, I> {
     fn clone(&self) -> Self {
         Self {
             login_use_case: Arc::clone(&self.login_use_case),
@@ -41,11 +44,12 @@ impl<L, R, V, S, C, O, REX, TEX> Clone for AppState<L, R, V, S, C, O, REX, TEX> 
             logout_use_case: Arc::clone(&self.logout_use_case),
             authorize_use_case: Arc::clone(&self.authorize_use_case),
             token_exchange_use_case: Arc::clone(&self.token_exchange_use_case),
+            identity_use_case: Arc::clone(&self.identity_use_case),
         }
     }
 }
 
-impl<L, R, V, S, C, O, REX, TEX> AppState<L, R, V, S, C, O, REX, TEX> {
+impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
     /// Creates shared application state.
     #[must_use]
     pub fn new(
@@ -56,6 +60,7 @@ impl<L, R, V, S, C, O, REX, TEX> AppState<L, R, V, S, C, O, REX, TEX> {
         logout_use_case: LogoutSessionUseCase<S>,
         authorize_use_case: AuthorizeUseCase<O>,
         token_exchange_use_case: TokenExchangeUseCase<REX, TEX>,
+        identity_use_case: I,
     ) -> Self {
         Self {
             login_use_case: Arc::new(Mutex::new(login_use_case)),
@@ -65,6 +70,7 @@ impl<L, R, V, S, C, O, REX, TEX> AppState<L, R, V, S, C, O, REX, TEX> {
             logout_use_case: Arc::new(Mutex::new(logout_use_case)),
             authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
             token_exchange_use_case: Arc::new(Mutex::new(token_exchange_use_case)),
+            identity_use_case: Arc::new(Mutex::new(identity_use_case)),
         }
     }
 }

@@ -6,21 +6,22 @@ use axum::{
 
 use localid_application::{
     oauth::{authorization::AuthorizationPort, token_exchange::TokenExchangePort},
-    AuthorizeCommand, TokenExchangeCommand,
+    AuthorizeCommand, IdentityLookupService, TokenExchangeCommand,
 };
 
 use localid_authentication::TokenIssuanceService;
 
 use crate::{
+    auth::AuthenticatedIdentity,
     request::{AuthorizeRequest, TokenRequest},
-    response::{AuthorizeResponseBody, TokenResponseBody},
+    response::{AuthorizeResponseBody, TokenResponseBody, UserInfoResponseBody},
     AppState,
 };
 
 /// Handles OAuth authorization request.
-pub async fn authorize<L, R, V, S, C, O, REX, TEX>(
+pub async fn authorize<L, R, V, S, C, O, REX, TEX, I>(
     Query(request): Query<AuthorizeRequest>,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,
@@ -31,6 +32,7 @@ where
     O: AuthorizationPort + Send + Sync + 'static,
     REX: Send + Sync + 'static,
     TEX: Send + Sync + 'static,
+    I: Send + Sync + 'static,
 {
     let identity_id = match request.identity_id() {
         Ok(value) => value,
@@ -60,8 +62,8 @@ where
 }
 
 /// Handles OAuth token exchange request.
-pub async fn token<L, R, V, S, C, O, REX, TEX>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
+pub async fn token<L, R, V, S, C, O, REX, TEX, I>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
@@ -73,6 +75,7 @@ where
     O: Send + Sync + 'static,
     REX: TokenExchangePort + Send + Sync + 'static,
     TEX: TokenIssuanceService + Send + Sync + 'static,
+    I: Send + Sync + 'static,
 {
     let code_id = match request.code_id() {
         Ok(value) => value,
@@ -112,5 +115,31 @@ where
                 }
             }
         }
+    }
+}
+
+/// Handles OAuth userinfo request.
+pub async fn userinfo<L, R, V, S, C, O, REX, TEX, I>(
+    AuthenticatedIdentity(context): AuthenticatedIdentity,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
+) -> Response
+where
+    L: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+    V: Send + Sync + 'static,
+    S: Send + Sync + 'static,
+    C: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+    REX: Send + Sync + 'static,
+    TEX: Send + Sync + 'static,
+    TEX: Send + Sync + 'static,
+    I: IdentityLookupService + Send + Sync + 'static,
+{
+    let mut use_case = state.identity_use_case.lock().await;
+
+    match use_case.execute(context.identity_id()) {
+        Ok(result) => Json(UserInfoResponseBody::from(result.identity().clone())).into_response(),
+
+        Err(error) => crate::error::ApiError::from(error).into_response(),
     }
 }

@@ -10,3 +10,5 @@ mod oauth;
 
 pub use oauth::AuthorizeResponseBody;
 pub use oauth::TokenResponseBody;
+
+pub use oauth::UserInfoResponseBody;

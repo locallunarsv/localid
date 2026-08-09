@@ -16,6 +16,7 @@ use tower_http::trace::TraceLayer;
 use crate::middleware::request_id::request_id_layers;
 
 use crate::{
+    bootstrap::BootstrapIdentityUseCase,
     handler::{self, auth},
     middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
     AppState,
@@ -23,7 +24,7 @@ use crate::{
 
 /// Creates the application HTTP router.
 pub fn create_router<L, R, V, S, C, O, REX, TEX, IR>(
-    state: AppState<L, R, V, S, C, O, REX, TEX>,
+    state: AppState<L, R, V, S, C, O, REX, TEX, crate::bootstrap::BootstrapIdentityUseCase>,
     auth_state: AuthMiddlewareState<V>,
     authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 ) -> Router
@@ -40,6 +41,10 @@ where
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
+        .route(
+            "/oauth/userinfo",
+            get(handler::oauth::userinfo::<L, R, V, S, C, O, REX, TEX, BootstrapIdentityUseCase>),
+        )
         .route("/session/current", get(handler::session::current))
         .route(
             "/authorization/context",
@@ -47,7 +52,19 @@ where
         )
         .route(
             "/auth/logout",
-            post(auth::logout::<L, R, V, S, C, O, REX, TEX>),
+            post(
+                auth::logout::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase,
+                >,
+            ),
         )
         .layer(middleware::from_fn_with_state(
             authorization_state,
@@ -64,23 +81,83 @@ where
         .route("/health", get(handler::health))
         .route(
             "/auth/login",
-            post(auth::login::<L, R, V, S, C, O, REX, TEX>),
+            post(
+                auth::login::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase
+                >
+            )
         )
         .route(
             "/auth/refresh",
-            post(auth::refresh::<L, R, V, S, C, O, REX, TEX>),
+            post(
+                auth::refresh::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase
+                >
+            )
         )
         .route(
             "/auth/verify",
-            post(auth::verify::<L, R, V, S, C, O, REX, TEX>),
+            post(
+                auth::verify::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase
+                >
+            )
         )
         .route(
             "/oauth/authorize",
-            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX>),
+            get(
+                handler::oauth::authorize::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase
+                >
+            )
         )
         .route(
             "/oauth/token",
-            post(handler::oauth::token::<L, R, V, S, C, O, REX, TEX>),
+            post(
+                handler::oauth::token::<
+                    L,
+                    R,
+                    V,
+                    S,
+                    C,
+                    O,
+                    REX,
+                    TEX,
+                    crate::bootstrap::BootstrapIdentityUseCase
+                >
+            )
         )
         .merge(protected)
         .layer(TraceLayer::new_for_http())

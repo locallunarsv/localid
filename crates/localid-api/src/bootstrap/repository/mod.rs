@@ -1,4 +1,5 @@
 mod client;
+mod identity;
 mod refresh_token;
 mod session;
 mod shared;
