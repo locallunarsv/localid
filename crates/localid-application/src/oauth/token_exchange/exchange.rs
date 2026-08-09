@@ -22,8 +22,8 @@ impl<R, T> TokenExchangeUseCase<R, T> {
 
 impl<R, T> TokenExchangeUseCase<R, T>
 where
-    R: TokenExchangePort,
-    T: TokenIssuanceService,
+    R: TokenExchangePort + Send + Sync,
+    T: TokenIssuanceService + Send + Sync,
 {
     /// Executes OAuth authorization code exchange.
     pub fn execute(

@@ -36,9 +36,16 @@ pub use authorization::{AuthorizationContextResolver, IdentityRoleAdapter, Ident
 pub use client::{ClientPort, ClientRepositoryAdapter, FindClientQuery, GetClientUseCase};
 
 /// OAuth authorization exports.
+/// OAuth authorization exports.
 pub use oauth::authorization::{
     AuthorizationPort, AuthorizationRepositoryAdapter, AuthorizationResult, AuthorizeCommand,
     AuthorizeUseCase,
+};
+
+/// OAuth token exchange exports.
+pub use oauth::token_exchange::{
+    TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeRepositoryAdapter,
+    TokenExchangeResult, TokenExchangeUseCase,
 };
 
 /// Session exports.

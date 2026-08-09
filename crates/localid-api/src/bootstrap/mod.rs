@@ -5,19 +5,34 @@ use tokio::sync::Mutex;
 mod repository;
 mod seed;
 
-pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client};
+pub use seed::{ seed_demo_client, seed_demo_identity, seed_demo_oauth_client };
 
 use localid_application::{
-    authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
-    AuthorizationContextResolver, AuthorizationRepositoryAdapter, AuthorizeUseCase,
-    ClientRepositoryAdapter, GetClientUseCase, GetCurrentSessionUseCase, IdentityRoleAdapter,
-    LoginUseCase, LogoutSessionUseCase, RefreshTokenAdapter, RefreshTokenUseCase, SessionAdapter,
+    authentication::{ PasswordAuthenticationAdapter, TokenVerificationAdapter },
+    AuthorizationContextResolver,
+    AuthorizationRepositoryAdapter,
+    AuthorizeUseCase,
+    ClientRepositoryAdapter,
+    GetClientUseCase,
+    GetCurrentSessionUseCase,
+    IdentityRoleAdapter,
+    LoginUseCase,
+    LogoutSessionUseCase,
+    RefreshTokenAdapter,
+    RefreshTokenUseCase,
+    SessionAdapter,
+    TokenExchangeRepositoryAdapter,
+    TokenExchangeUseCase,
     VerifyTokenUseCase,
 };
 
 use localid_authentication::{
-    DefaultPasswordAuthenticationService, DefaultRefreshTokenService, DefaultSessionFactory,
-    DefaultSessionService, DefaultTokenIssuanceService, DefaultTokenVerificationService,
+    DefaultPasswordAuthenticationService,
+    DefaultRefreshTokenService,
+    DefaultSessionFactory,
+    DefaultSessionService,
+    DefaultTokenIssuanceService,
+    DefaultTokenVerificationService,
     PasswordAuthenticationDependencies,
 };
 
@@ -33,30 +48,32 @@ use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
 
 use localid_repository_memory::{
-    MemoryClientRepository, MemoryCredentialRepository, MemoryIdentityRepository,
-    MemoryIdentityRoleRepository, MemoryPasswordMaterialRepository, MemoryRefreshTokenRepository,
-    MemorySessionRepository, MemoryTokenRepository,
+    MemoryClientRepository,
+    MemoryCredentialRepository,
+    MemoryIdentityRepository,
+    MemoryIdentityRoleRepository,
+    MemoryPasswordMaterialRepository,
+    MemoryRefreshTokenRepository,
+    MemorySessionRepository,
+    MemoryTokenRepository,
 };
 
 use localid_token_random::RandomTokenIssuer;
 
-use crate::{
-    middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
-    AppState,
-};
+use crate::{ middleware::{ AuthMiddlewareState, AuthorizationMiddlewareState }, AppState };
 
 use crate::bootstrap::repository::SharedRepository;
 
 /// Context containing initialized application dependencies.
-pub struct BootstrapContext<L, R, V, S, A, C, O> {
+pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR> {
     /// Shared application state.
-    pub state: AppState<L, R, V, S, C, O>,
+    pub state: AppState<L, R, V, S, C, O, REX, TEX>,
 
     /// Authentication middleware state.
     pub auth_state: AuthMiddlewareState<V>,
 
     /// Authorization middleware state.
-    pub authorization_state: AuthorizationMiddlewareState<A>,
+    pub authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 
     /// Seeded credential identifier.
     pub credential_id: CredentialId,
@@ -80,13 +97,17 @@ type SharedTokenRepository = SharedRepository<MemoryTokenRepository>;
 
 type SharedRefreshTokenRepository = SharedRepository<MemoryRefreshTokenRepository>;
 
+type SharedOAuthClientRepository = SharedRepository<MemoryOAuthClientRepository>;
+
+type SharedAuthorizationCodeRepository = SharedRepository<MemoryAuthorizationCodeRepository>;
+
 type BootstrapTokenIssuanceService = DefaultTokenIssuanceService<
     SharedSessionRepository,
     SharedTokenRepository,
     SharedRefreshTokenRepository,
     DefaultSessionFactory,
     RandomTokenIssuer,
-    RandomRefreshTokenIssuer,
+    RandomRefreshTokenIssuer
 >;
 
 type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
@@ -95,8 +116,8 @@ type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
         MemoryCredentialRepository,
         MemoryPasswordMaterialRepository,
         Argon2PasswordHasher,
-        BootstrapTokenIssuanceService,
-    >,
+        BootstrapTokenIssuanceService
+    >
 >;
 
 type BootstrapRefreshService = RefreshTokenAdapter<
@@ -105,21 +126,27 @@ type BootstrapRefreshService = RefreshTokenAdapter<
         SharedTokenRepository,
         SharedSessionRepository,
         RandomRefreshTokenIssuer,
-        RandomTokenIssuer,
-    >,
+        RandomTokenIssuer
+    >
 >;
 
 type BootstrapVerificationService = TokenVerificationAdapter<
-    DefaultTokenVerificationService<SharedTokenRepository, SharedSessionRepository>,
+    DefaultTokenVerificationService<SharedTokenRepository, SharedSessionRepository>
 >;
 
 type BootstrapSessionService = SessionAdapter<DefaultSessionService<SharedSessionRepository>>;
 
-type BootstrapAuthorizationResolver =
-    AuthorizationContextResolver<IdentityRoleAdapter<MemoryIdentityRoleRepository>>;
+type BootstrapIdentityRoleAdapter = IdentityRoleAdapter<MemoryIdentityRoleRepository>;
 
-type BootstrapAuthorizationAdapter =
-    AuthorizationRepositoryAdapter<MemoryOAuthClientRepository, MemoryAuthorizationCodeRepository>;
+type BootstrapAuthorizationAdapter = AuthorizationRepositoryAdapter<
+    SharedOAuthClientRepository,
+    SharedAuthorizationCodeRepository
+>;
+
+type BootstrapTokenExchangeAdapter = TokenExchangeRepositoryAdapter<
+    SharedOAuthClientRepository,
+    SharedAuthorizationCodeRepository
+>;
 
 /// Creates application state with in-memory dependencies.
 pub fn create_state() -> BootstrapContext<
@@ -127,9 +154,11 @@ pub fn create_state() -> BootstrapContext<
     BootstrapRefreshService,
     BootstrapVerificationService,
     BootstrapSessionService,
-    BootstrapAuthorizationResolver,
     ClientRepositoryAdapter<MemoryClientRepository>,
     BootstrapAuthorizationAdapter,
+    BootstrapTokenExchangeAdapter,
+    BootstrapTokenIssuanceService,
+    BootstrapIdentityRoleAdapter
 > {
     let mut identity_repository = MemoryIdentityRepository::new();
 
@@ -143,7 +172,7 @@ pub fn create_state() -> BootstrapContext<
         &mut identity_repository,
         &mut credential_repository,
         &mut password_material_repository,
-        &mut identity_role_repository,
+        &mut identity_role_repository
     );
 
     let mut client_repository = MemoryClientRepository::new();
@@ -156,12 +185,19 @@ pub fn create_state() -> BootstrapContext<
 
     let mut oauth_client_repository = MemoryOAuthClientRepository::new();
 
-    let (oauth_client_id, oauth_client_public_id) =
-        seed_demo_oauth_client(&mut oauth_client_repository);
+    let (oauth_client_id, oauth_client_public_id) = seed_demo_oauth_client(
+        &mut oauth_client_repository
+    );
+
+    let oauth_client_repository = SharedRepository::new(oauth_client_repository);
+
+    let authorization_code_repository = SharedRepository::new(
+        MemoryAuthorizationCodeRepository::new()
+    );
 
     let authorization_adapter = AuthorizationRepositoryAdapter::new(
-        oauth_client_repository,
-        MemoryAuthorizationCodeRepository::new(),
+        oauth_client_repository.clone(),
+        authorization_code_repository.clone()
     );
 
     let authorize_use_case = AuthorizeUseCase::new(authorization_adapter);
@@ -178,52 +214,74 @@ pub fn create_state() -> BootstrapContext<
         refresh_token_repository.clone(),
         DefaultSessionFactory::new(),
         RandomTokenIssuer::new(),
-        RandomRefreshTokenIssuer::new(),
+        RandomRefreshTokenIssuer::new()
     );
 
-    let authentication_service =
-        DefaultPasswordAuthenticationService::new(PasswordAuthenticationDependencies {
+    let token_exchange_issuance_service = DefaultTokenIssuanceService::new(
+        session_repository.clone(),
+        token_repository.clone(),
+        refresh_token_repository.clone(),
+        DefaultSessionFactory::new(),
+        RandomTokenIssuer::new(),
+        RandomRefreshTokenIssuer::new()
+    );
+
+    let authentication_service = DefaultPasswordAuthenticationService::new(
+        PasswordAuthenticationDependencies {
             identity_repository,
             credential_repository,
             password_material_repository,
             password_verifier: Argon2PasswordHasher::new(),
             token_issuance_service,
-        });
+        }
+    );
 
     let refresh_service = DefaultRefreshTokenService::new(
         refresh_token_repository,
         token_repository.clone(),
         session_repository.clone(),
         RandomRefreshTokenIssuer::new(),
-        RandomTokenIssuer::new(),
+        RandomTokenIssuer::new()
     );
 
     let refresh_use_case = RefreshTokenUseCase::new(RefreshTokenAdapter::new(refresh_service));
 
-    let verification_service =
-        DefaultTokenVerificationService::new(token_repository.clone(), session_repository.clone());
+    let verification_service = DefaultTokenVerificationService::new(
+        token_repository.clone(),
+        session_repository.clone()
+    );
 
-    let verify_token_use_case = Arc::new(Mutex::new(VerifyTokenUseCase::new(
-        TokenVerificationAdapter::new(verification_service),
-    )));
+    let verify_token_use_case = Arc::new(
+        Mutex::new(VerifyTokenUseCase::new(TokenVerificationAdapter::new(verification_service)))
+    );
 
     let auth_state = AuthMiddlewareState::new(verify_token_use_case.clone());
 
-    let current_session_use_case = GetCurrentSessionUseCase::new(SessionAdapter::new(
-        DefaultSessionService::new(session_repository.clone()),
-    ));
+    let current_session_use_case = GetCurrentSessionUseCase::new(
+        SessionAdapter::new(DefaultSessionService::new(session_repository.clone()))
+    );
 
-    let logout_session_use_case = LogoutSessionUseCase::new(SessionAdapter::new(
-        DefaultSessionService::new(session_repository),
-    ));
+    let logout_session_use_case = LogoutSessionUseCase::new(
+        SessionAdapter::new(DefaultSessionService::new(session_repository))
+    );
 
-    let authorization_state = AuthorizationMiddlewareState::new(AuthorizationContextResolver::new(
-        IdentityRoleAdapter::new(identity_role_repository),
-    ));
+    let authorization_state = AuthorizationMiddlewareState::new(
+        AuthorizationContextResolver::new(IdentityRoleAdapter::new(identity_role_repository))
+    );
+
+    let token_exchange_repository = TokenExchangeRepositoryAdapter::new(
+        oauth_client_repository.clone(),
+        authorization_code_repository.clone()
+    );
+
+    let token_exchange_use_case = TokenExchangeUseCase::new(
+        token_exchange_repository,
+        token_exchange_issuance_service
+    );
 
     let login_use_case = LoginUseCase::new(
         PasswordAuthenticationAdapter::new(authentication_service),
-        client_use_case,
+        client_use_case
     );
 
     BootstrapContext {
@@ -234,6 +292,7 @@ pub fn create_state() -> BootstrapContext<
             current_session_use_case,
             logout_session_use_case,
             authorize_use_case,
+            token_exchange_use_case
         ),
 
         auth_state,

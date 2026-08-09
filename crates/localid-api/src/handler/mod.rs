@@ -1,5 +1,7 @@
+mod health;
 mod me;
 
+pub use health::health;
 pub use me::me;
 
 pub mod auth;

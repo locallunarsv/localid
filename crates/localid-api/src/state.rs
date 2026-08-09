@@ -4,11 +4,11 @@ use tokio::sync::Mutex;
 
 use localid_application::{
     AuthorizeUseCase, GetCurrentSessionUseCase, LoginUseCase, LogoutSessionUseCase,
-    RefreshTokenUseCase, VerifyTokenUseCase,
+    RefreshTokenUseCase, TokenExchangeUseCase, VerifyTokenUseCase,
 };
 
 /// Shared application state.
-pub struct AppState<L, R, V, S, C, O> {
+pub struct AppState<L, R, V, S, C, O, REX, TEX> {
     /// Login authentication use case.
     pub login_use_case: Arc<Mutex<LoginUseCase<L, C>>>,
 
@@ -26,9 +26,12 @@ pub struct AppState<L, R, V, S, C, O> {
 
     /// OAuth authorization use case.
     pub authorize_use_case: Arc<Mutex<AuthorizeUseCase<O>>>,
+
+    /// OAuth token exchange use case.
+    pub token_exchange_use_case: Arc<Mutex<TokenExchangeUseCase<REX, TEX>>>,
 }
 
-impl<L, R, V, S, C, O> Clone for AppState<L, R, V, S, C, O> {
+impl<L, R, V, S, C, O, REX, TEX> Clone for AppState<L, R, V, S, C, O, REX, TEX> {
     fn clone(&self) -> Self {
         Self {
             login_use_case: Arc::clone(&self.login_use_case),
@@ -37,11 +40,12 @@ impl<L, R, V, S, C, O> Clone for AppState<L, R, V, S, C, O> {
             current_session_use_case: Arc::clone(&self.current_session_use_case),
             logout_use_case: Arc::clone(&self.logout_use_case),
             authorize_use_case: Arc::clone(&self.authorize_use_case),
+            token_exchange_use_case: Arc::clone(&self.token_exchange_use_case),
         }
     }
 }
 
-impl<L, R, V, S, C, O> AppState<L, R, V, S, C, O> {
+impl<L, R, V, S, C, O, REX, TEX> AppState<L, R, V, S, C, O, REX, TEX> {
     /// Creates shared application state.
     #[must_use]
     pub fn new(
@@ -51,6 +55,7 @@ impl<L, R, V, S, C, O> AppState<L, R, V, S, C, O> {
         current_session_use_case: GetCurrentSessionUseCase<S>,
         logout_use_case: LogoutSessionUseCase<S>,
         authorize_use_case: AuthorizeUseCase<O>,
+        token_exchange_use_case: TokenExchangeUseCase<REX, TEX>,
     ) -> Self {
         Self {
             login_use_case: Arc::new(Mutex::new(login_use_case)),
@@ -59,6 +64,7 @@ impl<L, R, V, S, C, O> AppState<L, R, V, S, C, O> {
             current_session_use_case: Arc::new(Mutex::new(current_session_use_case)),
             logout_use_case: Arc::new(Mutex::new(logout_use_case)),
             authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
+            token_exchange_use_case: Arc::new(Mutex::new(token_exchange_use_case)),
         }
     }
 }

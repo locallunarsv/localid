@@ -1,11 +1,10 @@
 use localid_oauth_authorization::AuthorizationCodeId;
-use localid_oauth_client::OAuthClientId;
 
 /// OAuth token exchange request command.
 #[derive(Debug, Clone)]
 pub struct TokenExchangeCommand {
     code_id: AuthorizationCodeId,
-    client_id: OAuthClientId,
+    client_id: String,
     redirect_uri: String,
 }
 
@@ -14,12 +13,12 @@ impl TokenExchangeCommand {
     #[must_use]
     pub fn new(
         code_id: AuthorizationCodeId,
-        client_id: OAuthClientId,
+        client_id: impl Into<String>,
         redirect_uri: impl Into<String>,
     ) -> Self {
         Self {
             code_id,
-            client_id,
+            client_id: client_id.into(),
             redirect_uri: redirect_uri.into(),
         }
     }
@@ -32,8 +31,8 @@ impl TokenExchangeCommand {
 
     /// Returns OAuth client identifier.
     #[must_use]
-    pub const fn client_id(&self) -> OAuthClientId {
-        self.client_id
+    pub fn client_id(&self) -> &str {
+        &self.client_id
     }
 
     /// Returns redirect URI.

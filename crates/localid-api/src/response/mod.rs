@@ -9,3 +9,4 @@ pub use session::SessionResponseBody;
 mod oauth;
 
 pub use oauth::AuthorizeResponseBody;
+pub use oauth::TokenResponseBody;

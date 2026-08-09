@@ -9,6 +9,12 @@ async fn main() {
     let bootstrap = create_state();
 
     println!("Demo credential_id: {}", bootstrap.credential_id);
+    println!("Demo client_id: {}", bootstrap.client_id);
+    println!("Demo oauth_client_id: {}", bootstrap.oauth_client_id);
+    println!(
+        "Demo oauth_client_public_id: {}",
+        bootstrap.oauth_client_public_id
+    );
 
     let app = create_router(
         bootstrap.state,

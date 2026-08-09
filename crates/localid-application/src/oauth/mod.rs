@@ -1,8 +1,10 @@
-/// OAuth authorization flow.
+/// OAuth authorization services.
 pub mod authorization;
-mod token_exchange;
+
+/// OAuth token exchange services.
+pub mod token_exchange;
 
 pub use token_exchange::{
-    TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeResult,
-    TokenExchangeUseCase,
+    TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeRepositoryAdapter,
+    TokenExchangeResult, TokenExchangeUseCase,
 };

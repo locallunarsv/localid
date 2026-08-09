@@ -14,8 +14,8 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R, V, S, C, O>(
-    State(state): State<AppState<L, R, V, S, C, O>>,
+pub async fn login<L, R, V, S, C, O, REX, TEX>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
@@ -24,6 +24,8 @@ where
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
     C: ClientPort + Send + Sync + 'static,
+    REX: Send + Sync + 'static,
+    TEX: Send + Sync + 'static,
 {
     let client_id = match request.client_id() {
         Ok(value) => value,
@@ -57,8 +59,8 @@ where
     }
 }
 
-pub async fn refresh<L, R, V, S, C, O>(
-    State(state): State<AppState<L, R, V, S, C, O>>,
+pub async fn refresh<L, R, V, S, C, O, REX, TEX>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
@@ -77,8 +79,8 @@ where
     }
 }
 
-pub async fn verify<L, R, V, S, C, O>(
-    State(state): State<AppState<L, R, V, S, C, O>>,
+pub async fn verify<L, R, V, S, C, O, REX, TEX>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> impl IntoResponse
 where
@@ -99,8 +101,8 @@ where
     }
 }
 
-pub async fn logout<L, R, V, S, C, O>(
-    State(state): State<AppState<L, R, V, S, C, O>>,
+pub async fn logout<L, R, V, S, C, O, REX, TEX>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where

@@ -5,8 +5,8 @@ use crate::{auth::AuthenticatedIdentity, response::SessionResponseBody, ApiError
 use localid_application::SessionPort;
 use localid_authentication::AuthenticationError;
 
-pub async fn current<L, R, V, S, C, O>(
-    State(state): State<AppState<L, R, V, S, C, O>>,
+pub async fn current<L, R, V, S, C, O, REX, TEX>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where
