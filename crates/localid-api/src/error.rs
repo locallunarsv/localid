@@ -21,6 +21,8 @@ pub struct ErrorResponse {
 /// API layer error.
 #[derive(Debug)]
 pub enum ApiError {
+    /// OAuth authorization grant is invalid.
+    InvalidGrant,
     /// Invalid client request.
     InvalidRequest,
 
@@ -34,6 +36,13 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, body) = match self {
+            Self::InvalidGrant => (
+                StatusCode::BAD_REQUEST,
+                ErrorResponse {
+                    code: "invalid_grant",
+                    message: "invalid grant",
+                },
+            ),
             Self::InvalidRequest => (
                 StatusCode::BAD_REQUEST,
                 ErrorResponse {

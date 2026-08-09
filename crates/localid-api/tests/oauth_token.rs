@@ -94,13 +94,13 @@ async fn oauth_token_should_reject_invalid_code() {
 
     let response = app.oneshot(request).await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
 #[tokio::test]
@@ -175,7 +175,7 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
 #[tokio::test]
@@ -230,7 +230,7 @@ async fn oauth_token_should_reject_client_mismatch() {
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
 #[tokio::test]
@@ -283,5 +283,5 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
