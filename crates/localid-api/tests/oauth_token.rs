@@ -177,3 +177,111 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 
     assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
 }
+
+#[tokio::test]
+async fn oauth_token_should_reject_client_mismatch() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+
+    // Create authorization code for registered client
+    let authorize_request = Request::builder()
+        .method("GET")
+        .uri(
+            format!(
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                oauth_client_id,
+                identity_id
+            )
+        )
+        .body(Body::empty())
+        .unwrap();
+
+    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
+
+    let body = authorize_response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    let code_id = json["code_id"].as_str().expect("authorization code should exist");
+
+    // Exchange using different client id
+    let token_request = Request::builder()
+        .method("POST")
+        .uri("/oauth/token")
+        .header("content-type", "application/json")
+        .body(
+            Body::from(
+                json!({
+                "code_id": code_id,
+                "client_id": "different-client",
+                "redirect_uri": "http://localhost:3000/callback"
+            }).to_string()
+            )
+        )
+        .unwrap();
+
+    let response = app.oneshot(token_request).await.unwrap();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+}
+
+#[tokio::test]
+async fn oauth_token_should_reject_redirect_uri_mismatch() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+
+    let authorize_request = Request::builder()
+        .method("GET")
+        .uri(
+            format!(
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                oauth_client_id,
+                identity_id
+            )
+        )
+        .body(Body::empty())
+        .unwrap();
+
+    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
+
+    let body = authorize_response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    let code_id = json["code_id"].as_str().unwrap();
+
+    let token_request = Request::builder()
+        .method("POST")
+        .uri("/oauth/token")
+        .header("content-type", "application/json")
+        .body(
+            Body::from(
+                json!({
+                "code_id": code_id,
+                "client_id": oauth_client_id,
+                "redirect_uri": "http://evil.com/callback"
+            }).to_string()
+            )
+        )
+        .unwrap();
+
+    let response = app.oneshot(token_request).await.unwrap();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["error"].as_str(), Some("token_exchange_failed"));
+}
