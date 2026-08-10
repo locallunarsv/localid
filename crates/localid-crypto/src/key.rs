@@ -16,6 +16,12 @@ use rsa::traits::PublicKeyParts;
 
 use crate::JsonWebKey;
 
+use rsa::{
+    pkcs1v15::SigningKey,
+    signature::{SignatureEncoding, Signer},
+};
+use sha2::Sha256;
+
 /// Signing key identifier.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyId(String);
@@ -112,6 +118,17 @@ impl KeyPair {
     pub fn from_private_key(kid: KeyId, private_key: RsaPrivateKey) -> Self {
         Self { kid, private_key }
     }
+
+    /// Signs payload using RSA SHA-256.
+    pub fn sign_sha256(&self, payload: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        let signing_key = SigningKey::<Sha256>::new(self.private_key.clone());
+
+        let signature = signing_key
+            .try_sign(payload)
+            .map_err(|_| CryptoError::SigningFailed)?;
+
+        Ok(signature.to_vec())
+    }
 }
 
 #[cfg(test)]
@@ -161,4 +178,14 @@ fn should_reuse_existing_key() {
     assert_eq!(first_jwk.n, second_jwk.n);
 
     assert_eq!(first_jwk.e, second_jwk.e);
+}
+
+#[test]
+fn should_sign_payload() {
+    let key =
+        KeyPair::generate(KeyId::new("localid-key-1")).expect("key generation should succeed");
+
+    let signature = key.sign_sha256(b"hello").expect("signing should succeed");
+
+    assert!(!signature.is_empty());
 }

@@ -5,6 +5,7 @@ mod file;
 mod jwk;
 mod key;
 mod storage;
+mod token_signer;
 
 pub use error::CryptoError;
 pub use key::{KeyId, KeyPair};
@@ -14,3 +15,5 @@ pub use jwk::JsonWebKey;
 pub use storage::KeyStorage;
 
 pub use file::FileKeyStorage;
+
+pub use token_signer::CryptoTokenSigner;

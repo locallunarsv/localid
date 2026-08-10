@@ -11,6 +11,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 pkcs8 = { version = "0.10", features = ["pem"] }
+sha2 = { version = "0.10", features = ["oid"] }
+
+localid-token = { path = "../localid-token" }
 
 [dev-dependencies]
 tempfile = "3"

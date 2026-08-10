@@ -11,4 +11,7 @@ pub enum CryptoError {
 
     /// Key storage failure.
     StorageFailure,
+
+    /// Signing operation failed.
+    SigningFailed,
 }
