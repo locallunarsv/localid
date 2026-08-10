@@ -17,7 +17,7 @@ where
     TEX: Send + Sync + 'static,
     I: Send + Sync + 'static,
 {
-    let issuer = state.config.issuer();
+    let issuer = state.config.issuer.as_str();
 
     Json(DiscoveryResponseBody {
         issuer: issuer.to_string(),

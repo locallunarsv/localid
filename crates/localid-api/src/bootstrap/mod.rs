@@ -24,7 +24,9 @@ use localid_authentication::{
 
 use localid_config::ServerConfig;
 
-use localid_crypto::{KeyId, KeyPair};
+use std::path::PathBuf;
+
+use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
 
 use localid_client::ClientId;
 use localid_credential::CredentialId;
@@ -282,8 +284,12 @@ pub fn create_state() -> BootstrapContext<
 
     let config = ServerConfig::new("http://localhost:8080");
 
-    let key_pair = KeyPair::generate(KeyId::new("localid-key-1"))
-        .expect("signing key generation should succeed");
+    let key_storage = FileKeyStorage::new();
+
+    let key_path = PathBuf::from(config.signing_key_path.clone());
+
+    let key_pair = KeyPair::load_or_generate(&key_storage, &key_path, KeyId::new("localid-key-1"))
+        .expect("signing key loading should succeed");
 
     BootstrapContext {
         state: AppState::new(

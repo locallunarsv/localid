@@ -8,4 +8,7 @@ pub enum CryptoError {
 
     /// Key serialization failed.
     SerializationFailed,
+
+    /// Key storage failure.
+    StorageFailure,
 }

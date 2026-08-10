@@ -4,6 +4,10 @@ use rand::rngs::OsRng;
 use rsa::RsaPrivateKey;
 use rsa::RsaPublicKey;
 
+use std::path::Path;
+
+use crate::KeyStorage;
+
 use crate::CryptoError;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -48,6 +52,24 @@ impl KeyPair {
         Ok(Self { kid, private_key })
     }
 
+    /// Loads existing key or generates a new key.
+    pub fn load_or_generate<S>(storage: &S, path: &Path, kid: KeyId) -> Result<Self, CryptoError>
+    where
+        S: KeyStorage,
+    {
+        match storage.load(path)? {
+            Some(key) => Ok(key),
+
+            None => {
+                let key = Self::generate(kid)?;
+
+                storage.save(path, &key)?;
+
+                Ok(key)
+            }
+        }
+    }
+
     /// Returns key identifier.
     #[must_use]
     pub fn kid(&self) -> &KeyId {
@@ -84,6 +106,12 @@ impl KeyPair {
             e,
         }
     }
+
+    /// Creates key pair from existing RSA private key.
+    #[must_use]
+    pub fn from_private_key(kid: KeyId, private_key: RsaPrivateKey) -> Self {
+        Self { kid, private_key }
+    }
 }
 
 #[cfg(test)]
@@ -111,4 +139,26 @@ fn should_convert_public_key_to_jwk() {
     assert_eq!(jwk.alg, "RS256");
     assert!(!jwk.n.is_empty());
     assert!(!jwk.e.is_empty());
+}
+
+#[test]
+fn should_reuse_existing_key() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("signing-key.pem");
+
+    let storage = crate::FileKeyStorage::new();
+
+    let first = KeyPair::load_or_generate(&storage, &path, KeyId::new("localid-key-1"))
+        .expect("first key generation should succeed");
+
+    let first_jwk = first.to_jwk();
+
+    let second = KeyPair::load_or_generate(&storage, &path, KeyId::new("localid-key-1"))
+        .expect("key loading should succeed");
+
+    let second_jwk = second.to_jwk();
+
+    assert_eq!(first_jwk.n, second_jwk.n);
+
+    assert_eq!(first_jwk.e, second_jwk.e);
 }
