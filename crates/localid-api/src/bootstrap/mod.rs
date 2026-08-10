@@ -24,6 +24,8 @@ use localid_authentication::{
 
 use localid_config::ServerConfig;
 
+use localid_crypto::{KeyId, KeyPair};
+
 use localid_client::ClientId;
 use localid_credential::CredentialId;
 use localid_identity::IdentityId;
@@ -280,6 +282,9 @@ pub fn create_state() -> BootstrapContext<
 
     let config = ServerConfig::new("http://localhost:8080");
 
+    let key_pair = KeyPair::generate(KeyId::new("localid-key-1"))
+        .expect("signing key generation should succeed");
+
     BootstrapContext {
         state: AppState::new(
             config,
@@ -291,6 +296,7 @@ pub fn create_state() -> BootstrapContext<
             authorize_use_case,
             token_exchange_use_case,
             identity_use_case,
+            key_pair,
         ),
 
         auth_state,

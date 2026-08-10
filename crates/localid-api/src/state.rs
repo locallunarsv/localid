@@ -9,6 +9,8 @@ use localid_application::{
 
 use localid_config::ServerConfig;
 
+use localid_crypto::KeyPair;
+
 /// Shared application state.
 pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
     /// Server configuration.
@@ -37,6 +39,9 @@ pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
 
     /// Identity lookup use case.
     pub identity_use_case: Arc<Mutex<I>>,
+
+    /// OIDC signing key pair.
+    pub key_pair: Arc<KeyPair>,
 }
 
 impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TEX, I> {
@@ -52,6 +57,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TE
             authorize_use_case: Arc::clone(&self.authorize_use_case),
             token_exchange_use_case: Arc::clone(&self.token_exchange_use_case),
             identity_use_case: Arc::clone(&self.identity_use_case),
+            key_pair: Arc::clone(&self.key_pair),
         }
     }
 }
@@ -69,6 +75,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
         authorize_use_case: AuthorizeUseCase<O>,
         token_exchange_use_case: TokenExchangeUseCase<REX, TEX>,
         identity_use_case: I,
+        key_pair: KeyPair,
     ) -> Self {
         Self {
             config: Arc::new(config),
@@ -81,6 +88,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
             authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
             token_exchange_use_case: Arc::new(Mutex::new(token_exchange_use_case)),
             identity_use_case: Arc::new(Mutex::new(identity_use_case)),
+            key_pair: Arc::new(key_pair),
         }
     }
 }

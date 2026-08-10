@@ -34,4 +34,15 @@ async fn jwks_should_return_key_set() {
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     assert!(json["keys"].is_array());
+    assert_eq!(json["keys"].as_array().unwrap().len(), 1);
+
+    assert_eq!(json["keys"][0]["kty"].as_str(), Some("RSA"));
+
+    assert_eq!(json["keys"][0]["kid"].as_str(), Some("localid-key-1"));
+
+    assert_eq!(json["keys"][0]["alg"].as_str(), Some("RS256"));
+
+    assert!(json["keys"][0]["n"].as_str().is_some());
+
+    assert!(json["keys"][0]["e"].as_str().is_some());
 }

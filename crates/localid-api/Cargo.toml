@@ -33,6 +33,7 @@ localid-role = { path = "../localid-role" }
 localid-client = { path = "../localid-client" }
 localid-error = { path = "../localid-error" }
 localid-config = { path = "../localid-config" }
+localid-crypto = { path = "../localid-crypto" }
 
 # OAuth
 localid-oauth-client = { path = "../localid-oauth-client" }
