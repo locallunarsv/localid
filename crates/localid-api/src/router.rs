@@ -80,6 +80,7 @@ where
     Router::new()
         .route("/health", get(handler::health))
         .route("/.well-known/openid-configuration", get(handler::discovery))
+        .route("/.well-known/jwks.json", get(handler::jwks))
         .route(
             "/auth/login",
             post(

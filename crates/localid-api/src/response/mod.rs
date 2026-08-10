@@ -9,5 +9,6 @@ pub use session::SessionResponseBody;
 mod oauth;
 
 pub use oauth::{
-    AuthorizeResponseBody, DiscoveryResponseBody, TokenResponseBody, UserInfoResponseBody,
+    AuthorizeResponseBody, DiscoveryResponseBody, JwksResponseBody, TokenResponseBody,
+    UserInfoResponseBody,
 };

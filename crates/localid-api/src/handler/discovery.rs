@@ -24,5 +24,6 @@ where
         authorization_endpoint: format!("{issuer}/oauth/authorize"),
         token_endpoint: format!("{issuer}/oauth/token"),
         userinfo_endpoint: format!("{issuer}/oauth/userinfo"),
+        jwks_uri: format!("{issuer}/.well-known/jwks.json"),
     })
 }

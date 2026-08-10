@@ -12,4 +12,7 @@ pub struct DiscoveryResponseBody {
 
     /// OpenID Connect userinfo endpoint.
     pub userinfo_endpoint: String,
+
+    /// JSON Web Key Set endpoint.
+    pub jwks_uri: String,
 }
