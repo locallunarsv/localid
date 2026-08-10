@@ -1,4 +1,5 @@
 /// OpenID Connect discovery response.
+///
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DiscoveryResponseBody {
     /// Identity provider issuer URL.
