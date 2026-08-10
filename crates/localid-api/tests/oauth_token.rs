@@ -94,6 +94,13 @@ async fn oauth_token_should_exchange_authorization_code() {
         token_json["expires_at"].as_str().is_some(),
         "expires_at should exist"
     );
+
+    assert_eq!(token_json["token_type"].as_str(), Some("Bearer"));
+
+    assert!(
+        token_json["expires_in"].as_i64().is_some(),
+        "expires_in should exist"
+    );
 }
 
 #[tokio::test]
