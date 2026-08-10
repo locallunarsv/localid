@@ -1,16 +1,23 @@
-use axum::{ body::Body, http::{ Request, StatusCode } };
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
-use localid_api::{ bootstrap::create_state, create_router };
+use localid_api::{bootstrap::create_state, create_router};
 
 #[tokio::test]
 async fn discovery_should_return_openid_configuration() {
     let bootstrap = create_state();
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let request = Request::builder()
         .method("GET")

@@ -170,7 +170,9 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    let code_id = json["code_id"].as_str().unwrap();
+    let code_id = json["code_id"]
+        .as_str()
+        .expect("authorization code should exist");
 
     // first exchange should succeed
     let first_request = Request::builder()
@@ -225,6 +227,7 @@ async fn oauth_token_should_reject_client_mismatch() {
     let bootstrap = create_state();
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
+    let other_oauth_client_id = bootstrap.oauth_client_other_public_id;
     let identity_id = bootstrap.identity_id;
 
     let app = create_router(
@@ -269,7 +272,7 @@ async fn oauth_token_should_reject_client_mismatch() {
         .body(Body::from(
             json!({
                 "code_id": code_id,
-                "client_id": "different-client",
+                "client_id": other_oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),

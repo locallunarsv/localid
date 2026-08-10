@@ -96,24 +96,9 @@ where
         Ok(result) => Json(TokenResponseBody::from(result)).into_response(),
 
         Err(error) => {
-            use localid_application::oauth::token_exchange::TokenExchangeError;
+            println!("TOKEN EXCHANGE ERROR: {:?}", error);
 
-            match error {
-                TokenExchangeError::AuthorizationCodeNotFound
-                | TokenExchangeError::ClientNotFound
-                | TokenExchangeError::ClientMismatch
-                | TokenExchangeError::RedirectUriMismatch
-                | TokenExchangeError::CodeExpired
-                | TokenExchangeError::CodeConsumed => {
-                    crate::error::ApiError::InvalidGrant.into_response()
-                }
-
-                TokenExchangeError::AuthorizationCodeRepositoryFailure
-                | TokenExchangeError::OAuthClientRepositoryFailure
-                | TokenExchangeError::TokenIssuanceFailure => {
-                    crate::error::ApiError::InternalFailure.into_response()
-                }
-            }
+            crate::error::ApiError::from(localid_error::OAuthError::from(error)).into_response()
         }
     }
 }

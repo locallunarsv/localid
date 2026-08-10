@@ -6,6 +6,8 @@ use axum::{
 
 use serde::Serialize;
 
+use localid_error::OAuthError;
+
 use localid_application::ApplicationError;
 
 /// API error response body.
@@ -80,6 +82,19 @@ impl From<ApplicationError> for ApiError {
             ApplicationError::SessionNotFound => Self::AuthenticationFailed,
 
             ApplicationError::InternalFailure => Self::InternalFailure,
+        }
+    }
+}
+
+impl From<OAuthError> for ApiError {
+    fn from(error: OAuthError) -> Self {
+        match error {
+            OAuthError::InvalidGrant => Self::InvalidGrant,
+            OAuthError::InvalidRequest => Self::InvalidRequest,
+
+            OAuthError::InvalidClient | OAuthError::InvalidScope => Self::InvalidRequest,
+
+            OAuthError::ServerError => Self::InternalFailure,
         }
     }
 }

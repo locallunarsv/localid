@@ -31,6 +31,7 @@ localid-authorization = { path = "../localid-authorization" }
 localid-permission = { path = "../localid-permission" }
 localid-role = { path = "../localid-role" }
 localid-client = { path = "../localid-client" }
+localid-error = { path = "../localid-error" }
 
 # OAuth
 localid-oauth-client = { path = "../localid-oauth-client" }

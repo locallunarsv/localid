@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 mod repository;
 mod seed;
 
-pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client};
+pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, seed_oauth_client};
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
@@ -69,6 +69,9 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, I> {
 
     /// Seeded client identifier.
     pub client_id: ClientId,
+
+    /// Seeded second OAuth public identifier.
+    pub oauth_client_other_public_id: String,
 
     /// Seeded OAuth internal identifier.
     pub oauth_client_id: OAuthClientId,
@@ -181,6 +184,9 @@ pub fn create_state() -> BootstrapContext<
     let (oauth_client_id, oauth_client_public_id) =
         seed_demo_oauth_client(&mut oauth_client_repository);
 
+    let (_, oauth_client_other_public_id) =
+        seed_oauth_client(&mut oauth_client_repository, "different-client".to_string());
+
     let oauth_client_repository = SharedRepository::new(oauth_client_repository);
 
     let authorization_code_repository =
@@ -291,5 +297,6 @@ pub fn create_state() -> BootstrapContext<
 
         oauth_client_id,
         oauth_client_public_id,
+        oauth_client_other_public_id,
     }
 }
