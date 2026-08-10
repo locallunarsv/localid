@@ -27,5 +27,5 @@ members = [
     "crates/localid-oauth",
     "crates/localid-oauth-client-repository-memory",
     "crates/localid-oauth-authorization-repository-memory",
-    "crates/localid-error",
+    "crates/localid-error", "crates/localid-config",
 ]

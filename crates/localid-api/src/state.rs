@@ -7,8 +7,13 @@ use localid_application::{
     RefreshTokenUseCase, TokenExchangeUseCase, VerifyTokenUseCase,
 };
 
+use localid_config::ServerConfig;
+
 /// Shared application state.
 pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
+    /// Server configuration.
+    pub config: Arc<ServerConfig>,
+
     /// Login authentication use case.
     pub login_use_case: Arc<Mutex<LoginUseCase<L, C>>>,
 
@@ -37,6 +42,8 @@ pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
 impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TEX, I> {
     fn clone(&self) -> Self {
         Self {
+            config: Arc::clone(&self.config),
+
             login_use_case: Arc::clone(&self.login_use_case),
             refresh_use_case: Arc::clone(&self.refresh_use_case),
             verify_token_use_case: Arc::clone(&self.verify_token_use_case),
@@ -53,6 +60,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
     /// Creates shared application state.
     #[must_use]
     pub fn new(
+        config: ServerConfig,
         login_use_case: LoginUseCase<L, C>,
         refresh_use_case: RefreshTokenUseCase<R>,
         verify_token_use_case: Arc<Mutex<VerifyTokenUseCase<V>>>,
@@ -63,6 +71,8 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
         identity_use_case: I,
     ) -> Self {
         Self {
+            config: Arc::new(config),
+
             login_use_case: Arc::new(Mutex::new(login_use_case)),
             refresh_use_case: Arc::new(Mutex::new(refresh_use_case)),
             verify_token_use_case,

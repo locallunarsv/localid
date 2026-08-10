@@ -22,6 +22,8 @@ use localid_authentication::{
     PasswordAuthenticationDependencies,
 };
 
+use localid_config::ServerConfig;
+
 use localid_client::ClientId;
 use localid_credential::CredentialId;
 use localid_identity::IdentityId;
@@ -276,8 +278,11 @@ pub fn create_state() -> BootstrapContext<
         client_use_case,
     );
 
+    let config = ServerConfig::new("http://localhost:8080");
+
     BootstrapContext {
         state: AppState::new(
+            config,
             login_use_case,
             refresh_use_case,
             verify_token_use_case,
