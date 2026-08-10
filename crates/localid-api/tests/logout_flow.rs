@@ -55,10 +55,7 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let me_request = Request::builder()
         .method("GET")
         .uri("/me")
-        .header(
-            "authorization",
-            format!("Bearer {}", access_token),
-        )
+        .header("authorization", format!("Bearer {}", access_token))
         .body(Body::empty())
         .unwrap();
 
@@ -70,10 +67,7 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let logout_request = Request::builder()
         .method("POST")
         .uri("/auth/logout")
-        .header(
-            "authorization",
-            format!("Bearer {}", access_token),
-        )
+        .header("authorization", format!("Bearer {}", access_token))
         .body(Body::empty())
         .unwrap();
 
@@ -85,17 +79,11 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let expired_me_request = Request::builder()
         .method("GET")
         .uri("/me")
-        .header(
-            "authorization",
-            format!("Bearer {}", access_token),
-        )
+        .header("authorization", format!("Bearer {}", access_token))
         .body(Body::empty())
         .unwrap();
 
     let expired_me_response = app.oneshot(expired_me_request).await.unwrap();
 
-    assert_eq!(
-        expired_me_response.status(),
-        StatusCode::UNAUTHORIZED
-    );
+    assert_eq!(expired_me_response.status(), StatusCode::UNAUTHORIZED);
 }
