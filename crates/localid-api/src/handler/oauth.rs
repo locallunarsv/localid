@@ -6,7 +6,7 @@ use axum::{
 
 use localid_application::{
     oauth::{authorization::AuthorizationPort, token_exchange::TokenExchangePort},
-    AuthorizeCommand, IdentityLookupService, TokenExchangeCommand,
+    AuthorizeCommand, IdentityLookupService, RefreshTokenPort, TokenExchangeCommand,
 };
 
 use localid_authentication::TokenIssuanceService;
@@ -25,7 +25,10 @@ pub async fn authorize<L, R, V, S, C, O, REX, TEX, I>(
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,
-    R: Send + Sync + 'static,
+    R: RefreshTokenPort<Error = localid_authentication::AuthenticationError>
+        + Send
+        + Sync
+        + 'static,
     V: Send + Sync + 'static,
     S: Send + Sync + 'static,
     C: Send + Sync + 'static,
@@ -62,13 +65,17 @@ where
 }
 
 /// Handles OAuth token exchange request.
+/// Handles OAuth token request.
 pub async fn token<L, R, V, S, C, O, REX, TEX, I>(
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
     L: Send + Sync + 'static,
-    R: Send + Sync + 'static,
+    R: localid_application::RefreshTokenPort<Error = localid_authentication::AuthenticationError>
+        + Send
+        + Sync
+        + 'static,
     V: Send + Sync + 'static,
     S: Send + Sync + 'static,
     C: Send + Sync + 'static,
@@ -77,28 +84,60 @@ where
     TEX: TokenIssuanceService + Send + Sync + 'static,
     I: Send + Sync + 'static,
 {
-    let code_id = match request.code_id() {
-        Ok(value) => value,
+    match request.grant_type() {
+        "refresh_token" => {
+            let refresh_token = match request.refresh_token() {
+                Some(value) => value,
+                None => {
+                    return crate::error::ApiError::InvalidRequest.into_response();
+                }
+            };
 
-        Err(_) => {
-            return Json(serde_json::json!({
-                "error": "invalid_code_id"
-            }))
-            .into_response();
+            let mut use_case = state.refresh_use_case.lock().await;
+
+            match use_case.execute(refresh_token) {
+                Ok(result) => Json(TokenResponseBody::from(result)).into_response(),
+
+                Err(error) => match error {
+                    localid_application::ApplicationError::InternalFailure => {
+                        crate::error::ApiError::InternalFailure.into_response()
+                    }
+
+                    _ => crate::error::ApiError::InvalidGrant.into_response(),
+                },
+            }
         }
-    };
 
-    let command = TokenExchangeCommand::new(code_id, request.client_id(), request.redirect_uri());
+        _ => {
+            let code_id = match request.code_id() {
+                Ok(value) => value,
 
-    let mut use_case = state.token_exchange_use_case.lock().await;
+                Err(_) => {
+                    return Json(serde_json::json!({
+                        "error": "invalid_code_id"
+                    }))
+                    .into_response();
+                }
+            };
 
-    match use_case.execute(command) {
-        Ok(result) => Json(TokenResponseBody::from(result)).into_response(),
+            let redirect_uri = match request.redirect_uri() {
+                Some(value) => value,
 
-        Err(error) => {
-            println!("TOKEN EXCHANGE ERROR: {:?}", error);
+                None => {
+                    return crate::error::ApiError::InvalidRequest.into_response();
+                }
+            };
 
-            crate::error::ApiError::from(localid_error::OAuthError::from(error)).into_response()
+            let command = TokenExchangeCommand::new(code_id, request.client_id(), redirect_uri);
+
+            let mut use_case = state.token_exchange_use_case.lock().await;
+
+            match use_case.execute(command) {
+                Ok(result) => Json(TokenResponseBody::from(result)).into_response(),
+
+                Err(error) => crate::error::ApiError::from(localid_error::OAuthError::from(error))
+                    .into_response(),
+            }
         }
     }
 }

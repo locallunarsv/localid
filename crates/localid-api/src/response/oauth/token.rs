@@ -1,7 +1,7 @@
 use chrono::Utc;
 use serde::Serialize;
 
-use localid_application::TokenExchangeResult;
+use localid_application::{TokenExchangeResult, TokenResponse};
 
 /// OAuth token exchange response.
 #[derive(Debug, Serialize)]
@@ -21,6 +21,20 @@ impl From<TokenExchangeResult> for TokenResponseBody {
             access_token: result.access_token().to_string(),
             token_type: "Bearer".to_string(),
             expires_in: (expires_at - Utc::now()).num_seconds(),
+            refresh_token: result.refresh_token().to_string(),
+            expires_at: expires_at.to_rfc3339(),
+        }
+    }
+}
+
+impl From<TokenResponse> for TokenResponseBody {
+    fn from(result: TokenResponse) -> Self {
+        let expires_at = result.expires_at();
+
+        Self {
+            access_token: result.access_token().to_string(),
+            token_type: "Bearer".to_string(),
+            expires_in: (expires_at - chrono::Utc::now()).num_seconds(),
             refresh_token: result.refresh_token().to_string(),
             expires_at: expires_at.to_rfc3339(),
         }
