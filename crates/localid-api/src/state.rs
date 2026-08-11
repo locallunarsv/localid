@@ -8,7 +8,6 @@ use localid_application::{
 };
 
 use localid_config::ServerConfig;
-
 use localid_crypto::KeyPair;
 
 /// Shared application state.
@@ -40,8 +39,8 @@ pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
     /// Identity lookup use case.
     pub identity_use_case: Arc<Mutex<I>>,
 
-    /// OIDC signing key pair.
-    pub key_pair: Arc<KeyPair>,
+    /// Active OIDC signing key.
+    pub signing_key: Arc<KeyPair>,
 }
 
 impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TEX, I> {
@@ -57,7 +56,8 @@ impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TE
             authorize_use_case: Arc::clone(&self.authorize_use_case),
             token_exchange_use_case: Arc::clone(&self.token_exchange_use_case),
             identity_use_case: Arc::clone(&self.identity_use_case),
-            key_pair: Arc::clone(&self.key_pair),
+
+            signing_key: Arc::clone(&self.signing_key),
         }
     }
 }
@@ -75,7 +75,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
         authorize_use_case: AuthorizeUseCase<O>,
         token_exchange_use_case: TokenExchangeUseCase<REX, TEX>,
         identity_use_case: I,
-        key_pair: KeyPair,
+        signing_key: KeyPair,
     ) -> Self {
         Self {
             config: Arc::new(config),
@@ -83,12 +83,14 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
             login_use_case: Arc::new(Mutex::new(login_use_case)),
             refresh_use_case: Arc::new(Mutex::new(refresh_use_case)),
             verify_token_use_case,
+
             current_session_use_case: Arc::new(Mutex::new(current_session_use_case)),
             logout_use_case: Arc::new(Mutex::new(logout_use_case)),
             authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
             token_exchange_use_case: Arc::new(Mutex::new(token_exchange_use_case)),
             identity_use_case: Arc::new(Mutex::new(identity_use_case)),
-            key_pair: Arc::new(key_pair),
+
+            signing_key: Arc::new(signing_key),
         }
     }
 }

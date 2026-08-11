@@ -1,9 +1,9 @@
 //! OpenID Connect ID token claims.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// ID token claims.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdTokenClaims {
     /// Issuer identifier.
     pub iss: String,

@@ -6,7 +6,7 @@ use crate::{response::JwksResponseBody, AppState};
 pub async fn jwks<L, R, V, S, C, O, REX, TEX, I>(
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
 ) -> impl IntoResponse {
-    let jwk = state.key_pair.to_jwk();
+    let jwk = state.signing_key.to_jwk();
 
     Json(JwksResponseBody { keys: vec![jwk] })
 }

@@ -2,7 +2,6 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
@@ -33,16 +32,21 @@ async fn jwks_should_return_key_set() {
 
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert!(json["keys"].is_array());
-    assert_eq!(json["keys"].as_array().unwrap().len(), 1);
+    let keys = json["keys"].as_array().expect("keys should be an array");
 
-    assert_eq!(json["keys"][0]["kty"].as_str(), Some("RSA"));
+    assert_eq!(keys.len(), 1);
 
-    assert_eq!(json["keys"][0]["kid"].as_str(), Some("localid-key-1"));
+    let key = &keys[0];
 
-    assert_eq!(json["keys"][0]["alg"].as_str(), Some("RS256"));
+    assert_eq!(key["kty"].as_str(), Some("RSA"));
 
-    assert!(json["keys"][0]["n"].as_str().is_some());
+    assert_eq!(key["kid"].as_str(), Some("localid-key-1"));
 
-    assert!(json["keys"][0]["e"].as_str().is_some());
+    assert_eq!(key["alg"].as_str(), Some("RS256"));
+
+    assert_eq!(key["use"].as_str(), Some("sig"));
+
+    assert!(key["n"].as_str().is_some_and(|value| !value.is_empty()));
+
+    assert!(key["e"].as_str().is_some_and(|value| !value.is_empty()));
 }

@@ -6,6 +6,7 @@ mod claims;
 mod jwt;
 mod signer;
 mod token;
+mod verifier;
 
 pub use token::{IssuedToken, Token, TokenError, TokenId, TokenIssuer, TokenLifecycleState};
 
@@ -14,3 +15,5 @@ pub use claims::IdTokenClaims;
 pub use signer::{TokenSigner, TokenSigningError};
 
 pub use jwt::{JwtEncoder, JwtHeader};
+
+pub use verifier::{JwtVerifier, TokenVerifier};

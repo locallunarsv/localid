@@ -14,4 +14,7 @@ pub enum CryptoError {
 
     /// Signing operation failed.
     SigningFailed,
+
+    /// Signature verification failed.
+    VerificationFailed,
 }

@@ -1,26 +1,20 @@
 //! Cryptographic key types.
 
-use rand::rngs::OsRng;
-use rsa::RsaPrivateKey;
-use rsa::RsaPublicKey;
+//! Cryptographic key types.
 
 use std::path::Path;
 
-use crate::KeyStorage;
-
-use crate::CryptoError;
-
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-
-use rsa::traits::PublicKeyParts;
-
-use crate::JsonWebKey;
-
+use rand::rngs::OsRng;
 use rsa::{
-    pkcs1v15::SigningKey,
-    signature::{SignatureEncoding, Signer},
+    RsaPrivateKey, RsaPublicKey,
+    pkcs1v15::{Signature, SigningKey, VerifyingKey},
+    signature::{SignatureEncoding, Signer, Verifier},
+    traits::PublicKeyParts,
 };
 use sha2::Sha256;
+
+use crate::{CryptoError, JsonWebKey, KeyStorage};
 
 /// Signing key identifier.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,6 +123,16 @@ impl KeyPair {
 
         Ok(signature.to_vec())
     }
+
+    /// Verifies RSA SHA-256 signature.
+    pub fn verify_sha256(&self, payload: &[u8], signature: &[u8]) -> Result<bool, CryptoError> {
+        let verifying_key = VerifyingKey::<Sha256>::new(self.public_key());
+
+        let signature =
+            Signature::try_from(signature).map_err(|_| CryptoError::VerificationFailed)?;
+
+        Ok(verifying_key.verify(payload, &signature).is_ok())
+    }
 }
 
 #[cfg(test)]
@@ -188,4 +192,31 @@ fn should_sign_payload() {
     let signature = key.sign_sha256(b"hello").expect("signing should succeed");
 
     assert!(!signature.is_empty());
+}
+
+#[test]
+fn should_verify_signature() {
+    let key =
+        KeyPair::generate(KeyId::new("localid-key-1")).expect("key generation should succeed");
+
+    let payload = b"header.payload";
+
+    let signature = key.sign_sha256(payload).expect("signing should succeed");
+
+    let valid = key
+        .verify_sha256(payload, &signature)
+        .expect("verification should succeed");
+
+    assert!(valid);
+}
+
+#[test]
+fn should_reject_invalid_signature() {
+    let key = KeyPair::generate(KeyId::new("localid-key-1")).unwrap();
+
+    let signature = key.sign_sha256(b"hello").unwrap();
+
+    let valid = key.verify_sha256(b"wrong", &signature).unwrap();
+
+    assert!(!valid);
 }

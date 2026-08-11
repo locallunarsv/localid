@@ -12,6 +12,7 @@ pub struct JsonWebKey {
     pub kid: String,
 
     /// Key usage.
+    #[serde(rename = "use")]
     pub use_: String,
 
     /// Algorithm.
