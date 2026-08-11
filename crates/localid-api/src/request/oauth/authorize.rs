@@ -10,6 +10,9 @@ pub struct AuthorizeRequest {
     redirect_uri: String,
     scope: Option<String>,
     identity_id: String,
+    nonce: Option<String>,
+    state: Option<String>,
+    response_type: String,
 }
 
 impl AuthorizeRequest {
@@ -38,5 +41,23 @@ impl AuthorizeRequest {
             .split_whitespace()
             .map(ToOwned::to_owned)
             .collect()
+    }
+
+    /// Returns OpenID Connect nonce.
+    #[must_use]
+    pub fn nonce(&self) -> Option<&str> {
+        self.nonce.as_deref()
+    }
+
+    /// Returns OAuth state parameter.
+    #[must_use]
+    pub fn state(&self) -> Option<&str> {
+        self.state.as_deref()
+    }
+
+    /// Returns OAuth response type.
+    #[must_use]
+    pub fn response_type(&self) -> &str {
+        &self.response_type
     }
 }

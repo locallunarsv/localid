@@ -3,7 +3,6 @@ use axum::{
     http::{Request, StatusCode},
 };
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -11,7 +10,7 @@ use tower::ServiceExt;
 use localid_api::{bootstrap::create_state, create_router};
 
 #[tokio::test]
-async fn oidc_token_should_return_valid_id_token() {
+async fn oauth_token_should_not_return_id_token_without_openid_scope() {
     let bootstrap = create_state();
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
@@ -23,12 +22,12 @@ async fn oidc_token_should_return_valid_id_token() {
         bootstrap.authorization_state,
     );
 
-    // Step 1: create authorization code
+    // Step 1: create authorization code without openid scope
     let authorize_request = Request::builder()
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=profile",
                 oauth_client_id,
                 identity_id
             )
@@ -53,7 +52,7 @@ async fn oidc_token_should_return_valid_id_token() {
         .as_str()
         .expect("authorization code should exist");
 
-    // Step 2: exchange authorization code
+    // Step 2: exchange token
     let token_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
@@ -81,36 +80,18 @@ async fn oidc_token_should_return_valid_id_token() {
 
     let token_json: Value = serde_json::from_slice(&token_body).unwrap();
 
-    let id_token = token_json["id_token"]
-        .as_str()
-        .expect("id_token should exist");
+    assert!(
+        token_json["access_token"].as_str().is_some(),
+        "access token should exist"
+    );
 
-    // JWT structure
-    let parts: Vec<&str> = id_token.split('.').collect();
+    assert!(
+        token_json["refresh_token"].as_str().is_some(),
+        "refresh token should exist"
+    );
 
-    assert_eq!(parts.len(), 3);
-
-    // JWT Header
-    let header_bytes = URL_SAFE_NO_PAD
-        .decode(parts[0])
-        .expect("header should decode");
-
-    let header: Value = serde_json::from_slice(&header_bytes).expect("header should be json");
-
-    assert_eq!(header["alg"], "RS256");
-    assert_eq!(header["kid"], "localid-key-1");
-
-    // ID Token Claims
-    let payload_bytes = URL_SAFE_NO_PAD
-        .decode(parts[1])
-        .expect("payload should decode");
-
-    let claims: Value = serde_json::from_slice(&payload_bytes).expect("claims should be json");
-
-    assert!(claims["iss"].is_string());
-    assert!(claims["sub"].is_string());
-    assert!(claims["aud"].is_string());
-
-    assert!(claims["iat"].is_number());
-    assert!(claims["exp"].is_number());
+    assert!(
+        token_json["id_token"].is_null(),
+        "id_token should not exist without openid scope"
+    );
 }

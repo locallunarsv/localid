@@ -67,6 +67,13 @@ where
 
         let identity_id = authorization_code.identity_id();
 
+        let nonce = authorization_code.nonce().map(ToOwned::to_owned);
+
+        let is_openid_request = authorization_code
+            .scope()
+            .iter()
+            .any(|scope| scope == "openid");
+
         authorization_code
             .consume()
             .map_err(|_| TokenExchangeError::CodeConsumed)?;
@@ -82,19 +89,24 @@ where
 
         let now = chrono::Utc::now().timestamp();
 
-        let claims = IdTokenClaims {
-            iss: "http://localhost:8080".to_string(),
-            sub: identity_id.to_string(),
-            aud: command.client_id().to_string(),
-            iat: now,
-            exp: now + 3600,
-            nonce: None,
-        };
+        let id_token = if is_openid_request {
+            let claims = IdTokenClaims {
+                iss: "http://localhost:8080".to_string(),
+                sub: identity_id.to_string(),
+                aud: command.client_id().to_string(),
+                iat: now,
+                exp: now + 3600,
+                nonce,
+            };
 
-        let id_token = self
-            .id_token_issuer
-            .issue(claims)
-            .map_err(|_| TokenExchangeError::IdTokenIssuanceFailure)?;
+            Some(
+                self.id_token_issuer
+                    .issue(claims)
+                    .map_err(|_| TokenExchangeError::IdTokenIssuanceFailure)?,
+            )
+        } else {
+            None
+        };
 
         Ok(TokenExchangeResult::new(
             authentication_result.token().secret(),

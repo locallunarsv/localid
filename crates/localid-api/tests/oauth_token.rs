@@ -27,7 +27,7 @@ async fn oauth_token_should_exchange_authorization_code() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
                 oauth_client_id,
                 identity_id
             )
@@ -158,7 +158,7 @@ async fn oauth_token_should_reject_reused_authorization_code() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
                 oauth_client_id,
                 identity_id
             )
@@ -248,7 +248,7 @@ async fn oauth_token_should_reject_client_mismatch() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
                 oauth_client_id,
                 identity_id
             )
@@ -312,7 +312,7 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
                 oauth_client_id,
                 identity_id
             )
@@ -374,7 +374,7 @@ async fn oauth_token_should_refresh_access_token() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
                 oauth_client_id,
                 identity_id
             )

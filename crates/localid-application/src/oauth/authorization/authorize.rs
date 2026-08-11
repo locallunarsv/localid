@@ -44,12 +44,15 @@ where
 
         let now = Utc::now();
 
-        let code = AuthorizationCode::new(
+        let code = AuthorizationCode::new_with_nonce(
             AuthorizationCodeId::new(),
             client.id(),
             command.identity_id(),
             "authorization-code-hash",
             command.redirect_uri(),
+            command.nonce().map(ToOwned::to_owned),
+            command.scope().to_vec(),
+            command.request_state().map(ToOwned::to_owned),
             now,
             now + Duration::minutes(10),
         )

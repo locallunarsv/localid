@@ -10,8 +10,10 @@ pub struct TokenResponseBody {
     pub token_type: String,
     pub expires_in: i64,
     pub refresh_token: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id_token: Option<String>,
+
     pub expires_at: String,
 }
 
@@ -24,7 +26,7 @@ impl From<TokenExchangeResult> for TokenResponseBody {
             token_type: "Bearer".to_string(),
             expires_in: (expires_at - Utc::now()).num_seconds(),
             refresh_token: result.refresh_token().to_string(),
-            id_token: Some(result.id_token().to_string()),
+            id_token: result.id_token().map(ToOwned::to_owned),
             expires_at: expires_at.to_rfc3339(),
         }
     }

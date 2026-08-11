@@ -24,4 +24,8 @@ impl AuthorizationResult {
     pub const fn code_id(&self) -> localid_oauth_authorization::AuthorizationCodeId {
         self.code.id()
     }
+    /// Return State
+    pub fn request_state(&self) -> Option<&str> {
+        self.code.request_state()
+    }
 }

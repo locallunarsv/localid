@@ -7,6 +7,8 @@ pub struct AuthorizeCommand {
     identity_id: IdentityId,
     redirect_uri: String,
     scope: Vec<String>,
+    nonce: Option<String>,
+    request_state: Option<String>,
 }
 
 impl AuthorizeCommand {
@@ -18,11 +20,26 @@ impl AuthorizeCommand {
         redirect_uri: impl Into<String>,
         scope: Vec<String>,
     ) -> Self {
+        Self::new_with_nonce(client_id, identity_id, redirect_uri, scope, None, None)
+    }
+
+    /// Creates a new authorization command with OIDC nonce.
+    #[must_use]
+    pub fn new_with_nonce(
+        client_id: impl Into<String>,
+        identity_id: IdentityId,
+        redirect_uri: impl Into<String>,
+        scope: Vec<String>,
+        nonce: Option<String>,
+        request_state: Option<String>,
+    ) -> Self {
         Self {
             client_id: client_id.into(),
             identity_id,
             redirect_uri: redirect_uri.into(),
             scope,
+            nonce,
+            request_state,
         }
     }
 
@@ -48,5 +65,17 @@ impl AuthorizeCommand {
     #[must_use]
     pub fn scope(&self) -> &[String] {
         &self.scope
+    }
+
+    /// Returns OpenID Connect nonce.
+    #[must_use]
+    pub fn nonce(&self) -> Option<&str> {
+        self.nonce.as_deref()
+    }
+
+    /// Returns OAuth state parameter.
+    #[must_use]
+    pub fn request_state(&self) -> Option<&str> {
+        self.request_state.as_deref()
     }
 }

@@ -22,6 +22,7 @@ use crate::{
 };
 
 /// Handles OAuth authorization request.
+/// Handles OAuth authorization request.
 pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI>(
     Query(request): Query<AuthorizeRequest>,
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
@@ -41,30 +42,67 @@ where
     ID: Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
 {
+    if request.response_type() != "code" {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "unsupported_response_type"
+            })),
+        );
+    }
+
+    let scopes = request.scope();
+
+    let supported_scopes = ["openid", "profile", "email"];
+
+    if scopes
+        .iter()
+        .any(|scope| !supported_scopes.contains(&scope.as_str()))
+    {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "invalid_scope"
+            })),
+        );
+    }
+
     let identity_id = match request.identity_id() {
         Ok(value) => value,
+
         Err(_) => {
-            return Json(serde_json::json!({
-                "error": "invalid_identity_id"
-            }));
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_identity_id"
+                })),
+            );
         }
     };
 
-    let command = AuthorizeCommand::new(
+    let command = AuthorizeCommand::new_with_nonce(
         request.client_id(),
         identity_id,
         request.redirect_uri(),
-        request.scope(),
+        scopes,
+        request.nonce().map(ToOwned::to_owned),
+        request.state().map(ToOwned::to_owned),
     );
 
     let mut use_case = state.authorize_use_case.lock().await;
 
     match use_case.execute(command) {
-        Ok(result) => Json(serde_json::json!(AuthorizeResponseBody::from(result))),
+        Ok(result) => (
+            axum::http::StatusCode::OK,
+            Json(serde_json::json!(AuthorizeResponseBody::from(result))),
+        ),
 
-        Err(_) => Json(serde_json::json!({
-            "error": "authorization_failed"
-        })),
+        Err(_) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "authorization_failed"
+            })),
+        ),
     }
 }
 

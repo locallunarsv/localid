@@ -18,6 +18,7 @@ fn create_code() -> AuthorizationCode {
         IdentityId::new(),
         "code-hash",
         "http://localhost:3000/callback",
+        vec!["openid".to_string()],
         created_at,
         created_at + TimeDelta::minutes(10),
     )
@@ -46,6 +47,7 @@ fn rejects_invalid_expiration() {
         IdentityId::new(),
         "code-hash",
         "http://localhost:3000/callback",
+        vec!["openid".to_string()],
         created_at,
         created_at,
     );
@@ -84,4 +86,11 @@ fn expires_after_expiration_time() {
     assert!(code.is_expired_at(after_expiration));
 
     assert!(!code.is_active_at(after_expiration));
+}
+
+#[test]
+fn stores_requested_scope() {
+    let code = create_code();
+
+    assert_eq!(code.scope(), &["openid".to_string()]);
 }

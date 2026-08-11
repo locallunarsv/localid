@@ -35,7 +35,7 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
                 oauth_client_id,
                 identity_id
             )

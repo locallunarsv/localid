@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 pub struct TokenExchangeResult {
     access_token: String,
     refresh_token: String,
-    id_token: String,
+    id_token: Option<String>,
     expires_at: DateTime<Utc>,
 }
 
@@ -15,13 +15,13 @@ impl TokenExchangeResult {
     pub fn new(
         access_token: impl Into<String>,
         refresh_token: impl Into<String>,
-        id_token: impl Into<String>,
+        id_token: Option<String>,
         expires_at: DateTime<Utc>,
     ) -> Self {
         Self {
             access_token: access_token.into(),
             refresh_token: refresh_token.into(),
-            id_token: id_token.into(),
+            id_token,
             expires_at,
         }
     }
@@ -38,10 +38,10 @@ impl TokenExchangeResult {
         &self.refresh_token
     }
 
-    /// Returns ID token.
+    /// Returns ID token when OpenID Connect scope was requested.
     #[must_use]
-    pub fn id_token(&self) -> &str {
-        &self.id_token
+    pub fn id_token(&self) -> Option<&str> {
+        self.id_token.as_deref()
     }
 
     /// Returns token expiration time.

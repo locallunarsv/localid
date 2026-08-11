@@ -1,11 +1,11 @@
 use chrono::{TimeDelta, Utc};
 
 use localid_identity::IdentityId;
-use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeId};
+use localid_oauth_authorization::{
+    AuthorizationCode, AuthorizationCodeId, AuthorizationCodeRepository,
+};
 use localid_oauth_authorization_repository_memory::MemoryAuthorizationCodeRepository;
 use localid_oauth_client::OAuthClientId;
-
-use localid_oauth_authorization::AuthorizationCodeRepository;
 
 fn authorization_code() -> AuthorizationCode {
     let created_at = Utc::now();
@@ -16,6 +16,7 @@ fn authorization_code() -> AuthorizationCode {
         IdentityId::new(),
         "hash",
         "http://localhost/callback",
+        vec!["openid".to_string()],
         created_at,
         created_at + TimeDelta::minutes(10),
     )

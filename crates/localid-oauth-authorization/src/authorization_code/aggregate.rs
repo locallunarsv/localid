@@ -13,6 +13,9 @@ pub struct AuthorizationCode {
     identity_id: IdentityId,
     code_hash: String,
     redirect_uri: String,
+    nonce: Option<String>,
+    scope: Vec<String>,
+    request_state: Option<String>,
     created_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
     state: AuthorizationCodeLifecycleState,
@@ -26,6 +29,34 @@ impl AuthorizationCode {
         identity_id: IdentityId,
         code_hash: impl Into<String>,
         redirect_uri: impl Into<String>,
+        scope: Vec<String>,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Result<Self, AuthorizationCodeError> {
+        Self::new_with_nonce(
+            id,
+            client_id,
+            identity_id,
+            code_hash,
+            redirect_uri,
+            None,
+            scope,
+            None,
+            created_at,
+            expires_at,
+        )
+    }
+
+    /// Creates a new authorization code with OIDC nonce.
+    pub fn new_with_nonce(
+        id: AuthorizationCodeId,
+        client_id: OAuthClientId,
+        identity_id: IdentityId,
+        code_hash: impl Into<String>,
+        redirect_uri: impl Into<String>,
+        nonce: Option<String>,
+        scope: Vec<String>,
+        request_state: Option<String>,
         created_at: DateTime<Utc>,
         expires_at: DateTime<Utc>,
     ) -> Result<Self, AuthorizationCodeError> {
@@ -39,6 +70,9 @@ impl AuthorizationCode {
             identity_id,
             code_hash: code_hash.into(),
             redirect_uri: redirect_uri.into(),
+            nonce,
+            scope,
+            request_state,
             created_at,
             expires_at,
             state: AuthorizationCodeLifecycleState::Active,
@@ -68,6 +102,18 @@ impl AuthorizationCode {
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
         &self.redirect_uri
+    }
+
+    /// Returns the OIDC nonce.
+    #[must_use]
+    pub fn nonce(&self) -> Option<&str> {
+        self.nonce.as_deref()
+    }
+
+    /// Returns granted OAuth scopes.
+    #[must_use]
+    pub fn scope(&self) -> &[String] {
+        &self.scope
     }
 
     #[must_use]
@@ -104,5 +150,10 @@ impl AuthorizationCode {
     #[must_use]
     pub fn is_expired_at(&self, time: DateTime<Utc>) -> bool {
         time >= self.expires_at
+    }
+    /// Returns OAuth request state.
+    #[must_use]
+    pub fn request_state(&self) -> Option<&str> {
+        self.request_state.as_deref()
     }
 }
