@@ -85,7 +85,7 @@ where
         let claims = IdTokenClaims {
             iss: "http://localhost:8080".to_string(),
             sub: identity_id.to_string(),
-            aud: client.local_client_id().to_string(),
+            aud: command.client_id().to_string(),
             iat: now,
             exp: now + 3600,
             nonce: None,
