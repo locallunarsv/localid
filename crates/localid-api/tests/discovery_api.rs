@@ -40,4 +40,9 @@ async fn discovery_should_return_openid_configuration() {
     assert!(json["token_endpoint"].as_str().is_some());
 
     assert!(json["userinfo_endpoint"].as_str().is_some());
+
+    assert_eq!(json["id_token_signing_alg_values_supported"][0], "RS256");
+    assert!(json["jwks_uri"].as_str().is_some());
+
+    assert_eq!(json["id_token_signing_alg_values_supported"][0], "RS256");
 }

@@ -1,5 +1,6 @@
 /// OpenID Connect discovery response.
 ///
+/// OpenID Connect discovery response.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DiscoveryResponseBody {
     /// Identity provider issuer URL.
@@ -16,4 +17,7 @@ pub struct DiscoveryResponseBody {
 
     /// JSON Web Key Set endpoint.
     pub jwks_uri: String,
+
+    /// Supported ID token signing algorithms.
+    pub id_token_signing_alg_values_supported: Vec<String>,
 }

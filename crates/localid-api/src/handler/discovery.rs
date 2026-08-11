@@ -25,5 +25,6 @@ where
         token_endpoint: format!("{issuer}/oauth/token"),
         userinfo_endpoint: format!("{issuer}/oauth/userinfo"),
         jwks_uri: format!("{issuer}/.well-known/jwks.json"),
+        id_token_signing_alg_values_supported: vec!["RS256".to_string()],
     })
 }
