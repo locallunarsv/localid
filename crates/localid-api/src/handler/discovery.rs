@@ -21,10 +21,28 @@ where
 
     Json(DiscoveryResponseBody {
         issuer: issuer.to_string(),
+
         authorization_endpoint: format!("{issuer}/oauth/authorize"),
+
         token_endpoint: format!("{issuer}/oauth/token"),
+
         userinfo_endpoint: format!("{issuer}/oauth/userinfo"),
+
         jwks_uri: format!("{issuer}/.well-known/jwks.json"),
+
+        response_types_supported: vec!["code".to_string()],
+
+        grant_types_supported: vec![
+            "authorization_code".to_string(),
+            "refresh_token".to_string(),
+        ],
+
+        scopes_supported: vec![
+            "openid".to_string(),
+            "profile".to_string(),
+            "email".to_string(),
+        ],
+
         id_token_signing_alg_values_supported: vec!["RS256".to_string()],
     })
 }

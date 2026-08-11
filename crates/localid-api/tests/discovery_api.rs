@@ -45,4 +45,15 @@ async fn discovery_should_return_openid_configuration() {
     assert!(json["jwks_uri"].as_str().is_some());
 
     assert_eq!(json["id_token_signing_alg_values_supported"][0], "RS256");
+    assert_eq!(json["response_types_supported"][0], "code");
+
+    assert!(json["scopes_supported"]
+        .as_array()
+        .unwrap()
+        .contains(&serde_json::json!("openid")));
+
+    assert!(json["grant_types_supported"]
+        .as_array()
+        .unwrap()
+        .contains(&serde_json::json!("authorization_code")));
 }
