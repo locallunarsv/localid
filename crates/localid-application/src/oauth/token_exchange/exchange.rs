@@ -1,29 +1,36 @@
 use localid_authentication::TokenIssuanceService;
 
-use super::{TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeResult};
+use super::{
+    IdTokenIssuer, TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeResult,
+};
+
+use localid_token::IdTokenClaims;
 
 /// OAuth authorization code exchange use case.
 #[derive(Debug)]
-pub struct TokenExchangeUseCase<R, T> {
+pub struct TokenExchangeUseCase<R, T, I> {
     repository: R,
     token_issuer: T,
+    id_token_issuer: I,
 }
 
-impl<R, T> TokenExchangeUseCase<R, T> {
+impl<R, T, I> TokenExchangeUseCase<R, T, I> {
     /// Creates a new token exchange use case.
     #[must_use]
-    pub const fn new(repository: R, token_issuer: T) -> Self {
+    pub const fn new(repository: R, token_issuer: T, id_token_issuer: I) -> Self {
         Self {
             repository,
             token_issuer,
+            id_token_issuer,
         }
     }
 }
 
-impl<R, T> TokenExchangeUseCase<R, T>
+impl<R, T, I> TokenExchangeUseCase<R, T, I>
 where
     R: TokenExchangePort + Send + Sync,
     T: TokenIssuanceService + Send + Sync,
+    I: IdTokenIssuer + Send + Sync,
 {
     /// Executes OAuth authorization code exchange.
     pub fn execute(
@@ -73,9 +80,26 @@ where
             .issue(identity_id, client.local_client_id())
             .map_err(|_| TokenExchangeError::TokenIssuanceFailure)?;
 
+        let now = chrono::Utc::now().timestamp();
+
+        let claims = IdTokenClaims {
+            iss: "http://localhost:8080".to_string(),
+            sub: identity_id.to_string(),
+            aud: client.local_client_id().to_string(),
+            iat: now,
+            exp: now + 3600,
+            nonce: None,
+        };
+
+        let id_token = self
+            .id_token_issuer
+            .issue(claims)
+            .map_err(|_| TokenExchangeError::IdTokenIssuanceFailure)?;
+
         Ok(TokenExchangeResult::new(
             authentication_result.token().secret(),
             authentication_result.refresh_token().secret(),
+            id_token,
             authentication_result.session().expires_at(),
         ))
     }

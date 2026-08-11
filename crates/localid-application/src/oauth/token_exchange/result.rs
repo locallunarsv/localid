@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 pub struct TokenExchangeResult {
     access_token: String,
     refresh_token: String,
+    id_token: String,
     expires_at: DateTime<Utc>,
 }
 
@@ -14,11 +15,13 @@ impl TokenExchangeResult {
     pub fn new(
         access_token: impl Into<String>,
         refresh_token: impl Into<String>,
+        id_token: impl Into<String>,
         expires_at: DateTime<Utc>,
     ) -> Self {
         Self {
             access_token: access_token.into(),
             refresh_token: refresh_token.into(),
+            id_token: id_token.into(),
             expires_at,
         }
     }
@@ -33,6 +36,12 @@ impl TokenExchangeResult {
     #[must_use]
     pub fn refresh_token(&self) -> &str {
         &self.refresh_token
+    }
+
+    /// Returns ID token.
+    #[must_use]
+    pub fn id_token(&self) -> &str {
+        &self.id_token
     }
 
     /// Returns token expiration time.

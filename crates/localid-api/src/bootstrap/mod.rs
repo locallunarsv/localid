@@ -2,8 +2,11 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
+mod id_token;
 mod repository;
 mod seed;
+
+pub use id_token::BootstrapIdTokenIssuer;
 
 pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, seed_oauth_client};
 
@@ -57,9 +60,10 @@ use crate::bootstrap::repository::SharedRepository;
 type SharedIdentityRepository = SharedRepository<MemoryIdentityRepository>;
 
 /// Context containing initialized application dependencies.
-pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, I> {
+///
+pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI> {
     /// Shared application state.
-    pub state: AppState<L, R, V, S, C, O, REX, TEX, I>,
+    pub state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>,
 
     /// Authentication middleware state.
     pub auth_state: AuthMiddlewareState<V>,
@@ -157,6 +161,7 @@ pub fn create_state() -> BootstrapContext<
     BootstrapTokenIssuanceService,
     BootstrapIdentityRoleAdapter,
     BootstrapIdentityUseCase,
+    BootstrapIdTokenIssuer,
 > {
     let mut identity_repository = SharedRepository::new(MemoryIdentityRepository::new());
 
@@ -269,27 +274,34 @@ pub fn create_state() -> BootstrapContext<
         IdentityRoleAdapter::new(identity_role_repository),
     ));
 
-    let token_exchange_repository = TokenExchangeRepositoryAdapter::new(
-        oauth_client_repository.clone(),
-        authorization_code_repository.clone(),
-    );
-
-    let token_exchange_use_case =
-        TokenExchangeUseCase::new(token_exchange_repository, token_exchange_issuance_service);
-
-    let login_use_case = LoginUseCase::new(
-        PasswordAuthenticationAdapter::new(authentication_service),
-        client_use_case,
-    );
-
     let config = ServerConfig::new("http://localhost:8080");
 
     let key_storage = FileKeyStorage::new();
 
     let key_path = PathBuf::from(config.signing_key_path.clone());
 
-    let key_pair = KeyPair::load_or_generate(&key_storage, &key_path, KeyId::new("localid-key-1"))
-        .expect("signing key loading should succeed");
+    let key_pair = Arc::new(
+        KeyPair::load_or_generate(&key_storage, &key_path, KeyId::new("localid-key-1"))
+            .expect("signing key loading should succeed"),
+    );
+
+    let id_token_issuer = BootstrapIdTokenIssuer::new(Arc::clone(&key_pair));
+
+    let token_exchange_repository = TokenExchangeRepositoryAdapter::new(
+        oauth_client_repository.clone(),
+        authorization_code_repository.clone(),
+    );
+
+    let token_exchange_use_case = TokenExchangeUseCase::new(
+        token_exchange_repository,
+        token_exchange_issuance_service,
+        id_token_issuer,
+    );
+
+    let login_use_case = LoginUseCase::new(
+        PasswordAuthenticationAdapter::new(authentication_service),
+        client_use_case,
+    );
 
     BootstrapContext {
         state: AppState::new(

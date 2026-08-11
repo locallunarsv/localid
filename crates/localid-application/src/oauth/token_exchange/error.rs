@@ -38,4 +38,8 @@ pub enum TokenExchangeError {
     /// Token issuance failed.
     #[error("token issuance failure")]
     TokenIssuanceFailure,
+
+    /// ID token issuance failed.
+    #[error("id token issuance failure")]
+    IdTokenIssuanceFailure,
 }

@@ -11,7 +11,7 @@ use localid_config::ServerConfig;
 use localid_crypto::KeyPair;
 
 /// Shared application state.
-pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
+pub struct AppState<L, R, V, S, C, O, REX, TEX, ID, ITI> {
     /// Server configuration.
     pub config: Arc<ServerConfig>,
 
@@ -34,16 +34,16 @@ pub struct AppState<L, R, V, S, C, O, REX, TEX, I> {
     pub authorize_use_case: Arc<Mutex<AuthorizeUseCase<O>>>,
 
     /// OAuth token exchange use case.
-    pub token_exchange_use_case: Arc<Mutex<TokenExchangeUseCase<REX, TEX>>>,
+    pub token_exchange_use_case: Arc<Mutex<TokenExchangeUseCase<REX, TEX, ITI>>>,
 
     /// Identity lookup use case.
-    pub identity_use_case: Arc<Mutex<I>>,
+    pub identity_use_case: Arc<Mutex<ID>>,
 
     /// Active OIDC signing key.
     pub signing_key: Arc<KeyPair>,
 }
 
-impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TEX, I> {
+impl<L, R, V, S, C, O, REX, TEX, ID, ITI> Clone for AppState<L, R, V, S, C, O, REX, TEX, ID, ITI> {
     fn clone(&self) -> Self {
         Self {
             config: Arc::clone(&self.config),
@@ -51,10 +51,13 @@ impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TE
             login_use_case: Arc::clone(&self.login_use_case),
             refresh_use_case: Arc::clone(&self.refresh_use_case),
             verify_token_use_case: Arc::clone(&self.verify_token_use_case),
+
             current_session_use_case: Arc::clone(&self.current_session_use_case),
             logout_use_case: Arc::clone(&self.logout_use_case),
+
             authorize_use_case: Arc::clone(&self.authorize_use_case),
             token_exchange_use_case: Arc::clone(&self.token_exchange_use_case),
+
             identity_use_case: Arc::clone(&self.identity_use_case),
 
             signing_key: Arc::clone(&self.signing_key),
@@ -62,7 +65,7 @@ impl<L, R, V, S, C, O, REX, TEX, I> Clone for AppState<L, R, V, S, C, O, REX, TE
     }
 }
 
-impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
+impl<L, R, V, S, C, O, REX, TEX, ID, ITI> AppState<L, R, V, S, C, O, REX, TEX, ID, ITI> {
     /// Creates shared application state.
     #[must_use]
     pub fn new(
@@ -73,9 +76,9 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
         current_session_use_case: GetCurrentSessionUseCase<S>,
         logout_use_case: LogoutSessionUseCase<S>,
         authorize_use_case: AuthorizeUseCase<O>,
-        token_exchange_use_case: TokenExchangeUseCase<REX, TEX>,
-        identity_use_case: I,
-        signing_key: KeyPair,
+        token_exchange_use_case: TokenExchangeUseCase<REX, TEX, ITI>,
+        identity_use_case: ID,
+        signing_key: Arc<KeyPair>,
     ) -> Self {
         Self {
             config: Arc::new(config),
@@ -86,11 +89,13 @@ impl<L, R, V, S, C, O, REX, TEX, I> AppState<L, R, V, S, C, O, REX, TEX, I> {
 
             current_session_use_case: Arc::new(Mutex::new(current_session_use_case)),
             logout_use_case: Arc::new(Mutex::new(logout_use_case)),
+
             authorize_use_case: Arc::new(Mutex::new(authorize_use_case)),
             token_exchange_use_case: Arc::new(Mutex::new(token_exchange_use_case)),
+
             identity_use_case: Arc::new(Mutex::new(identity_use_case)),
 
-            signing_key: Arc::new(signing_key),
+            signing_key,
         }
     }
 }

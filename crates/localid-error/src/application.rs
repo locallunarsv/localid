@@ -18,6 +18,7 @@ impl From<TokenExchangeError> for OAuthError {
             TokenExchangeError::AuthorizationCodeRepositoryFailure
             | TokenExchangeError::OAuthClientRepositoryFailure
             | TokenExchangeError::TokenIssuanceFailure => Self::ServerError,
+            TokenExchangeError::IdTokenIssuanceFailure => Self::ServerError,
         }
     }
 }

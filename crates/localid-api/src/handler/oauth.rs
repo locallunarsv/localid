@@ -5,7 +5,10 @@ use axum::{
 };
 
 use localid_application::{
-    oauth::{authorization::AuthorizationPort, token_exchange::TokenExchangePort},
+    oauth::{
+        authorization::AuthorizationPort,
+        token_exchange::{IdTokenIssuer, TokenExchangePort},
+    },
     AuthorizeCommand, IdentityLookupService, RefreshTokenPort, TokenExchangeCommand,
 };
 
@@ -19,9 +22,9 @@ use crate::{
 };
 
 /// Handles OAuth authorization request.
-pub async fn authorize<L, R, V, S, C, O, REX, TEX, I>(
+pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI>(
     Query(request): Query<AuthorizeRequest>,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,
@@ -35,7 +38,8 @@ where
     O: AuthorizationPort + Send + Sync + 'static,
     REX: Send + Sync + 'static,
     TEX: Send + Sync + 'static,
-    I: Send + Sync + 'static,
+    ID: Send + Sync + 'static,
+    ITI: IdTokenIssuer + Send + Sync + 'static,
 {
     let identity_id = match request.identity_id() {
         Ok(value) => value,
@@ -64,15 +68,14 @@ where
     }
 }
 
-/// Handles OAuth token exchange request.
 /// Handles OAuth token request.
-pub async fn token<L, R, V, S, C, O, REX, TEX, I>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
+pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
     L: Send + Sync + 'static,
-    R: localid_application::RefreshTokenPort<Error = localid_authentication::AuthenticationError>
+    R: RefreshTokenPort<Error = localid_authentication::AuthenticationError>
         + Send
         + Sync
         + 'static,
@@ -82,7 +85,8 @@ where
     O: Send + Sync + 'static,
     REX: TokenExchangePort + Send + Sync + 'static,
     TEX: TokenIssuanceService + Send + Sync + 'static,
-    I: Send + Sync + 'static,
+    ID: Send + Sync + 'static,
+    ITI: IdTokenIssuer + Send + Sync + 'static,
 {
     match request.grant_type() {
         "refresh_token" => {
@@ -143,9 +147,9 @@ where
 }
 
 /// Handles OAuth userinfo request.
-pub async fn userinfo<L, R, V, S, C, O, REX, TEX, I>(
+pub async fn userinfo<L, R, V, S, C, O, REX, TEX, ID, ITI>(
     AuthenticatedIdentity(context): AuthenticatedIdentity,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, I>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
 ) -> Response
 where
     L: Send + Sync + 'static,
@@ -156,8 +160,8 @@ where
     O: Send + Sync + 'static,
     REX: Send + Sync + 'static,
     TEX: Send + Sync + 'static,
-    TEX: Send + Sync + 'static,
-    I: IdentityLookupService + Send + Sync + 'static,
+    ID: IdentityLookupService + Send + Sync + 'static,
+    ITI: IdTokenIssuer + Send + Sync + 'static,
 {
     let mut use_case = state.identity_use_case.lock().await;
 

@@ -5,8 +5,9 @@ use axum::{
 };
 
 use localid_application::{
-    oauth::token_exchange::TokenExchangePort, AuthenticationPort, AuthorizationContextResolver,
-    AuthorizationPort, ClientPort, IdentityRolePort, RefreshTokenPort, SessionPort,
+    oauth::token_exchange::{IdTokenIssuer, TokenExchangePort},
+    AuthenticationPort, AuthorizationContextResolver, AuthorizationPort, ClientPort,
+    IdentityLookupService, IdentityRolePort, RefreshTokenPort, SessionPort,
 };
 
 use localid_authentication::{AuthenticationError, TokenIssuanceService, TokenVerificationService};
@@ -16,15 +17,14 @@ use tower_http::trace::TraceLayer;
 use crate::middleware::request_id::request_id_layers;
 
 use crate::{
-    bootstrap::BootstrapIdentityUseCase,
     handler::{self, auth},
     middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
     AppState,
 };
 
 /// Creates the application HTTP router.
-pub fn create_router<L, R, V, S, C, O, REX, TEX, IR>(
-    state: AppState<L, R, V, S, C, O, REX, TEX, crate::bootstrap::BootstrapIdentityUseCase>,
+pub fn create_router<L, R, V, S, C, O, REX, TEX, ID, ITI, IR>(
+    state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>,
     auth_state: AuthMiddlewareState<V>,
     authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 ) -> Router
@@ -37,13 +37,15 @@ where
     O: AuthorizationPort + Send + Sync + 'static,
     REX: TokenExchangePort + Send + Sync + 'static,
     TEX: TokenIssuanceService + Send + Sync + 'static,
+    ID: IdentityLookupService + Send + Sync + 'static,
+    ITI: IdTokenIssuer + Send + Sync + 'static,
     IR: IdentityRolePort + Send + Sync + 'static,
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
         .route(
             "/oauth/userinfo",
-            get(handler::oauth::userinfo::<L, R, V, S, C, O, REX, TEX, BootstrapIdentityUseCase>),
+            get(handler::oauth::userinfo::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .route("/session/current", get(handler::session::current))
         .route(
@@ -52,19 +54,7 @@ where
         )
         .route(
             "/auth/logout",
-            post(
-                auth::logout::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase,
-                >,
-            ),
+            post(auth::logout::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .layer(middleware::from_fn_with_state(
             authorization_state,
@@ -83,83 +73,23 @@ where
         .route("/.well-known/jwks.json", get(handler::jwks))
         .route(
             "/auth/login",
-            post(
-                auth::login::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase
-                >
-            )
+            post(auth::login::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .route(
             "/auth/refresh",
-            post(
-                auth::refresh::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase
-                >
-            )
+            post(auth::refresh::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .route(
             "/auth/verify",
-            post(
-                auth::verify::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase
-                >
-            )
+            post(auth::verify::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .route(
             "/oauth/authorize",
-            get(
-                handler::oauth::authorize::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase
-                >
-            )
+            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .route(
             "/oauth/token",
-            post(
-                handler::oauth::token::<
-                    L,
-                    R,
-                    V,
-                    S,
-                    C,
-                    O,
-                    REX,
-                    TEX,
-                    crate::bootstrap::BootstrapIdentityUseCase
-                >
-            )
+            post(handler::oauth::token::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
         )
         .merge(protected)
         .layer(TraceLayer::new_for_http())

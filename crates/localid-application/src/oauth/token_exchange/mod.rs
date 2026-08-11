@@ -2,6 +2,7 @@ mod adapter;
 mod command;
 mod error;
 mod exchange;
+mod id_token;
 mod port;
 mod result;
 
@@ -16,3 +17,5 @@ pub use exchange::TokenExchangeUseCase;
 pub use port::TokenExchangePort;
 
 pub use result::TokenExchangeResult;
+
+pub use id_token::*;
