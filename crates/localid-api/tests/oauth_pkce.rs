@@ -149,3 +149,30 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
 
     assert_eq!(token_response.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn oauth_authorize_should_reject_invalid_pkce_method() {
+    let bootstrap = create_state();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("GET")
+        .uri(
+            format!(
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&code_challenge=test&code_challenge_method=plain",
+                bootstrap.oauth_client_public_id,
+                bootstrap.identity_id
+            )
+        )
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}

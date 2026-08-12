@@ -79,9 +79,21 @@ where
         }
     };
 
-    let code_challenge_method = request
-        .code_challenge_method()
-        .and_then(localid_oauth_authorization::CodeChallengeMethod::from_str);
+    let code_challenge_method = match request.code_challenge_method() {
+        Some(value) => match localid_oauth_authorization::CodeChallengeMethod::from_str(value) {
+            Some(method) => Some(method),
+            None => {
+                return (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_code_challenge_method"
+                    })),
+                );
+            }
+        },
+
+        None => None,
+    };
 
     let command = AuthorizeCommand::new_with_nonce_and_pkce(
         request.client_id(),
