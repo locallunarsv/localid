@@ -8,7 +8,6 @@ mod session;
 pub use session::SessionResponseBody;
 mod oauth;
 
-pub use oauth::{
-    AuthorizeResponseBody, DiscoveryResponseBody, JwksResponseBody, TokenResponseBody,
-    UserInfoResponseBody,
-};
+pub use oauth::{DiscoveryResponseBody, JwksResponseBody, TokenResponseBody, UserInfoResponseBody};
+
+pub use oauth::redirect::build_authorization_redirect;

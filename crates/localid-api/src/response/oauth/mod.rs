@@ -1,12 +1,12 @@
 //! OAuth response payloads.
 
-mod authorize;
 mod discovery;
 mod jwks;
 mod token;
 mod userinfo;
 
-pub use authorize::AuthorizeResponseBody;
+pub mod redirect;
+
 pub use discovery::DiscoveryResponseBody;
 pub use jwks::JwksResponseBody;
 pub use token::TokenResponseBody;

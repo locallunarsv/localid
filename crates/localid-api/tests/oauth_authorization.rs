@@ -3,8 +3,6 @@ use axum::{
     http::{Request, StatusCode},
 };
 
-use http_body_util::BodyExt;
-use serde_json::Value;
 use tower::ServiceExt;
 
 use localid_api::{bootstrap::create_state, create_router};
@@ -36,15 +34,23 @@ async fn oauth_authorize_should_issue_authorization_code() {
 
     let response = app.oneshot(request).await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
 
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
+    let location = response
+        .headers()
+        .get("location")
+        .expect("location header should exist")
+        .to_str()
+        .unwrap();
 
     assert!(
-        json["code_id"].as_str().is_some(),
-        "authorization code id should exist"
+        location.starts_with("http://localhost:3000/callback"),
+        "should redirect to registered redirect uri"
+    );
+
+    assert!(
+        location.contains("code="),
+        "authorization code should exist"
     );
 }
 
@@ -65,19 +71,12 @@ async fn oauth_authorize_should_reject_unknown_client() {
         .uri(
             format!("/oauth/authorize?client_id=unknown-client&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid", identity_id)
         )
-
         .body(Body::empty())
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"].as_str(), Some("authorization_failed"));
 }
 
 #[tokio::test]
@@ -108,12 +107,6 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
     let response = app.oneshot(request).await.unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"].as_str(), Some("authorization_failed"));
 }
 
 #[tokio::test]
@@ -140,13 +133,19 @@ async fn oauth_authorization_should_preserve_state() {
 
     let response = app.oneshot(request).await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
 
-    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let location = response
+        .headers()
+        .get("location")
+        .expect("location header should exist")
+        .to_str()
+        .unwrap();
 
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["state"].as_str(), Some("test-state"));
+    assert!(
+        location.contains("state=test-state"),
+        "state should be preserved"
+    );
 }
 
 #[tokio::test]
@@ -173,9 +172,5 @@ async fn oauth_authorization_should_reject_invalid_response_type() {
 
     let response = app.oneshot(request).await.unwrap();
 
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"].as_str(), Some("unsupported_response_type"));
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

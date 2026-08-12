@@ -1,6 +1,6 @@
 use axum::{
     extract::{Query, State},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
     Json,
 };
 
@@ -11,21 +11,23 @@ use localid_application::{
     },
     AuthorizeCommand, IdentityLookupService, RefreshTokenPort, TokenExchangeCommand,
 };
+
 use localid_authentication::TokenIssuanceService;
 
 use crate::{
     auth::AuthenticatedIdentity,
     request::{AuthorizeRequest, TokenRequest},
-    response::{AuthorizeResponseBody, TokenResponseBody, UserInfoResponseBody},
+    response::{TokenResponseBody, UserInfoResponseBody},
     AppState,
 };
 
-/// Handles OAuth authorization request.
+use crate::response::build_authorization_redirect;
+
 /// Handles OAuth authorization request.
 pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI>(
     Query(request): Query<AuthorizeRequest>,
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
-) -> impl IntoResponse
+) -> Response
 where
     L: Send + Sync + 'static,
     R: RefreshTokenPort<Error = localid_authentication::AuthenticationError>
@@ -47,7 +49,8 @@ where
             Json(serde_json::json!({
                 "error": "unsupported_response_type"
             })),
-        );
+        )
+            .into_response();
     }
 
     let scopes = request.scope();
@@ -63,7 +66,8 @@ where
             Json(serde_json::json!({
                 "error": "invalid_scope"
             })),
-        );
+        )
+            .into_response();
     }
 
     let identity_id = match request.identity_id() {
@@ -75,20 +79,23 @@ where
                 Json(serde_json::json!({
                     "error": "invalid_identity_id"
                 })),
-            );
+            )
+                .into_response();
         }
     };
 
     let code_challenge_method = match request.code_challenge_method() {
         Some(value) => match localid_oauth_authorization::CodeChallengeMethod::from_str(value) {
             Some(method) => Some(method),
+
             None => {
                 return (
                     axum::http::StatusCode::BAD_REQUEST,
                     Json(serde_json::json!({
                         "error": "invalid_code_challenge_method"
                     })),
-                );
+                )
+                    .into_response();
             }
         },
 
@@ -99,7 +106,7 @@ where
         request.client_id(),
         identity_id,
         request.redirect_uri(),
-        request.scope(),
+        scopes,
         request.nonce().map(ToOwned::to_owned),
         request.state().map(ToOwned::to_owned),
         request.code_challenge().map(ToOwned::to_owned),
@@ -109,17 +116,19 @@ where
     let mut use_case = state.authorize_use_case.lock().await;
 
     match use_case.execute(command) {
-        Ok(result) => (
-            axum::http::StatusCode::OK,
-            Json(serde_json::json!(AuthorizeResponseBody::from(result))),
-        ),
+        Ok(result) => {
+            let location = build_authorization_redirect(request.redirect_uri(), &result);
+
+            Redirect::temporary(&location).into_response()
+        }
 
         Err(_) => (
             axum::http::StatusCode::BAD_REQUEST,
             Json(serde_json::json!({
                 "error": "authorization_failed"
             })),
-        ),
+        )
+            .into_response(),
     }
 }
 
@@ -147,6 +156,7 @@ where
         "refresh_token" => {
             let refresh_token = match request.refresh_token() {
                 Some(value) => value,
+
                 None => {
                     return crate::error::ApiError::InvalidRequest.into_response();
                 }
