@@ -11,7 +11,6 @@ use localid_application::{
     },
     AuthorizeCommand, IdentityLookupService, RefreshTokenPort, TokenExchangeCommand,
 };
-
 use localid_authentication::TokenIssuanceService;
 
 use crate::{
@@ -80,13 +79,19 @@ where
         }
     };
 
-    let command = AuthorizeCommand::new_with_nonce(
+    let code_challenge_method = request
+        .code_challenge_method()
+        .and_then(localid_oauth_authorization::CodeChallengeMethod::from_str);
+
+    let command = AuthorizeCommand::new_with_nonce_and_pkce(
         request.client_id(),
         identity_id,
         request.redirect_uri(),
-        scopes,
+        request.scope(),
         request.nonce().map(ToOwned::to_owned),
         request.state().map(ToOwned::to_owned),
+        request.code_challenge().map(ToOwned::to_owned),
+        code_challenge_method,
     );
 
     let mut use_case = state.authorize_use_case.lock().await;
@@ -170,7 +175,12 @@ where
                 }
             };
 
-            let command = TokenExchangeCommand::new(code_id, request.client_id(), redirect_uri);
+            let command = TokenExchangeCommand::new(
+                code_id,
+                request.client_id(),
+                redirect_uri,
+                request.code_verifier().map(ToOwned::to_owned),
+            );
 
             let mut use_case = state.token_exchange_use_case.lock().await;
 

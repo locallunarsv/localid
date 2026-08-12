@@ -6,20 +6,24 @@ pub struct TokenExchangeCommand {
     code_id: AuthorizationCodeId,
     client_id: String,
     redirect_uri: String,
+    code_verifier: Option<String>,
 }
 
 impl TokenExchangeCommand {
+    /// Creates a new token exchange command.
     /// Creates a new token exchange command.
     #[must_use]
     pub fn new(
         code_id: AuthorizationCodeId,
         client_id: impl Into<String>,
         redirect_uri: impl Into<String>,
+        code_verifier: Option<String>,
     ) -> Self {
         Self {
             code_id,
             client_id: client_id.into(),
             redirect_uri: redirect_uri.into(),
+            code_verifier,
         }
     }
 
@@ -39,5 +43,11 @@ impl TokenExchangeCommand {
     #[must_use]
     pub fn redirect_uri(&self) -> &str {
         &self.redirect_uri
+    }
+
+    /// Returns PKCE code verifier.
+    #[must_use]
+    pub fn code_verifier(&self) -> Option<&str> {
+        self.code_verifier.as_deref()
     }
 }

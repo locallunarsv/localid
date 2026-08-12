@@ -13,6 +13,8 @@ pub struct AuthorizeRequest {
     nonce: Option<String>,
     state: Option<String>,
     response_type: String,
+    code_challenge: Option<String>,
+    code_challenge_method: Option<String>,
 }
 
 impl AuthorizeRequest {
@@ -59,5 +61,16 @@ impl AuthorizeRequest {
     #[must_use]
     pub fn response_type(&self) -> &str {
         &self.response_type
+    }
+    /// Returns PKCE code challenge.
+    #[must_use]
+    pub fn code_challenge(&self) -> Option<&str> {
+        self.code_challenge.as_deref()
+    }
+
+    /// Returns PKCE code challenge method.
+    #[must_use]
+    pub fn code_challenge_method(&self) -> Option<&str> {
+        self.code_challenge_method.as_deref()
     }
 }

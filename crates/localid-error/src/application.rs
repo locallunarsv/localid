@@ -10,8 +10,10 @@ impl From<TokenExchangeError> for OAuthError {
             TokenExchangeError::AuthorizationCodeNotFound
             | TokenExchangeError::ClientMismatch
             | TokenExchangeError::RedirectUriMismatch
-            | TokenExchangeError::CodeExpired
-            | TokenExchangeError::CodeConsumed => Self::InvalidGrant,
+            | TokenExchangeError::InvalidCodeVerifier => Self::InvalidGrant,
+            TokenExchangeError::CodeExpired | TokenExchangeError::CodeConsumed => {
+                Self::InvalidGrant
+            }
 
             TokenExchangeError::ClientNotFound => Self::InvalidClient,
 

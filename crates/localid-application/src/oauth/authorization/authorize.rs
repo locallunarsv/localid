@@ -44,7 +44,7 @@ where
 
         let now = Utc::now();
 
-        let code = AuthorizationCode::new_with_nonce(
+        let code = AuthorizationCode::new_with_nonce_and_pkce(
             AuthorizationCodeId::new(),
             client.id(),
             command.identity_id(),
@@ -53,6 +53,8 @@ where
             command.nonce().map(ToOwned::to_owned),
             command.scope().to_vec(),
             command.request_state().map(ToOwned::to_owned),
+            command.code_challenge().map(ToOwned::to_owned),
+            command.code_challenge_method().cloned(),
             now,
             now + Duration::minutes(10),
         )

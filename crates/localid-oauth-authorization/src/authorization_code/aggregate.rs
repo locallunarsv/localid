@@ -3,7 +3,10 @@ use chrono::{DateTime, Utc};
 use localid_identity::IdentityId;
 use localid_oauth_client::OAuthClientId;
 
-use super::{AuthorizationCodeError, AuthorizationCodeId, AuthorizationCodeLifecycleState};
+use super::{
+    AuthorizationCodeError, AuthorizationCodeId, AuthorizationCodeLifecycleState,
+    CodeChallengeMethod,
+};
 
 /// Authorization code aggregate.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,9 +16,14 @@ pub struct AuthorizationCode {
     identity_id: IdentityId,
     code_hash: String,
     redirect_uri: String,
+
     nonce: Option<String>,
     scope: Vec<String>,
     request_state: Option<String>,
+
+    pkce_challenge: Option<String>,
+    pkce_method: Option<CodeChallengeMethod>,
+
     created_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
     state: AuthorizationCodeLifecycleState,
@@ -64,6 +72,41 @@ impl AuthorizationCode {
             return Err(AuthorizationCodeError::InvalidExpirationTime);
         }
 
+        Self::new_with_nonce_and_pkce(
+            id,
+            client_id,
+            identity_id,
+            code_hash,
+            redirect_uri,
+            nonce,
+            scope,
+            request_state,
+            None,
+            None,
+            created_at,
+            expires_at,
+        )
+    }
+
+    /// Creates authorization code with OIDC and PKCE data.
+    pub fn new_with_nonce_and_pkce(
+        id: AuthorizationCodeId,
+        client_id: OAuthClientId,
+        identity_id: IdentityId,
+        code_hash: impl Into<String>,
+        redirect_uri: impl Into<String>,
+        nonce: Option<String>,
+        scope: Vec<String>,
+        request_state: Option<String>,
+        pkce_challenge: Option<String>,
+        pkce_method: Option<CodeChallengeMethod>,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Result<Self, AuthorizationCodeError> {
+        if expires_at <= created_at {
+            return Err(AuthorizationCodeError::InvalidExpirationTime);
+        }
+
         Ok(Self {
             id,
             client_id,
@@ -73,6 +116,8 @@ impl AuthorizationCode {
             nonce,
             scope,
             request_state,
+            pkce_challenge,
+            pkce_method,
             created_at,
             expires_at,
             state: AuthorizationCodeLifecycleState::Active,
@@ -108,6 +153,18 @@ impl AuthorizationCode {
     #[must_use]
     pub fn nonce(&self) -> Option<&str> {
         self.nonce.as_deref()
+    }
+
+    /// Returns PKCE code challenge.
+    #[must_use]
+    pub fn pkce_challenge(&self) -> Option<&str> {
+        self.pkce_challenge.as_deref()
+    }
+
+    /// Returns PKCE challenge method.
+    #[must_use]
+    pub const fn pkce_method(&self) -> Option<&CodeChallengeMethod> {
+        self.pkce_method.as_ref()
     }
 
     /// Returns granted OAuth scopes.

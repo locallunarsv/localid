@@ -3,6 +3,7 @@ mod command;
 mod error;
 mod exchange;
 mod id_token;
+mod pkce;
 mod port;
 mod result;
 

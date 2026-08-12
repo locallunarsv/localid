@@ -11,6 +11,7 @@ pub struct TokenRequest {
     client_id: String,
     redirect_uri: Option<String>,
     refresh_token: Option<String>,
+    code_verifier: Option<String>,
 }
 
 impl TokenRequest {
@@ -41,5 +42,11 @@ impl TokenRequest {
     #[must_use]
     pub fn refresh_token(&self) -> Option<&str> {
         self.refresh_token.as_deref()
+    }
+
+    /// Returns PKCE code verifier.
+    #[must_use]
+    pub fn code_verifier(&self) -> Option<&str> {
+        self.code_verifier.as_deref()
     }
 }

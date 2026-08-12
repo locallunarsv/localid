@@ -19,6 +19,10 @@ pub enum TokenExchangeError {
     #[error("redirect uri mismatch")]
     RedirectUriMismatch,
 
+    /// PKCE code verifier does not match the authorization code challenge.
+    #[error("invalid code verifier")]
+    InvalidCodeVerifier,
+
     /// Authorization code is expired.
     #[error("authorization code expired")]
     CodeExpired,

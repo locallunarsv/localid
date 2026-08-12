@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 chrono = "0.4"
 thiserror = "1"
+sha2 = "0.10"
+base64 = "0.22"
 
 localid-authentication = { path = "../localid-authentication" }
 localid-credential = { path = "../localid-credential" }

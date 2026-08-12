@@ -1,7 +1,8 @@
 use localid_authentication::TokenIssuanceService;
 
 use super::{
-    IdTokenIssuer, TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeResult,
+    IdTokenIssuer, TokenExchangeCommand, TokenExchangeError, TokenExchangePort,
+    TokenExchangeResult, pkce,
 };
 
 use localid_token::IdTokenClaims;
@@ -55,6 +56,16 @@ where
 
         if authorization_code.redirect_uri() != command.redirect_uri() {
             return Err(TokenExchangeError::RedirectUriMismatch);
+        }
+
+        if let Some(challenge) = authorization_code.pkce_challenge() {
+            let verifier = command
+                .code_verifier()
+                .ok_or(TokenExchangeError::InvalidCodeVerifier)?;
+
+            if !pkce::verify(verifier, challenge) {
+                return Err(TokenExchangeError::InvalidCodeVerifier);
+            }
         }
 
         if !authorization_code.is_active_at(chrono::Utc::now()) {
