@@ -10,7 +10,7 @@ pub struct AuthorizationResult {
 impl AuthorizationResult {
     /// Creates authorization result.
     #[must_use]
-    pub const fn new(code: AuthorizationCode, authorization_code: String) -> Self {
+    pub fn new(code: AuthorizationCode, authorization_code: String) -> Self {
         Self {
             code,
             authorization_code,
@@ -23,16 +23,16 @@ impl AuthorizationResult {
         &self.code
     }
 
-    /// Returns generated authorization code secret.
-    #[must_use]
-    pub fn authorization_code(&self) -> &str {
-        &self.authorization_code
-    }
-
     /// Returns authorization code identifier.
     #[must_use]
     pub const fn code_id(&self) -> localid_oauth_authorization::AuthorizationCodeId {
         self.code.id()
+    }
+
+    /// Returns generated authorization code secret.
+    #[must_use]
+    pub fn authorization_code(&self) -> &str {
+        &self.authorization_code
     }
 
     /// Returns OAuth state parameter.

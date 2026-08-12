@@ -1,10 +1,13 @@
-use axum::{ body::Body, http::{ Request, StatusCode } };
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 
 use http_body_util::BodyExt;
-use serde_json::{ json, Value };
+use serde_json::{json, Value};
 use tower::ServiceExt;
 
-use localid_api::{ bootstrap::create_state, create_router };
+use localid_api::{bootstrap::create_state, create_router};
 
 fn extract_authorization_code(location: &str) -> String {
     location
@@ -22,7 +25,11 @@ async fn oauth_token_should_not_return_id_token_without_openid_scope() {
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     // Step 1: create authorization code without openid scope
     let authorize_request = Request::builder()
@@ -55,28 +62,41 @@ async fn oauth_token_should_not_return_id_token_without_openid_scope() {
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
-        .body(
-            Body::from(
-                json!({
+        .body(Body::from(
+            json!({
                 "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
-            }).to_string()
-            )
-        )
+            })
+            .to_string(),
+        ))
         .unwrap();
 
     let token_response = app.oneshot(token_request).await.unwrap();
 
     assert_eq!(token_response.status(), StatusCode::OK);
 
-    let token_body = token_response.into_body().collect().await.unwrap().to_bytes();
+    let token_body = token_response
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
 
     let token_json: Value = serde_json::from_slice(&token_body).unwrap();
 
-    assert!(token_json["access_token"].as_str().is_some(), "access token should exist");
+    assert!(
+        token_json["access_token"].as_str().is_some(),
+        "access token should exist"
+    );
 
-    assert!(token_json["refresh_token"].as_str().is_some(), "refresh token should exist");
+    assert!(
+        token_json["refresh_token"].as_str().is_some(),
+        "refresh token should exist"
+    );
 
-    assert!(token_json["id_token"].is_null(), "id_token should not exist without openid scope");
+    assert!(
+        token_json["id_token"].is_null(),
+        "id_token should not exist without openid scope"
+    );
 }

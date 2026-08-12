@@ -1,12 +1,15 @@
-use axum::{ body::Body, http::{ Request, StatusCode } };
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 
-use base64::{ engine::general_purpose::URL_SAFE_NO_PAD, Engine };
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
-use serde_json::{ json, Value };
-use sha2::{ Digest, Sha256 };
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use tower::ServiceExt;
 
-use localid_api::{ bootstrap::create_state, create_router };
+use localid_api::{bootstrap::create_state, create_router};
 
 fn generate_code_challenge(verifier: &str) -> String {
     let digest = Sha256::digest(verifier.as_bytes());
@@ -30,7 +33,11 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let authorize_request = Request::builder()
         .method("GET")
@@ -61,16 +68,15 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
-        .body(
-            Body::from(
-                json!({
+        .body(Body::from(
+            json!({
                 "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback",
                 "code_verifier": "wrong-verifier"
-            }).to_string()
-            )
-        )
+            })
+            .to_string(),
+        ))
         .unwrap();
 
     let response = app.oneshot(token_request).await.unwrap();
@@ -91,7 +97,11 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let verifier = "test-code-verifier-123456789";
 
@@ -127,16 +137,15 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
-        .body(
-            Body::from(
-                json!({
+        .body(Body::from(
+            json!({
                 "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback",
                 "code_verifier": verifier
-            }).to_string()
-            )
-        )
+            })
+            .to_string(),
+        ))
         .unwrap();
 
     let token_response = app.oneshot(token_request).await.unwrap();
@@ -148,7 +157,11 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
 async fn oauth_authorize_should_reject_invalid_pkce_method() {
     let bootstrap = create_state();
 
-    let app = create_router(bootstrap.state, bootstrap.auth_state, bootstrap.authorization_state);
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
 
     let request = Request::builder()
         .method("GET")
