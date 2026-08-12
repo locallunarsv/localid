@@ -1,4 +1,4 @@
-use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeId};
+use localid_oauth_authorization::AuthorizationCode;
 use localid_oauth_client::OAuthClient;
 
 /// Port required by OAuth token exchange flow.
@@ -6,10 +6,10 @@ pub trait TokenExchangePort {
     /// Error returned by token exchange dependencies.
     type Error;
 
-    /// Finds authorization code by identifier.
-    fn find_authorization_code(
+    /// Finds authorization code by hashed secret.
+    fn find_authorization_code_by_hash(
         &self,
-        id: AuthorizationCodeId,
+        hash: &str,
     ) -> Result<Option<AuthorizationCode>, Self::Error>;
 
     /// Saves authorization code changes.

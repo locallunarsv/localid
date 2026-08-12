@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 
+use localid_authorization_code_random::RandomAuthorizationCodeGenerator;
 use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeId};
 
 use crate::ApplicationError;
@@ -42,13 +43,19 @@ where
             return Err(ApplicationError::InternalFailure);
         }
 
+        let generator = RandomAuthorizationCodeGenerator::new();
+
+        let authorization_code = generator.generate();
+
+        let authorization_code_hash = generator.hash(&authorization_code);
+
         let now = Utc::now();
 
         let code = AuthorizationCode::new_with_nonce_and_pkce(
             AuthorizationCodeId::new(),
             client.id(),
             command.identity_id(),
-            "authorization-code-hash",
+            authorization_code_hash,
             command.redirect_uri(),
             command.nonce().map(ToOwned::to_owned),
             command.scope().to_vec(),
@@ -64,6 +71,6 @@ where
             .save_code(code.clone())
             .map_err(|_| ApplicationError::InternalFailure)?;
 
-        Ok(AuthorizationResult::new(code))
+        Ok(AuthorizationResult::new(code, authorization_code))
     }
 }

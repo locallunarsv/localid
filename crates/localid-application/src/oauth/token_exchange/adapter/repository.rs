@@ -1,6 +1,4 @@
-use localid_oauth_authorization::{
-    AuthorizationCode, AuthorizationCodeId, AuthorizationCodeRepository,
-};
+use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeRepository};
 
 use localid_oauth_client::{OAuthClient, OAuthClientRepository};
 
@@ -30,11 +28,11 @@ where
 {
     type Error = ();
 
-    fn find_authorization_code(
+    fn find_authorization_code_by_hash(
         &self,
-        id: AuthorizationCodeId,
+        hash: &str,
     ) -> Result<Option<AuthorizationCode>, Self::Error> {
-        self.authorization_code_repository.find_by_id(id)
+        self.authorization_code_repository.find_by_hash(hash)
     }
 
     fn save_authorization_code(&mut self, code: AuthorizationCode) -> Result<(), Self::Error> {

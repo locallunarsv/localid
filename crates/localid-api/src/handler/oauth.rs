@@ -178,14 +178,11 @@ where
         }
 
         _ => {
-            let code_id = match request.code_id() {
-                Ok(value) => value,
+            let code = match request.code() {
+                Some(value) => value,
 
-                Err(_) => {
-                    return Json(serde_json::json!({
-                        "error": "invalid_code_id"
-                    }))
-                    .into_response();
+                None => {
+                    return crate::error::ApiError::InvalidRequest.into_response();
                 }
             };
 
@@ -198,12 +195,11 @@ where
             };
 
             let command = TokenExchangeCommand::new(
-                code_id,
+                code.to_owned(),
                 request.client_id(),
                 redirect_uri,
                 request.code_verifier().map(ToOwned::to_owned),
             );
-
             let mut use_case = state.token_exchange_use_case.lock().await;
 
             match use_case.execute(command) {

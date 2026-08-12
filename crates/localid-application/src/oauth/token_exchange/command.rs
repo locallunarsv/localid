@@ -1,9 +1,7 @@
-use localid_oauth_authorization::AuthorizationCodeId;
-
 /// OAuth token exchange request command.
 #[derive(Debug, Clone)]
 pub struct TokenExchangeCommand {
-    code_id: AuthorizationCodeId,
+    code: String,
     client_id: String,
     redirect_uri: String,
     code_verifier: Option<String>,
@@ -11,26 +9,25 @@ pub struct TokenExchangeCommand {
 
 impl TokenExchangeCommand {
     /// Creates a new token exchange command.
-    /// Creates a new token exchange command.
     #[must_use]
     pub fn new(
-        code_id: AuthorizationCodeId,
+        code: impl Into<String>,
         client_id: impl Into<String>,
         redirect_uri: impl Into<String>,
         code_verifier: Option<String>,
     ) -> Self {
         Self {
-            code_id,
+            code: code.into(),
             client_id: client_id.into(),
             redirect_uri: redirect_uri.into(),
             code_verifier,
         }
     }
 
-    /// Returns authorization code identifier.
+    /// Returns authorization code secret.
     #[must_use]
-    pub const fn code_id(&self) -> AuthorizationCodeId {
-        self.code_id
+    pub fn code(&self) -> &str {
+        &self.code
     }
 
     /// Returns OAuth client identifier.

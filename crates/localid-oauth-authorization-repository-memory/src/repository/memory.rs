@@ -34,4 +34,12 @@ impl AuthorizationCodeRepository for MemoryAuthorizationCodeRepository {
     ) -> Result<Option<AuthorizationCode>, Self::Error> {
         Ok(self.codes.get(&id).cloned())
     }
+
+    fn find_by_hash(&self, hash: &str) -> Result<Option<AuthorizationCode>, Self::Error> {
+        Ok(self
+            .codes
+            .values()
+            .find(|code| code.code_hash() == hash)
+            .cloned())
+    }
 }

@@ -19,4 +19,8 @@ impl AuthorizationCodeRepository for SharedRepository<MemoryAuthorizationCodeRep
     ) -> Result<Option<AuthorizationCode>, Self::Error> {
         self.with(|repository| repository.find_by_id(id))
     }
+
+    fn find_by_hash(&self, hash: &str) -> Result<Option<AuthorizationCode>, Self::Error> {
+        self.with(|repository| repository.find_by_hash(hash))
+    }
 }

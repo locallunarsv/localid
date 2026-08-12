@@ -1,13 +1,10 @@
-use std::str::FromStr;
-
-use localid_oauth_authorization::AuthorizationCodeId;
 use serde::Deserialize;
 
 /// OAuth token request payload.
 #[derive(Debug, Deserialize)]
 pub struct TokenRequest {
     grant_type: Option<String>,
-    code_id: Option<String>,
+    code: Option<String>,
     client_id: String,
     redirect_uri: Option<String>,
     refresh_token: Option<String>,
@@ -21,9 +18,10 @@ impl TokenRequest {
         self.grant_type.as_deref().unwrap_or("authorization_code")
     }
 
-    /// Returns authorization code identifier.
-    pub fn code_id(&self) -> Result<AuthorizationCodeId, uuid::Error> {
-        AuthorizationCodeId::from_str(self.code_id.as_deref().unwrap_or_default())
+    /// Returns authorization code secret.
+    #[must_use]
+    pub fn code(&self) -> Option<&str> {
+        self.code.as_deref()
     }
 
     /// Returns OAuth client identifier.

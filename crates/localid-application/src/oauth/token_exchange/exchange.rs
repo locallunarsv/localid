@@ -5,6 +5,8 @@ use super::{
     TokenExchangeResult, pkce,
 };
 
+use sha2::{Digest, Sha256};
+
 use localid_token::IdTokenClaims;
 
 /// OAuth authorization code exchange use case.
@@ -38,9 +40,15 @@ where
         &mut self,
         command: TokenExchangeCommand,
     ) -> Result<TokenExchangeResult, TokenExchangeError> {
+        let code_hash = {
+            let mut hasher = Sha256::new();
+            hasher.update(command.code().as_bytes());
+            hex::encode(hasher.finalize())
+        };
+
         let mut authorization_code = self
             .repository
-            .find_authorization_code(command.code_id())
+            .find_authorization_code_by_hash(&code_hash)
             .map_err(|_| TokenExchangeError::AuthorizationCodeRepositoryFailure)?
             .ok_or(TokenExchangeError::AuthorizationCodeNotFound)?;
 

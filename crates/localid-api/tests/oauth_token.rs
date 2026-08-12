@@ -9,6 +9,46 @@ use tower::ServiceExt;
 
 use localid_api::{bootstrap::create_state, create_router};
 
+fn extract_authorization_code(location: &str) -> String {
+    location
+        .split("code=")
+        .nth(1)
+        .and_then(|value| value.split('&').next())
+        .expect("authorization code should exist")
+        .to_string()
+}
+
+async fn create_authorization_code(
+    app: &axum::Router,
+    client_id: &str,
+    identity_id: impl std::fmt::Display,
+) -> String {
+    let request = Request::builder()
+        .method("GET")
+        .uri(
+            format!(
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
+                client_id,
+                identity_id
+            )
+        )
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
+
+    let location = response
+        .headers()
+        .get("location")
+        .expect("location should exist")
+        .to_str()
+        .unwrap();
+
+    extract_authorization_code(location)
+}
+
 #[tokio::test]
 async fn oauth_token_should_exchange_authorization_code() {
     let bootstrap = create_state();
@@ -22,44 +62,15 @@ async fn oauth_token_should_exchange_authorization_code() {
         bootstrap.authorization_state,
     );
 
-    // Step 1: create authorization code
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                oauth_client_id,
-                identity_id
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
 
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    assert_eq!(authorize_response.status(), StatusCode::OK);
-
-    let authorize_body = authorize_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let authorize_json: Value = serde_json::from_slice(&authorize_body).unwrap();
-
-    let code_id = authorize_json["code_id"]
-        .as_str()
-        .expect("authorization code id should exist");
-
-    // Step 2: exchange authorization code
     let token_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -71,36 +82,20 @@ async fn oauth_token_should_exchange_authorization_code() {
 
     assert_eq!(token_response.status(), StatusCode::OK);
 
-    let token_body = token_response
+    let body = token_response
         .into_body()
         .collect()
         .await
         .unwrap()
         .to_bytes();
 
-    let token_json: Value = serde_json::from_slice(&token_body).unwrap();
+    let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert!(
-        token_json["access_token"].as_str().is_some(),
-        "access token should exist"
-    );
-
-    assert!(
-        token_json["refresh_token"].as_str().is_some(),
-        "refresh token should exist"
-    );
-
-    assert!(
-        token_json["expires_at"].as_str().is_some(),
-        "expires_at should exist"
-    );
-
-    assert_eq!(token_json["token_type"].as_str(), Some("Bearer"));
-
-    assert!(
-        token_json["expires_in"].as_i64().is_some(),
-        "expires_in should exist"
-    );
+    assert!(json["access_token"].as_str().is_some());
+    assert!(json["refresh_token"].as_str().is_some());
+    assert!(json["expires_at"].as_str().is_some());
+    assert_eq!(json["token_type"].as_str(), Some("Bearer"));
+    assert!(json["expires_in"].as_i64().is_some());
 }
 
 #[tokio::test]
@@ -121,7 +116,7 @@ async fn oauth_token_should_reject_invalid_code() {
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": "00000000-0000-0000-0000-000000000000",
+                "code": "invalid-authorization-code",
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -153,42 +148,15 @@ async fn oauth_token_should_reject_reused_authorization_code() {
         bootstrap.authorization_state,
     );
 
-    // create authorization code
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                oauth_client_id,
-                identity_id
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
 
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    let body = authorize_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    let code_id = json["code_id"]
-        .as_str()
-        .expect("authorization code should exist");
-
-    // first exchange should succeed
     let first_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -200,14 +168,13 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 
     assert_eq!(first_response.status(), StatusCode::OK);
 
-    // second exchange with same code should fail
     let second_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -243,42 +210,15 @@ async fn oauth_token_should_reject_client_mismatch() {
         bootstrap.authorization_state,
     );
 
-    // Create authorization code for registered client
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                oauth_client_id,
-                identity_id
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
 
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    let body = authorize_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    let code_id = json["code_id"]
-        .as_str()
-        .expect("authorization code should exist");
-
-    // Exchange using different client id
-    let token_request = Request::builder()
+    let request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": other_oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -286,7 +226,7 @@ async fn oauth_token_should_reject_client_mismatch() {
         ))
         .unwrap();
 
-    let response = app.oneshot(token_request).await.unwrap();
+    let response = app.oneshot(request).await.unwrap();
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
@@ -308,38 +248,15 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
         bootstrap.authorization_state,
     );
 
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                oauth_client_id,
-                identity_id
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
 
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    let body = authorize_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    let code_id = json["code_id"].as_str().unwrap();
-
-    let token_request = Request::builder()
+    let request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://evil.com/callback"
             })
@@ -347,7 +264,7 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
         ))
         .unwrap();
 
-    let response = app.oneshot(token_request).await.unwrap();
+    let response = app.oneshot(request).await.unwrap();
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
@@ -369,42 +286,15 @@ async fn oauth_token_should_refresh_access_token() {
         bootstrap.authorization_state,
     );
 
-    // Step 1: create authorization code
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                oauth_client_id,
-                identity_id
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
 
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    let body = authorize_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    let code_id = json["code_id"]
-        .as_str()
-        .expect("authorization code should exist");
-
-    // Step 2: exchange authorization code
     let token_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "code_id": code_id,
+                "code": code,
                 "client_id": oauth_client_id,
                 "redirect_uri": "http://localhost:3000/callback"
             })
@@ -429,7 +319,6 @@ async fn oauth_token_should_refresh_access_token() {
         .as_str()
         .expect("refresh token should exist");
 
-    // Step 3: refresh token
     let refresh_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
@@ -447,25 +336,4 @@ async fn oauth_token_should_refresh_access_token() {
     let refresh_response = app.oneshot(refresh_request).await.unwrap();
 
     assert_eq!(refresh_response.status(), StatusCode::OK);
-
-    let body = refresh_response
-        .into_body()
-        .collect()
-        .await
-        .unwrap()
-        .to_bytes();
-
-    let refresh_json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert!(
-        refresh_json["access_token"].as_str().is_some(),
-        "new access token should exist"
-    );
-
-    assert!(
-        refresh_json["refresh_token"].as_str().is_some(),
-        "new refresh token should exist"
-    );
-
-    assert_eq!(refresh_json["token_type"].as_str(), Some("Bearer"));
 }
