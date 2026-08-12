@@ -48,6 +48,7 @@ serde_json = "1"
 http-body-util = "0.1"
 base64 = "0.22"
 jsonwebtoken = "9"
+sha2 = "0.10"
 
 localid-credential = { path = "../localid-credential" }
 localid-identity = { path = "../localid-identity" }
