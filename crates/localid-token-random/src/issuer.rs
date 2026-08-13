@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
+use localid_crypto::hash_secret;
 use localid_session::SessionId;
 use localid_token::{IssuedToken, Token, TokenError, TokenId, TokenIssuer};
 use rand::{distributions::Alphanumeric, Rng};
-use sha2::{Digest, Sha256};
 
 /// Random token issuer implementation.
 #[derive(Debug, Default, Clone, Copy)]
@@ -22,14 +22,6 @@ impl RandomTokenIssuer {
             .map(char::from)
             .collect()
     }
-
-    fn hash_secret(secret: &str) -> String {
-        let mut hasher = Sha256::new();
-
-        hasher.update(secret.as_bytes());
-
-        hex::encode(hasher.finalize())
-    }
 }
 
 impl TokenIssuer for RandomTokenIssuer {
@@ -41,7 +33,7 @@ impl TokenIssuer for RandomTokenIssuer {
         expires_at: DateTime<Utc>,
     ) -> Result<IssuedToken, Self::Error> {
         let secret = Self::generate_secret();
-        let secret_hash = Self::hash_secret(&secret);
+        let secret_hash = hash_secret(&secret);
 
         let created_at = Utc::now();
 

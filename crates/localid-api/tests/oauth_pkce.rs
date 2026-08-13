@@ -11,6 +11,10 @@ use tower::ServiceExt;
 
 use localid_api::{bootstrap::create_state, create_router};
 
+fn demo_client_secret() -> &'static str {
+    "demo-secret"
+}
+
 fn generate_code_challenge(verifier: &str) -> String {
     let digest = Sha256::digest(verifier.as_bytes());
 
@@ -26,26 +30,20 @@ fn extract_authorization_code(location: &str) -> String {
         .to_string()
 }
 
-#[tokio::test]
-async fn oauth_token_should_reject_invalid_pkce_verifier() {
-    let bootstrap = create_state();
-
-    let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
-
-    let app = create_router(
-        bootstrap.state,
-        bootstrap.auth_state,
-        bootstrap.authorization_state,
-    );
-
+async fn create_pkce_authorization_code(
+    app: &axum::Router,
+    client_id: &str,
+    identity_id: impl std::fmt::Display,
+    challenge: &str,
+) -> String {
     let authorize_request = Request::builder()
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&code_challenge=invalid_challenge&code_challenge_method=S256",
-                oauth_client_id,
-                identity_id
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&code_challenge={}&code_challenge_method=S256",
+                client_id,
+                identity_id,
+                challenge
             )
         )
         .body(Body::empty())
@@ -62,7 +60,25 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
         .to_str()
         .unwrap();
 
-    let code = extract_authorization_code(location);
+    extract_authorization_code(location)
+}
+
+#[tokio::test]
+async fn oauth_token_should_reject_invalid_pkce_verifier() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let code =
+        create_pkce_authorization_code(&app, &oauth_client_id, identity_id, "invalid_challenge")
+            .await;
 
     let token_request = Request::builder()
         .method("POST")
@@ -72,6 +88,7 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback",
                 "code_verifier": "wrong-verifier"
             })
@@ -107,31 +124,8 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
 
     let challenge = generate_code_challenge(verifier);
 
-    let authorize_request = Request::builder()
-        .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&code_challenge={}&code_challenge_method=S256",
-                oauth_client_id,
-                identity_id,
-                challenge
-            )
-        )
-        .body(Body::empty())
-        .unwrap();
-
-    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
-
-    assert_eq!(authorize_response.status(), StatusCode::TEMPORARY_REDIRECT);
-
-    let location = authorize_response
-        .headers()
-        .get("location")
-        .expect("location should exist")
-        .to_str()
-        .unwrap();
-
-    let code = extract_authorization_code(location);
+    let code =
+        create_pkce_authorization_code(&app, &oauth_client_id, identity_id, &challenge).await;
 
     let token_request = Request::builder()
         .method("POST")
@@ -141,6 +135,7 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback",
                 "code_verifier": verifier
             })
@@ -151,6 +146,52 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
     let token_response = app.oneshot(token_request).await.unwrap();
 
     assert_eq!(token_response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn oauth_token_should_reject_missing_pkce_verifier() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let verifier = "test-code-verifier-123456789";
+
+    let challenge = generate_code_challenge(verifier);
+
+    let code =
+        create_pkce_authorization_code(&app, &oauth_client_id, identity_id, &challenge).await;
+
+    let token_request = Request::builder()
+        .method("POST")
+        .uri("/oauth/token")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({
+                "code": code,
+                "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
+                "redirect_uri": "http://localhost:3000/callback"
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let response = app.oneshot(token_request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
 #[tokio::test]

@@ -9,6 +9,7 @@ thiserror = "1"
 sha2 = "0.10"
 base64 = "0.22"
 hex = "0.4"
+rand = "0.8"
 
 localid-authentication = { path = "../localid-authentication" }
 localid-credential = { path = "../localid-credential" }
@@ -24,6 +25,7 @@ localid-token = { path = "../localid-token" }
 localid-oauth-authorization = { path = "../localid-oauth-authorization" }
 localid-oauth-client = { path = "../localid-oauth-client" }
 localid-authorization-code-random = { path = "../localid-authorization-code-random" }
+localid-crypto = { path = "../localid-crypto" }
 
 
 [dev-dependencies]

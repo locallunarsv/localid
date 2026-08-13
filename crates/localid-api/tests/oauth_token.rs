@@ -3,11 +3,25 @@ use axum::{
     http::{Request, StatusCode},
 };
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
+use localid_api::{bootstrap::create_state, create_router};
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
-use localid_api::{bootstrap::create_state, create_router};
+fn decode_jwt_payload(token: &str) -> Value {
+    let payload = token.split('.').nth(1).expect("jwt payload should exist");
+
+    let decoded = URL_SAFE_NO_PAD
+        .decode(payload)
+        .expect("jwt payload should decode");
+
+    serde_json::from_slice(&decoded).expect("payload should be json")
+}
+
+fn demo_client_secret() -> &'static str {
+    "demo-secret"
+}
 
 fn extract_authorization_code(location: &str) -> String {
     location
@@ -72,6 +86,7 @@ async fn oauth_token_should_exchange_authorization_code() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -118,6 +133,7 @@ async fn oauth_token_should_reject_invalid_code() {
             json!({
                 "code": "invalid-authorization-code",
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -158,6 +174,7 @@ async fn oauth_token_should_reject_reused_authorization_code() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -176,6 +193,7 @@ async fn oauth_token_should_reject_reused_authorization_code() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -220,6 +238,7 @@ async fn oauth_token_should_reject_client_mismatch() {
             json!({
                 "code": code,
                 "client_id": other_oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -227,6 +246,47 @@ async fn oauth_token_should_reject_client_mismatch() {
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["code"].as_str(), Some("invalid_grant"));
+}
+
+#[tokio::test]
+async fn oauth_token_should_reject_invalid_client_secret() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/oauth/token")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({
+                "code": code,
+                "client_id": oauth_client_id,
+                "client_secret": "wrong-secret",
+                "redirect_uri": "http://localhost:3000/callback"
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
@@ -258,6 +318,7 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://evil.com/callback"
             })
             .to_string(),
@@ -296,6 +357,7 @@ async fn oauth_token_should_refresh_access_token() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -336,4 +398,82 @@ async fn oauth_token_should_refresh_access_token() {
     let refresh_response = app.oneshot(refresh_request).await.unwrap();
 
     assert_eq!(refresh_response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn oauth_token_should_issue_id_token_for_openid_scope() {
+    let bootstrap = create_state();
+
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let identity_id = bootstrap.identity_id;
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let authorize_request = Request::builder()
+        .method("GET")
+        .uri(
+            format!(
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&nonce=test-nonce",
+                oauth_client_id,
+                identity_id
+            )
+        )
+        .body(Body::empty())
+        .unwrap();
+
+    let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
+
+    assert_eq!(authorize_response.status(), StatusCode::TEMPORARY_REDIRECT);
+
+    let location = authorize_response
+        .headers()
+        .get("location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    let code = extract_authorization_code(location);
+
+    let token_request = Request::builder()
+        .method("POST")
+        .uri("/oauth/token")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({
+                "code": code,
+                "client_id": oauth_client_id,
+                "client_secret": demo_client_secret(),
+                "redirect_uri": "http://localhost:3000/callback"
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let response = app.oneshot(token_request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    let id_token = json["id_token"].as_str().expect("id_token should exist");
+
+    let claims = decode_jwt_payload(id_token);
+
+    assert_eq!(claims["iss"].as_str(), Some("http://localhost:8080"));
+
+    assert_eq!(claims["aud"].as_str(), Some(oauth_client_id.as_str()));
+
+    assert_eq!(claims["nonce"].as_str(), Some("test-nonce"));
+
+    assert!(claims["sub"].as_str().is_some());
+
+    assert!(claims["iat"].as_i64().is_some());
+
+    assert!(claims["exp"].as_i64().is_some());
 }

@@ -36,4 +36,7 @@ impl OAuthClientRepository for MemoryOAuthClientRepository {
             .find(|client| client.client_id() == client_id)
             .cloned())
     }
+    fn find_all(&self) -> Result<Vec<OAuthClient>, Self::Error> {
+        Ok(self.clients.values().cloned().collect())
+    }
 }

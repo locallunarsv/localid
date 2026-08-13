@@ -14,8 +14,8 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn login<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
@@ -59,8 +59,8 @@ where
     }
 }
 
-pub async fn refresh<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn refresh<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
@@ -79,8 +79,8 @@ where
     }
 }
 
-pub async fn verify<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn verify<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> impl IntoResponse
 where
@@ -101,8 +101,8 @@ where
     }
 }
 
-pub async fn logout<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn logout<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where

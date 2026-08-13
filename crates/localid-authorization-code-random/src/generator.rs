@@ -1,5 +1,5 @@
+use localid_crypto::hash_secret;
 use rand::{distributions::Alphanumeric, Rng};
-use sha2::{Digest, Sha256};
 
 /// Random authorization code generator.
 #[derive(Debug, Default, Clone, Copy)]
@@ -25,10 +25,6 @@ impl RandomAuthorizationCodeGenerator {
     /// Hashes authorization code.
     #[must_use]
     pub fn hash(&self, value: &str) -> String {
-        let mut hasher = Sha256::new();
-
-        hasher.update(value.as_bytes());
-
-        hex::encode(hasher.finalize())
+        hash_secret(value)
     }
 }

@@ -45,6 +45,12 @@ pub use oauth::authorization::{
     AuthorizeUseCase,
 };
 
+/// OAuth client authentication exports.
+pub use oauth::client_authentication::{
+    ClientAuthenticationCommand, ClientAuthenticationError, ClientAuthenticationPort,
+    ClientAuthenticationUseCase,
+};
+
 /// OAuth token exchange exports.
 pub use oauth::token_exchange::{
     TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeRepositoryAdapter,
@@ -62,4 +68,10 @@ pub use session::{
 pub use identity::{
     GetIdentityUseCase, IdentityLookupPort, IdentityLookupService, IdentityRepositoryAdapter,
     IdentityResult,
+};
+
+/// Client Management
+pub use oauth::client::{
+    CreateOAuthClientCommand, CreateOAuthClientError, CreateOAuthClientResult,
+    CreateOAuthClientUseCase,
 };

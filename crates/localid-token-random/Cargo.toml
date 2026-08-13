@@ -11,3 +11,4 @@ hex = "0.4"
 
 localid-token = { path = "../localid-token" }
 localid-session = { path = "../localid-session" }
+localid-crypto = { path = "../localid-crypto" }

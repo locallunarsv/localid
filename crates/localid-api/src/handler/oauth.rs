@@ -3,7 +3,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     Json,
 };
-
+use localid_application::ClientAuthenticationCommand;
 use localid_application::{
     oauth::{
         authorization::AuthorizationPort,
@@ -24,9 +24,9 @@ use crate::{
 use crate::response::build_authorization_redirect;
 
 /// Handles OAuth authorization request.
-pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI>(
+pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
     Query(request): Query<AuthorizeRequest>,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
 ) -> Response
 where
     L: Send + Sync + 'static,
@@ -133,8 +133,8 @@ where
 }
 
 /// Handles OAuth token request.
-pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
@@ -151,6 +151,7 @@ where
     TEX: TokenIssuanceService + Send + Sync + 'static,
     ID: Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
+    CA: localid_application::ClientAuthenticationPort + Send + Sync + 'static,
 {
     match request.grant_type() {
         "refresh_token" => {
@@ -194,12 +195,24 @@ where
                 }
             };
 
+            if let Some(client_secret) = request.client_secret() {
+                let client_auth_command =
+                    ClientAuthenticationCommand::new(request.client_id(), client_secret);
+
+                let client_auth_use_case = state.client_authentication_use_case.lock().await;
+
+                if client_auth_use_case.execute(client_auth_command).is_err() {
+                    return crate::error::ApiError::InvalidGrant.into_response();
+                }
+            }
+
             let command = TokenExchangeCommand::new(
                 code.to_owned(),
                 request.client_id(),
                 redirect_uri,
                 request.code_verifier().map(ToOwned::to_owned),
             );
+
             let mut use_case = state.token_exchange_use_case.lock().await;
 
             match use_case.execute(command) {
@@ -213,9 +226,9 @@ where
 }
 
 /// Handles OAuth userinfo request.
-pub async fn userinfo<L, R, V, S, C, O, REX, TEX, ID, ITI>(
+pub async fn userinfo<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
     AuthenticatedIdentity(context): AuthenticatedIdentity,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
 ) -> Response
 where
     L: Send + Sync + 'static,

@@ -18,4 +18,8 @@ impl OAuthClientRepository for SharedRepository<MemoryOAuthClientRepository> {
     fn find_by_client_id(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error> {
         self.with(|repository| repository.find_by_client_id(client_id))
     }
+
+    fn find_all(&self) -> Result<Vec<OAuthClient>, Self::Error> {
+        self.with(|repository| repository.find_all())
+    }
 }

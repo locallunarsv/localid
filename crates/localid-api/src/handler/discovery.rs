@@ -3,8 +3,8 @@ use axum::{extract::State, response::IntoResponse, Json};
 use crate::{response::DiscoveryResponseBody, AppState};
 
 /// Returns OpenID Connect discovery metadata.
-pub async fn discovery<L, R, V, S, C, O, REX, TEX, ID, ITI>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>>,
+pub async fn discovery<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
 ) -> impl IntoResponse
 where
     L: Send + Sync + 'static,

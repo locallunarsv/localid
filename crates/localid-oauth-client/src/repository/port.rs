@@ -14,4 +14,7 @@ pub trait OAuthClientRepository {
 
     /// Finds OAuth client by public client identifier.
     fn find_by_client_id(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error>;
+
+    /// Finds all OAuth clients.
+    fn find_all(&self) -> Result<Vec<OAuthClient>, Self::Error>;
 }

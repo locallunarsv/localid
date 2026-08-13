@@ -9,6 +9,7 @@ pub struct TokenRequest {
     redirect_uri: Option<String>,
     refresh_token: Option<String>,
     code_verifier: Option<String>,
+    client_secret: Option<String>,
 }
 
 impl TokenRequest {
@@ -46,5 +47,11 @@ impl TokenRequest {
     #[must_use]
     pub fn code_verifier(&self) -> Option<&str> {
         self.code_verifier.as_deref()
+    }
+
+    /// Returns OAuth client secret.
+    #[must_use]
+    pub fn client_secret(&self) -> Option<&str> {
+        self.client_secret.as_deref()
     }
 }

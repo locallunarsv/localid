@@ -20,7 +20,7 @@ fn extract_authorization_code(location: &str) -> String {
 }
 
 #[tokio::test]
-async fn oidc_token_should_return_valid_id_token() {
+async fn oidc_token_should_issue_valid_id_token() {
     let bootstrap = create_state();
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
@@ -32,12 +32,11 @@ async fn oidc_token_should_return_valid_id_token() {
         bootstrap.authorization_state,
     );
 
-    // Step 1: create authorization code
     let authorize_request = Request::builder()
         .method("GET")
         .uri(
             format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
+                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&nonce=test-nonce",
                 oauth_client_id,
                 identity_id
             )
@@ -58,7 +57,6 @@ async fn oidc_token_should_return_valid_id_token() {
 
     let code = extract_authorization_code(location);
 
-    // Step 2: exchange authorization code
     let token_request = Request::builder()
         .method("POST")
         .uri("/oauth/token")
@@ -67,6 +65,7 @@ async fn oidc_token_should_return_valid_id_token() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": "demo-secret",
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
@@ -90,12 +89,13 @@ async fn oidc_token_should_return_valid_id_token() {
         .as_str()
         .expect("id_token should exist");
 
-    // JWT structure
     let parts: Vec<&str> = id_token.split('.').collect();
 
     assert_eq!(parts.len(), 3);
 
+    //
     // JWT Header
+    //
     let header_bytes = URL_SAFE_NO_PAD
         .decode(parts[0])
         .expect("header should decode");
@@ -105,17 +105,33 @@ async fn oidc_token_should_return_valid_id_token() {
     assert_eq!(header["alg"], "RS256");
     assert_eq!(header["kid"], "localid-key-1");
 
+    //
+    // JWT Signature
+    //
+    let signature = URL_SAFE_NO_PAD
+        .decode(parts[2])
+        .expect("signature should decode");
+
+    assert!(!signature.is_empty());
+
+    //
     // ID Token Claims
+    //
     let payload_bytes = URL_SAFE_NO_PAD
         .decode(parts[1])
         .expect("payload should decode");
 
     let claims: Value = serde_json::from_slice(&payload_bytes).expect("claims should be json");
 
-    assert!(claims["iss"].is_string());
+    assert_eq!(claims["iss"].as_str(), Some("http://localhost:8080"));
+
     assert!(claims["sub"].is_string());
-    assert!(claims["aud"].is_string());
+
+    assert_eq!(claims["aud"].as_str(), Some(oauth_client_id.as_str()));
+
+    assert_eq!(claims["nonce"].as_str(), Some("test-nonce"));
 
     assert!(claims["iat"].is_number());
+
     assert!(claims["exp"].is_number());
 }

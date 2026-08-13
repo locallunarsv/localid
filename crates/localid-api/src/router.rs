@@ -6,8 +6,8 @@ use axum::{
 
 use localid_application::{
     oauth::token_exchange::{IdTokenIssuer, TokenExchangePort},
-    AuthenticationPort, AuthorizationContextResolver, AuthorizationPort, ClientPort,
-    IdentityLookupService, IdentityRolePort, RefreshTokenPort, SessionPort,
+    AuthenticationPort, AuthorizationContextResolver, AuthorizationPort, ClientAuthenticationPort,
+    ClientPort, IdentityLookupService, IdentityRolePort, RefreshTokenPort, SessionPort,
 };
 
 use localid_authentication::{AuthenticationError, TokenIssuanceService, TokenVerificationService};
@@ -23,8 +23,8 @@ use crate::{
 };
 
 /// Creates the application HTTP router.
-pub fn create_router<L, R, V, S, C, O, REX, TEX, ID, ITI, IR>(
-    state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI>,
+pub fn create_router<L, R, V, S, C, O, REX, TEX, ID, ITI, IR, CA>(
+    state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>,
     auth_state: AuthMiddlewareState<V>,
     authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 ) -> Router
@@ -39,13 +39,14 @@ where
     TEX: TokenIssuanceService + Send + Sync + 'static,
     ID: IdentityLookupService + Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
+    CA: ClientAuthenticationPort + Send + Sync + 'static,
     IR: IdentityRolePort + Send + Sync + 'static,
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
         .route(
             "/oauth/userinfo",
-            get(handler::oauth::userinfo::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            get(handler::oauth::userinfo::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .route("/session/current", get(handler::session::current))
         .route(
@@ -54,7 +55,7 @@ where
         )
         .route(
             "/auth/logout",
-            post(auth::logout::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            post(auth::logout::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .layer(middleware::from_fn_with_state(
             authorization_state,
@@ -73,23 +74,23 @@ where
         .route("/.well-known/jwks.json", get(handler::jwks))
         .route(
             "/auth/login",
-            post(auth::login::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            post(auth::login::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .route(
             "/auth/refresh",
-            post(auth::refresh::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            post(auth::refresh::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .route(
             "/auth/verify",
-            post(auth::verify::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            post(auth::verify::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .route(
             "/oauth/authorize",
-            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .route(
             "/oauth/token",
-            post(handler::oauth::token::<L, R, V, S, C, O, REX, TEX, ID, ITI>),
+            post(handler::oauth::token::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>),
         )
         .merge(protected)
         .layer(TraceLayer::new_for_http())

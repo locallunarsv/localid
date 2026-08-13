@@ -2,6 +2,7 @@
 
 mod error;
 mod file;
+mod hash;
 mod jwk;
 mod key;
 mod storage;
@@ -20,3 +21,5 @@ pub use file::FileKeyStorage;
 pub use token_signer::CryptoTokenSigner;
 
 pub use token_verifier::CryptoTokenVerifier;
+
+pub use hash::hash_secret;

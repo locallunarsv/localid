@@ -13,6 +13,8 @@ use localid_repository::{
 use localid_repository_memory::MemoryIdentityRoleRepository;
 use localid_role::Role;
 
+use localid_crypto::hash_secret;
+
 /// Seeds a demo password identity.
 ///
 /// Returns credential identifier and identity identifier.
@@ -102,12 +104,14 @@ pub fn seed_oauth_client(
 ) -> (OAuthClientId, String) {
     let local_client_id = ClientId::new();
 
+    let client_secret = "demo-secret";
+
     let client = OAuthClient::new(
         OAuthClientId::new(),
         local_client_id,
         public_client_id.clone(),
         "LocalID Demo Client",
-        "demo-secret-hash",
+        hash_secret(client_secret),
         vec!["http://localhost:3000/callback".to_string()],
     );
 
