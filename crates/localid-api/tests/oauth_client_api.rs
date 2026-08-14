@@ -95,3 +95,205 @@ async fn oauth_client_create_should_not_store_plain_secret() {
 
     // nanti ambil dari repository
 }
+
+#[tokio::test]
+async fn oauth_client_list_should_return_clients() {
+    let bootstrap = create_state();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("GET")
+        .uri("/oauth/clients")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert!(json["clients"].is_array());
+    assert!(!json["clients"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn oauth_client_get_should_return_client() {
+    let bootstrap = create_state();
+
+    let client_id = bootstrap.oauth_client_id.to_string();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("GET")
+        .uri(format!("/oauth/clients/{client_id}"))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["client"]["state"], "active");
+
+    assert!(json["client"]["client_id"].is_string());
+    assert!(json["client"]["name"].is_string());
+}
+
+#[tokio::test]
+async fn oauth_client_get_should_reject_unknown_client() {
+    let bootstrap = create_state();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("GET")
+        .uri("/oauth/clients/01999999-9999-7999-8999-999999999999")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn oauth_client_disable_should_disable_client() {
+    let bootstrap = create_state();
+
+    let client_id = bootstrap.oauth_client_id.to_string();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/oauth/clients/{client_id}/disable"))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn oauth_client_disable_should_reject_unknown_client() {
+    let bootstrap = create_state();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/oauth/clients/01999999-9999-7999-8999-999999999999/disable")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn oauth_client_delete_should_delete_client() {
+    let bootstrap = create_state();
+
+    let client_id = bootstrap.oauth_client_id.to_string();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/oauth/clients/{client_id}/delete"))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn oauth_client_delete_should_reject_unknown_client() {
+    let bootstrap = create_state();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/oauth/clients/01999999-9999-7999-8999-999999999999/delete")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn oauth_client_delete_should_reject_deleted_client() {
+    let bootstrap = create_state();
+
+    let client_id = bootstrap.oauth_client_id.to_string();
+
+    let app = create_router(
+        bootstrap.state,
+        bootstrap.auth_state,
+        bootstrap.authorization_state,
+    );
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/oauth/clients/{client_id}/delete"))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/oauth/clients/{client_id}/delete"))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}

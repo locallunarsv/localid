@@ -23,3 +23,11 @@ impl std::fmt::Display for OAuthClientId {
         self.0.fmt(formatter)
     }
 }
+
+impl std::str::FromStr for OAuthClientId {
+    type Err = uuid::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Uuid::parse_str(value)?))
+    }
+}

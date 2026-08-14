@@ -81,6 +81,26 @@ where
             post(handler::oauth_client::create::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
         )
         .route(
+            "/oauth/clients",
+            get(handler::oauth_client::list::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .route(
+            "/oauth/clients/{client_id}",
+            get(handler::oauth_client::get::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .route(
+            "/oauth/clients/{client_id}/disable",
+            post(handler::oauth_client::disable::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .route(
+            "/oauth/clients/{client_id}/activate",
+            post(handler::oauth_client::activate::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .route(
+            "/oauth/clients/{client_id}/delete",
+            post(handler::oauth_client::delete::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .route(
             "/.well-known/openid-configuration",
             get(handler::discovery::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
         )

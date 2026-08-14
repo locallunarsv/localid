@@ -13,4 +13,7 @@ pub use token::TokenResponseBody;
 pub use userinfo::UserInfoResponseBody;
 mod client;
 
-pub use client::CreateOAuthClientResponseBody;
+pub use client::{
+    CreateOAuthClientResponseBody, GetOAuthClientResponseBody, ListOAuthClientsResponseBody,
+    OAuthClientResponse,
+};

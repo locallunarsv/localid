@@ -25,8 +25,12 @@ pub struct ErrorResponse {
 pub enum ApiError {
     /// OAuth authorization grant is invalid.
     InvalidGrant,
+
     /// Invalid client request.
     InvalidRequest,
+
+    /// Resource was not found.
+    NotFound,
 
     /// Authentication failed.
     AuthenticationFailed,
@@ -50,6 +54,14 @@ impl IntoResponse for ApiError {
                 ErrorResponse {
                     code: "invalid_request",
                     message: "invalid request",
+                },
+            ),
+
+            Self::NotFound => (
+                StatusCode::NOT_FOUND,
+                ErrorResponse {
+                    code: "not_found",
+                    message: "resource not found",
                 },
             ),
 
