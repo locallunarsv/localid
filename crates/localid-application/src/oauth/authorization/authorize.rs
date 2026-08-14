@@ -3,9 +3,7 @@ use chrono::{Duration, Utc};
 use localid_authorization_code_random::RandomAuthorizationCodeGenerator;
 use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeId};
 
-use crate::ApplicationError;
-
-use super::{AuthorizationPort, AuthorizationResult, AuthorizeCommand};
+use super::{AuthorizationError, AuthorizationPort, AuthorizationResult, AuthorizeCommand};
 
 /// OAuth authorization use case.
 pub struct AuthorizeUseCase<P> {
@@ -28,19 +26,19 @@ where
     pub fn execute(
         &mut self,
         command: AuthorizeCommand,
-    ) -> Result<AuthorizationResult, ApplicationError> {
+    ) -> Result<AuthorizationResult, AuthorizationError> {
         let client = self
             .port
             .find_client(&command.client_id())
-            .map_err(|_| ApplicationError::InternalFailure)?
-            .ok_or(ApplicationError::InternalFailure)?;
+            .map_err(|_| AuthorizationError::InternalFailure)?
+            .ok_or(AuthorizationError::InvalidClient)?;
 
         if !client.state().is_active() {
-            return Err(ApplicationError::InternalFailure);
+            return Err(AuthorizationError::InvalidClient);
         }
 
         if !client.allows_redirect_uri(command.redirect_uri()) {
-            return Err(ApplicationError::InternalFailure);
+            return Err(AuthorizationError::InvalidRedirectUri);
         }
 
         let generator = RandomAuthorizationCodeGenerator::new();
@@ -65,11 +63,11 @@ where
             now,
             now + Duration::minutes(10),
         )
-        .map_err(|_| ApplicationError::InternalFailure)?;
+        .map_err(|_| AuthorizationError::InternalFailure)?;
 
         self.port
             .save_code(code.clone())
-            .map_err(|_| ApplicationError::InternalFailure)?;
+            .map_err(|_| AuthorizationError::InternalFailure)?;
 
         Ok(AuthorizationResult::new(code, authorization_code))
     }

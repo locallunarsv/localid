@@ -10,3 +10,6 @@ pub use port::AuthorizationPort;
 pub use result::AuthorizationResult;
 
 pub use adapter::AuthorizationRepositoryAdapter;
+mod error;
+
+pub use error::AuthorizationError;

@@ -6,7 +6,7 @@ use axum::{
 use localid_application::ClientAuthenticationCommand;
 use localid_application::{
     oauth::{
-        authorization::AuthorizationPort,
+        authorization::{AuthorizationError, AuthorizationPort},
         token_exchange::{IdTokenIssuer, TokenExchangePort},
     },
     AuthorizeCommand, IdentityLookupService, RefreshTokenPort, TokenExchangeCommand,
@@ -124,13 +124,28 @@ where
             Redirect::temporary(&location).into_response()
         }
 
-        Err(_) => (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "authorization_failed"
-            })),
-        )
-            .into_response(),
+        Err(error) => match error {
+            AuthorizationError::InvalidClient => (
+                axum::http::StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_client"
+                })),
+            )
+                .into_response(),
+
+            AuthorizationError::InvalidRedirectUri => (
+                axum::http::StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_request",
+                    "error_description": "invalid redirect uri"
+                })),
+            )
+                .into_response(),
+
+            AuthorizationError::InternalFailure => {
+                crate::error::ApiError::InternalFailure.into_response()
+            }
+        },
     }
 }
 
