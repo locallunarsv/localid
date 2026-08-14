@@ -10,6 +10,8 @@ use localid_application::{
     ClientPort, IdentityLookupService, IdentityRolePort, RefreshTokenPort, SessionPort,
 };
 
+use localid_oauth_client::OAuthClientRepository;
+
 use localid_authentication::{AuthenticationError, TokenIssuanceService, TokenVerificationService};
 
 use tower_http::trace::TraceLayer;
@@ -41,7 +43,7 @@ where
     ITI: IdTokenIssuer + Send + Sync + 'static,
     IR: IdentityRolePort + Send + Sync + 'static,
     CA: ClientAuthenticationPort + Send + Sync + 'static,
-    OCM: Send + Sync + 'static,
+    OCM: OAuthClientRepository<Error = ()> + Send + Sync + 'static,
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
@@ -74,6 +76,10 @@ where
 
     Router::new()
         .route("/health", get(handler::health))
+        .route(
+            "/oauth/clients",
+            post(handler::oauth_client::create::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
         .route(
             "/.well-known/openid-configuration",
             get(handler::discovery::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),

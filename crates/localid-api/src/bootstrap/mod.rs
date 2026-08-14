@@ -93,6 +93,9 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
 
     /// Seeded OAuth client secret.
     pub oauth_client_secret: String,
+
+    /// Shared OAuth client repository.
+    pub oauth_client_repository: SharedOAuthClientRepository,
 }
 
 type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
@@ -367,5 +370,7 @@ pub fn create_state() -> BootstrapContext<
         oauth_client_public_id,
         oauth_client_secret,
         oauth_client_other_public_id,
+
+        oauth_client_repository,
     }
 }

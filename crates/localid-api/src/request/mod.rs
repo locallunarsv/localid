@@ -1,5 +1,5 @@
 mod login;
-mod oauth;
+pub mod oauth;
 mod refresh;
 mod verify;
 

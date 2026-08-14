@@ -11,3 +11,6 @@ pub use discovery::DiscoveryResponseBody;
 pub use jwks::JwksResponseBody;
 pub use token::TokenResponseBody;
 pub use userinfo::UserInfoResponseBody;
+mod client;
+
+pub use client::CreateOAuthClientResponseBody;

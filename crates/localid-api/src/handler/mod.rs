@@ -11,4 +11,5 @@ pub use me::me;
 pub mod auth;
 pub mod authorization;
 pub mod oauth;
+pub mod oauth_client;
 pub mod session;

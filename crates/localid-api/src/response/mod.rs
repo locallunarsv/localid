@@ -6,7 +6,7 @@ pub use verify::VerifyTokenResponseBody;
 mod session;
 
 pub use session::SessionResponseBody;
-mod oauth;
+pub mod oauth;
 
 pub use oauth::{DiscoveryResponseBody, JwksResponseBody, TokenResponseBody, UserInfoResponseBody};
 
