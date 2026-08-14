@@ -1,4 +1,4 @@
-use localid_client::{Client, ClientId};
+use localid_client::ClientId;
 use localid_crypto::hash_secret;
 use localid_oauth_client::{OAuthClient, OAuthClientId, OAuthClientRepository};
 

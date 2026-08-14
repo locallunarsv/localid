@@ -7,6 +7,9 @@ pub enum ClientAuthenticationError {
     /// Client secret is invalid.
     InvalidSecret,
 
+    /// OAuth client is inactive.
+    ClientInactive,
+
     /// Repository failure.
     RepositoryFailure,
 }

@@ -24,9 +24,9 @@ use crate::{
 use crate::response::build_authorization_redirect;
 
 /// Handles OAuth authorization request.
-pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
     Query(request): Query<AuthorizeRequest>,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
 ) -> Response
 where
     L: Send + Sync + 'static,
@@ -42,6 +42,8 @@ where
     TEX: Send + Sync + 'static,
     ID: Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     if request.response_type() != "code" {
         return (
@@ -133,8 +135,8 @@ where
 }
 
 /// Handles OAuth token request.
-pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
@@ -152,6 +154,7 @@ where
     ID: Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
     CA: localid_application::ClientAuthenticationPort + Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     match request.grant_type() {
         "refresh_token" => {
@@ -226,9 +229,9 @@ where
 }
 
 /// Handles OAuth userinfo request.
-pub async fn userinfo<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
+pub async fn userinfo<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
     AuthenticatedIdentity(context): AuthenticatedIdentity,
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
 ) -> Response
 where
     L: Send + Sync + 'static,
@@ -241,6 +244,8 @@ where
     TEX: Send + Sync + 'static,
     ID: IdentityLookupService + Send + Sync + 'static,
     ITI: IdTokenIssuer + Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     let mut use_case = state.identity_use_case.lock().await;
 

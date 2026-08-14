@@ -75,3 +75,20 @@ pub use oauth::client::{
     CreateOAuthClientCommand, CreateOAuthClientError, CreateOAuthClientResult,
     CreateOAuthClientUseCase,
 };
+
+pub use oauth::client::{
+    GetOAuthClientError, GetOAuthClientQuery, GetOAuthClientResult, GetOAuthClientUseCase,
+};
+
+pub use oauth::client::{
+    DisableOAuthClientCommand, DisableOAuthClientError, DisableOAuthClientUseCase,
+};
+pub use oauth::client::{ListOAuthClientsError, ListOAuthClientsResult, ListOAuthClientsUseCase};
+
+pub use oauth::client::{
+    ActivateOAuthClientCommand, ActivateOAuthClientError, ActivateOAuthClientUseCase,
+};
+
+pub use oauth::client::{
+    DeleteOAuthClientCommand, DeleteOAuthClientError, DeleteOAuthClientUseCase,
+};

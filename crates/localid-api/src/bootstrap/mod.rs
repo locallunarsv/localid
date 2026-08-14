@@ -12,10 +12,12 @@ pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, see
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
-    AuthorizationContextResolver, AuthorizationRepositoryAdapter, AuthorizeUseCase,
-    ClientAuthenticationUseCase, ClientRepositoryAdapter, GetClientUseCase,
-    GetCurrentSessionUseCase, GetIdentityUseCase, IdentityRepositoryAdapter, IdentityRoleAdapter,
-    LoginUseCase, LogoutSessionUseCase, RefreshTokenAdapter, RefreshTokenUseCase, SessionAdapter,
+    ActivateOAuthClientUseCase, AuthorizationContextResolver, AuthorizationRepositoryAdapter,
+    AuthorizeUseCase, ClientAuthenticationUseCase, ClientRepositoryAdapter,
+    CreateOAuthClientUseCase, DeleteOAuthClientUseCase, DisableOAuthClientUseCase,
+    GetClientUseCase, GetCurrentSessionUseCase, GetIdentityUseCase, GetOAuthClientUseCase,
+    IdentityRepositoryAdapter, IdentityRoleAdapter, ListOAuthClientsUseCase, LoginUseCase,
+    LogoutSessionUseCase, RefreshTokenAdapter, RefreshTokenUseCase, SessionAdapter,
     TokenExchangeRepositoryAdapter, TokenExchangeUseCase, VerifyTokenUseCase,
 };
 
@@ -61,9 +63,9 @@ type SharedIdentityRepository = SharedRepository<MemoryIdentityRepository>;
 
 /// Context containing initialized application dependencies.
 ///
-pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA> {
+pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     /// Shared application state.
-    pub state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>,
+    pub state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>,
 
     /// Authentication middleware state.
     pub auth_state: AuthMiddlewareState<V>,
@@ -148,6 +150,8 @@ pub type BootstrapIdentityUseCase = GetIdentityUseCase<BootstrapIdentityReposito
 
 type BootstrapClientAuthenticationRepository = SharedRepository<MemoryOAuthClientRepository>;
 
+type BootstrapOAuthClientRepository = SharedRepository<MemoryOAuthClientRepository>;
+
 type BootstrapAuthorizationAdapter =
     AuthorizationRepositoryAdapter<SharedOAuthClientRepository, SharedAuthorizationCodeRepository>;
 
@@ -168,6 +172,7 @@ pub fn create_state() -> BootstrapContext<
     BootstrapIdentityUseCase,
     BootstrapIdTokenIssuer,
     BootstrapClientAuthenticationRepository,
+    BootstrapOAuthClientRepository,
 > {
     let mut identity_repository = SharedRepository::new(MemoryIdentityRepository::new());
 
@@ -207,6 +212,22 @@ pub fn create_state() -> BootstrapContext<
         seed_oauth_client(&mut oauth_client_repository, "different-client".to_string());
 
     let oauth_client_repository = SharedRepository::new(oauth_client_repository);
+
+    let create_oauth_client_use_case =
+        CreateOAuthClientUseCase::new(oauth_client_repository.clone());
+
+    let get_oauth_client_use_case = GetOAuthClientUseCase::new(oauth_client_repository.clone());
+
+    let list_oauth_clients_use_case = ListOAuthClientsUseCase::new(oauth_client_repository.clone());
+
+    let disable_oauth_client_use_case =
+        DisableOAuthClientUseCase::new(oauth_client_repository.clone());
+
+    let activate_oauth_client_use_case =
+        ActivateOAuthClientUseCase::new(oauth_client_repository.clone());
+
+    let delete_oauth_client_use_case =
+        DeleteOAuthClientUseCase::new(oauth_client_repository.clone());
 
     let authorization_code_repository =
         SharedRepository::new(MemoryAuthorizationCodeRepository::new());
@@ -325,6 +346,12 @@ pub fn create_state() -> BootstrapContext<
             authorize_use_case,
             token_exchange_use_case,
             client_authentication_use_case,
+            create_oauth_client_use_case,
+            get_oauth_client_use_case,
+            list_oauth_clients_use_case,
+            disable_oauth_client_use_case,
+            activate_oauth_client_use_case,
+            delete_oauth_client_use_case,
             identity_use_case,
             key_pair,
         ),

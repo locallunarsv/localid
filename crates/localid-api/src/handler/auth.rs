@@ -14,8 +14,8 @@ use crate::{
     ApiError, AppState,
 };
 
-pub async fn login<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+pub async fn login<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
     Json(request): Json<LoginRequest>,
 ) -> impl IntoResponse
 where
@@ -26,6 +26,8 @@ where
     C: ClientPort + Send + Sync + 'static,
     REX: Send + Sync + 'static,
     TEX: Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     let client_id = match request.client_id() {
         Ok(value) => value,
@@ -59,8 +61,8 @@ where
     }
 }
 
-pub async fn refresh<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+pub async fn refresh<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
     Json(request): Json<RefreshRequest>,
 ) -> impl IntoResponse
 where
@@ -69,6 +71,8 @@ where
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
     C: Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     let mut use_case = state.refresh_use_case.lock().await;
 
@@ -79,8 +83,8 @@ where
     }
 }
 
-pub async fn verify<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+pub async fn verify<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> impl IntoResponse
 where
@@ -89,6 +93,8 @@ where
     V: TokenVerificationService<Error = AuthenticationError> + Send + Sync + 'static,
     S: Send + Sync + 'static,
     C: Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     let query = VerifyTokenQuery::new(request.token());
 
@@ -101,8 +107,8 @@ where
     }
 }
 
-pub async fn logout<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>(
-    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA>>,
+pub async fn logout<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
     AuthenticatedIdentity(identity): AuthenticatedIdentity,
 ) -> impl IntoResponse
 where
@@ -111,6 +117,8 @@ where
     V: Send + Sync + 'static,
     S: SessionPort<Error = AuthenticationError> + Send + Sync + 'static,
     C: Send + Sync + 'static,
+    CA: Send + Sync + 'static,
+    OCM: Send + Sync + 'static,
 {
     let session_id = identity.session_id();
 

@@ -40,3 +40,5 @@ localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
 localid-token-random = { path = "../localid-token-random" }
 localid-repository-memory = { path = "../localid-repository-memory" }
+
+localid-oauth-client-repository-memory = { path = "../localid-oauth-client-repository-memory" }

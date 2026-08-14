@@ -14,3 +14,5 @@ pub use token_exchange::{
     TokenExchangeCommand, TokenExchangeError, TokenExchangePort, TokenExchangeRepositoryAdapter,
     TokenExchangeResult, TokenExchangeUseCase,
 };
+
+pub use client::*;

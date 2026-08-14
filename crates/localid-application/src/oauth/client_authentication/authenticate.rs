@@ -30,6 +30,10 @@ where
             .map_err(|_| ClientAuthenticationError::RepositoryFailure)?
             .ok_or(ClientAuthenticationError::ClientNotFound)?;
 
+        if !client.state().is_active() {
+            return Err(ClientAuthenticationError::ClientInactive);
+        }
+
         let secret_hash = hash_secret(command.client_secret());
 
         if secret_hash != client.secret_hash() {
