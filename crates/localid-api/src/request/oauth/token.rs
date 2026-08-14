@@ -1,11 +1,13 @@
 use serde::Deserialize;
 
+use base64::{engine::general_purpose::STANDARD, Engine};
+
 /// OAuth token request payload.
 #[derive(Debug, Deserialize)]
 pub struct TokenRequest {
     grant_type: Option<String>,
     code: Option<String>,
-    client_id: String,
+    client_id: Option<String>,
     redirect_uri: Option<String>,
     refresh_token: Option<String>,
     code_verifier: Option<String>,
@@ -26,9 +28,8 @@ impl TokenRequest {
     }
 
     /// Returns OAuth client identifier.
-    #[must_use]
-    pub fn client_id(&self) -> &str {
-        &self.client_id
+    pub fn client_id(&self) -> Option<&str> {
+        self.client_id.as_deref()
     }
 
     /// Returns redirect URI.
@@ -53,5 +54,21 @@ impl TokenRequest {
     #[must_use]
     pub fn client_secret(&self) -> Option<&str> {
         self.client_secret.as_deref()
+    }
+
+    /// Extracts OAuth client credentials from HTTP Basic authorization header.
+    #[must_use]
+    pub fn client_basic_credentials(authorization: Option<&str>) -> Option<(String, String)> {
+        let header = authorization?;
+
+        let encoded = header.strip_prefix("Basic ")?;
+
+        let decoded = STANDARD.decode(encoded).ok()?;
+
+        let credentials = String::from_utf8(decoded).ok()?;
+
+        let (client_id, client_secret) = credentials.split_once(':')?;
+
+        Some((client_id.to_string(), client_secret.to_string()))
     }
 }

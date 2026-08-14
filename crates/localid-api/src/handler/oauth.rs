@@ -152,6 +152,7 @@ where
 /// Handles OAuth token request.
 pub async fn token<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
+    headers: axum::http::HeaderMap,
     Json(request): Json<TokenRequest>,
 ) -> Response
 where
@@ -213,20 +214,46 @@ where
                 }
             };
 
-            if let Some(client_secret) = request.client_secret() {
-                let client_auth_command =
-                    ClientAuthenticationCommand::new(request.client_id(), client_secret);
+            let basic_credentials = TokenRequest::client_basic_credentials(
+                headers
+                    .get("authorization")
+                    .and_then(|value| value.to_str().ok()),
+            );
 
-                let client_auth_use_case = state.client_authentication_use_case.lock().await;
+            let (client_id, client_secret) = match basic_credentials {
+                Some(credentials) => credentials,
 
-                if client_auth_use_case.execute(client_auth_command).is_err() {
-                    return crate::error::ApiError::InvalidGrant.into_response();
-                }
+                None => match request.client_secret() {
+                    Some(secret) => {
+                        let client_id = match request.client_id() {
+                            Some(value) => value.to_string(),
+
+                            None => {
+                                return crate::error::ApiError::InvalidRequest.into_response();
+                            }
+                        };
+
+                        (client_id, secret.to_string())
+                    }
+
+                    None => {
+                        return crate::error::ApiError::InvalidRequest.into_response();
+                    }
+                },
+            };
+
+            let client_auth_command =
+                ClientAuthenticationCommand::new(client_id.clone(), client_secret);
+
+            let client_auth_use_case = state.client_authentication_use_case.lock().await;
+
+            if client_auth_use_case.execute(client_auth_command).is_err() {
+                return crate::error::ApiError::InvalidGrant.into_response();
             }
 
             let command = TokenExchangeCommand::new(
                 code.to_owned(),
-                request.client_id(),
+                client_id,
                 redirect_uri,
                 request.code_verifier().map(ToOwned::to_owned),
             );
