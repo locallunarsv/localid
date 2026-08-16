@@ -76,6 +76,7 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": "demo-secret",
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
