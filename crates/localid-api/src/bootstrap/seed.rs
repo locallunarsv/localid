@@ -1,9 +1,7 @@
 use localid_client::{Client, ClientId};
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
-use localid_oauth_client::OAuthClientRepository;
-use localid_oauth_client::{OAuthClient, OAuthClientId};
-use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
+use localid_oauth_client::{OAuthClient, OAuthClientId, OAuthClientRepository};
 use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_permission::Permission;
@@ -89,19 +87,22 @@ where
 /// Seeds a demo OAuth client.
 ///
 /// Returns internal OAuth client id and public OAuth client id.
-pub fn seed_demo_oauth_client(
-    repository: &mut MemoryOAuthClientRepository,
-) -> (OAuthClientId, String) {
+pub fn seed_demo_oauth_client<R>(repository: &mut R) -> (OAuthClientId, String)
+where
+    R: OAuthClientRepository,
+    R::Error: std::fmt::Debug,
+{
     seed_oauth_client(repository, "demo-client".to_string())
 }
 
 /// Seeds OAuth client with custom public id.
 ///
 /// Returns internal OAuth client id and public OAuth client id.
-pub fn seed_oauth_client(
-    repository: &mut MemoryOAuthClientRepository,
-    public_client_id: String,
-) -> (OAuthClientId, String) {
+pub fn seed_oauth_client<R>(repository: &mut R, public_client_id: String) -> (OAuthClientId, String)
+where
+    R: OAuthClientRepository,
+    R::Error: std::fmt::Debug,
+{
     let local_client_id = ClientId::new();
 
     let client_secret = "demo-secret";

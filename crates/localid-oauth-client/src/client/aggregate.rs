@@ -126,4 +126,26 @@ impl OAuthClient {
             .iter()
             .any(|registered| registered == redirect_uri)
     }
+
+    /// Restores an OAuth client from persistence.
+    #[must_use]
+    pub fn restore(
+        id: OAuthClientId,
+        local_client_id: ClientId,
+        client_id: impl Into<String>,
+        name: impl Into<String>,
+        secret_hash: impl Into<String>,
+        redirect_uris: Vec<String>,
+        state: OAuthClientLifecycleState,
+    ) -> Self {
+        Self {
+            id,
+            local_client_id,
+            client_id: client_id.into(),
+            name: name.into(),
+            secret_hash: secret_hash.into(),
+            redirect_uris,
+            state,
+        }
+    }
 }

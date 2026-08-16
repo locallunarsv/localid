@@ -6,9 +6,14 @@ use tower::ServiceExt;
 
 use localid_api::{bootstrap::create_state, create_router};
 
-#[tokio::test]
+mod common;
+
+use common::{test_database, test_lock};
+
+#[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_malformed_credential_id() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.client_id;
 
@@ -40,9 +45,10 @@ async fn login_rejects_malformed_credential_id() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn login_returns_success_response() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+    let bootstrap = create_state(test_database()).await;
 
     let credential_id = bootstrap.credential_id;
     let client_id = bootstrap.client_id;
@@ -86,9 +92,10 @@ async fn login_returns_success_response() {
     assert!(json["expires_at"].is_string());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_invalid_password() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+    let bootstrap = create_state(test_database()).await;
 
     let credential_id = bootstrap.credential_id;
     let client_id = bootstrap.client_id;
@@ -121,9 +128,10 @@ async fn login_rejects_invalid_password() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_unknown_credential() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.client_id;
     let credential_id = localid_credential::CredentialId::new();

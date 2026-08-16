@@ -7,11 +7,16 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_userinfo_should_return_identity() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -75,9 +80,11 @@ async fn oauth_userinfo_should_return_identity() {
     assert!(json["sub"].as_str().is_some(), "subject should exist");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_userinfo_should_reject_invalid_token() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,

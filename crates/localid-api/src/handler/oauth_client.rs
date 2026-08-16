@@ -32,7 +32,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let command = CreateOAuthClientCommand::new(request.name(), request.redirect_uris().to_vec());
 
@@ -65,7 +65,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: localid_oauth_client::OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let use_case = state.list_oauth_clients_use_case.lock().await;
 
@@ -105,7 +105,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: localid_oauth_client::OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let client_id = match OAuthClientId::from_str(&client_id) {
         Ok(value) => value,
@@ -146,7 +146,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: localid_oauth_client::OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let client_id = match localid_oauth_client::OAuthClientId::from_str(&client_id) {
         Ok(value) => value,
@@ -196,7 +196,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: localid_oauth_client::OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let client_id = match localid_oauth_client::OAuthClientId::from_str(&client_id) {
         Ok(value) => value,
@@ -245,7 +245,7 @@ where
     ID: Send + Sync + 'static,
     ITI: Send + Sync + 'static,
     CA: Send + Sync + 'static,
-    OCM: localid_oauth_client::OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let client_id = match localid_oauth_client::OAuthClientId::from_str(&client_id) {
         Ok(value) => value,

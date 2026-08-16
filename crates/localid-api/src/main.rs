@@ -2,11 +2,17 @@ use std::net::SocketAddr;
 
 use localid_api::{bootstrap::create_state, create_router};
 
+use localid_config::DatabaseConfig;
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let bootstrap = create_state();
+    // Development bootstrap.
+    // Later replace with create_postgres_state().
+    let database = DatabaseConfig::new("postgres://postgres@localhost/localid");
+
+    let bootstrap = create_state(database).await;
 
     println!("Demo credential_id: {}", bootstrap.credential_id);
     println!("Demo client_id: {}", bootstrap.client_id);

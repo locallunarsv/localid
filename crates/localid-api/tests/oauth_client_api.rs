@@ -4,14 +4,20 @@ use axum::{
 };
 use http_body_util::BodyExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
+
 use localid_oauth_client::OAuthClientRepository;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_create_should_return_credentials() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -46,9 +52,11 @@ async fn oauth_client_create_should_return_credentials() {
     assert!(json["client_secret"].is_string());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_create_should_not_store_plain_secret() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let repository = bootstrap.oauth_client_repository.clone();
 
@@ -96,9 +104,11 @@ async fn oauth_client_create_should_not_store_plain_secret() {
     // nanti ambil dari repository
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_list_should_return_clients() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -124,9 +134,11 @@ async fn oauth_client_list_should_return_clients() {
     assert!(!json["clients"].as_array().unwrap().is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_get_should_return_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -156,9 +168,11 @@ async fn oauth_client_get_should_return_client() {
     assert!(json["client"]["name"].is_string());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_get_should_reject_unknown_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -177,9 +191,11 @@ async fn oauth_client_get_should_reject_unknown_client() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_disable_should_disable_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -200,9 +216,11 @@ async fn oauth_client_disable_should_disable_client() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_disable_should_reject_unknown_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -221,9 +239,11 @@ async fn oauth_client_disable_should_reject_unknown_client() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_delete_should_delete_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -244,9 +264,11 @@ async fn oauth_client_delete_should_delete_client() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_delete_should_reject_unknown_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -265,9 +287,11 @@ async fn oauth_client_delete_should_reject_unknown_client() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_delete_should_reject_deleted_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 

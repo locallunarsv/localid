@@ -6,12 +6,16 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
+mod common;
 
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn authorization_context_should_resolve_roles() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let credential_id = bootstrap.credential_id;
     let client_id = bootstrap.client_id;

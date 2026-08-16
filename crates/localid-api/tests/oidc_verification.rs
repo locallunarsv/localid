@@ -5,7 +5,9 @@ use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tower::ServiceExt;
+mod common;
 
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
 #[derive(Debug, Deserialize)]
@@ -26,9 +28,11 @@ fn extract_authorization_code(location: &str) -> String {
         .to_string()
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oidc_id_token_should_verify_signature_using_jwks() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;

@@ -1,5 +1,4 @@
 use localid_oauth_authorization::{AuthorizationCode, AuthorizationCodeRepository};
-
 use localid_oauth_client::{OAuthClient, OAuthClientRepository};
 
 use crate::oauth::authorization::AuthorizationPort;
@@ -21,18 +20,32 @@ impl<C, A> AuthorizationRepositoryAdapter<C, A> {
     }
 }
 
+/// Repository adapter error.
+#[derive(Debug)]
+pub enum AuthorizationRepositoryError<CE> {
+    /// OAuth client repository error.
+    Client(CE),
+
+    /// Authorization code repository error.
+    Code(()),
+}
+
 impl<C, A> AuthorizationPort for AuthorizationRepositoryAdapter<C, A>
 where
-    C: OAuthClientRepository<Error = ()>,
+    C: OAuthClientRepository,
     A: AuthorizationCodeRepository<Error = ()>,
 {
-    type Error = ();
+    type Error = AuthorizationRepositoryError<C::Error>;
 
     fn find_client(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error> {
-        self.client_repository.find_by_client_id(client_id)
+        self.client_repository
+            .find_by_client_id(client_id)
+            .map_err(AuthorizationRepositoryError::Client)
     }
 
     fn save_code(&mut self, code: AuthorizationCode) -> Result<(), Self::Error> {
-        self.code_repository.save(code)
+        self.code_repository
+            .save(code)
+            .map_err(AuthorizationRepositoryError::Code)
     }
 }

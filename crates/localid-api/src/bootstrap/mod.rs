@@ -1,12 +1,18 @@
 use std::sync::Arc;
 
+use tokio::runtime::Handle;
 use tokio::sync::Mutex;
 
 mod id_token;
+mod postgres;
+mod postgres_state;
 mod repository;
 mod seed;
 
 pub use id_token::BootstrapIdTokenIssuer;
+
+pub use postgres::create_postgres_oauth_client_repository;
+pub use postgres_state::create_postgres_repository;
 
 pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, seed_oauth_client};
 
@@ -27,7 +33,8 @@ use localid_authentication::{
     PasswordAuthenticationDependencies,
 };
 
-use localid_config::ServerConfig;
+use localid_config::{DatabaseConfig, ServerConfig};
+use localid_oauth_client_repository_postgres::PostgresOAuthClientRepository;
 
 use std::path::PathBuf;
 
@@ -39,7 +46,6 @@ use localid_identity::IdentityId;
 
 use localid_oauth_authorization_repository_memory::MemoryAuthorizationCodeRepository;
 use localid_oauth_client::OAuthClientId;
-use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
 
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
@@ -95,7 +101,7 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     pub oauth_client_secret: String,
 
     /// Shared OAuth client repository.
-    pub oauth_client_repository: SharedOAuthClientRepository,
+    pub oauth_client_repository: OCM,
 }
 
 type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
@@ -103,8 +109,6 @@ type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
 type SharedTokenRepository = SharedRepository<MemoryTokenRepository>;
 
 type SharedRefreshTokenRepository = SharedRepository<MemoryRefreshTokenRepository>;
-
-type SharedOAuthClientRepository = SharedRepository<MemoryOAuthClientRepository>;
 
 type SharedAuthorizationCodeRepository = SharedRepository<MemoryAuthorizationCodeRepository>;
 
@@ -151,25 +155,30 @@ pub type BootstrapIdentityRepositoryAdapter = IdentityRepositoryAdapter<SharedId
 /// Identity lookup use case used by bootstrap dependencies.
 pub type BootstrapIdentityUseCase = GetIdentityUseCase<BootstrapIdentityRepositoryAdapter>;
 
-type BootstrapClientAuthenticationRepository = SharedRepository<MemoryOAuthClientRepository>;
+type BootstrapClientAuthenticationRepository = SharedPostgresOAuthClientRepository;
 
-type BootstrapOAuthClientRepository = SharedRepository<MemoryOAuthClientRepository>;
+type BootstrapOAuthClientRepository = SharedPostgresOAuthClientRepository;
 
-type BootstrapAuthorizationAdapter =
-    AuthorizationRepositoryAdapter<SharedOAuthClientRepository, SharedAuthorizationCodeRepository>;
+pub(super) type SharedPostgresOAuthClientRepository =
+    SharedRepository<PostgresOAuthClientRepository>;
 
-type BootstrapTokenExchangeAdapter =
-    TokenExchangeRepositoryAdapter<SharedOAuthClientRepository, SharedAuthorizationCodeRepository>;
+type BootstrapAuthorizationAdapter<OCR> =
+    AuthorizationRepositoryAdapter<OCR, SharedAuthorizationCodeRepository>;
+
+type BootstrapTokenExchangeAdapter<OCR> =
+    TokenExchangeRepositoryAdapter<OCR, SharedAuthorizationCodeRepository>;
 
 /// Creates application state with in-memory dependencies.
-pub fn create_state() -> BootstrapContext<
+pub async fn create_state(
+    _database: DatabaseConfig,
+) -> BootstrapContext<
     BootstrapAuthenticationService,
     BootstrapRefreshService,
     BootstrapVerificationService,
     BootstrapSessionService,
     ClientRepositoryAdapter<MemoryClientRepository>,
-    BootstrapAuthorizationAdapter,
-    BootstrapTokenExchangeAdapter,
+    BootstrapAuthorizationAdapter<SharedPostgresOAuthClientRepository>,
+    BootstrapTokenExchangeAdapter<SharedPostgresOAuthClientRepository>,
     BootstrapTokenIssuanceService,
     BootstrapIdentityRoleAdapter,
     BootstrapIdentityUseCase,
@@ -204,7 +213,16 @@ pub fn create_state() -> BootstrapContext<
 
     let client_use_case = GetClientUseCase::new(client_adapter);
 
-    let mut oauth_client_repository = MemoryOAuthClientRepository::new();
+    let mut oauth_client_repository =
+        create_postgres_oauth_client_repository(&_database, Handle::current())
+            .await
+            .expect("postgres oauth repository should initialize");
+
+    oauth_client_repository.with(|repository| {
+        repository
+            .clear()
+            .expect("oauth client cleanup should succeed");
+    });
 
     let (oauth_client_id, oauth_client_public_id) =
         seed_demo_oauth_client(&mut oauth_client_repository);
@@ -213,8 +231,6 @@ pub fn create_state() -> BootstrapContext<
 
     let (_, oauth_client_other_public_id) =
         seed_oauth_client(&mut oauth_client_repository, "different-client".to_string());
-
-    let oauth_client_repository = SharedRepository::new(oauth_client_repository);
 
     let create_oauth_client_use_case =
         CreateOAuthClientUseCase::new(oauth_client_repository.clone());

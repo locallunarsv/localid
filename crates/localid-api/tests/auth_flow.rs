@@ -7,6 +7,9 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
 struct AuthTokens {
@@ -15,7 +18,7 @@ struct AuthTokens {
 }
 
 async fn login() -> AuthTokens {
-    let context = create_state();
+    let context = create_state(test_database()).await;
 
     let credential_id = context.credential_id;
     let client_id = context.client_id;
@@ -60,17 +63,21 @@ async fn login() -> AuthTokens {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn login_flow_should_return_tokens() {
+    let _guard = test_lock().lock().await;
+
     let tokens = login().await;
 
     assert!(!tokens.access_token.is_empty());
     assert!(!tokens.refresh_token.is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn verify_access_token_should_work() {
-    let context = create_state();
+    let _guard = test_lock().lock().await;
+
+    let context = create_state(test_database()).await;
 
     let credential_id = context.credential_id;
     let client_id = context.client_id;
@@ -137,9 +144,11 @@ async fn verify_access_token_should_work() {
     assert!(json["session_id"].as_str().is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn refresh_token_should_issue_new_tokens() {
-    let context = create_state();
+    let _guard = test_lock().lock().await;
+
+    let context = create_state(test_database()).await;
 
     let credential_id = context.credential_id;
     let client_id = context.client_id;
@@ -207,9 +216,11 @@ async fn refresh_token_should_issue_new_tokens() {
     assert!(json["expires_at"].as_str().is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn protected_route_requires_valid_token() {
-    let context = create_state();
+    let _guard = test_lock().lock().await;
+
+    let context = create_state(test_database()).await;
 
     let app = create_router(
         context.state,

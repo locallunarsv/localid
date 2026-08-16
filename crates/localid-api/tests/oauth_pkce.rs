@@ -9,6 +9,9 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use tower::ServiceExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
 fn demo_client_secret() -> &'static str {
@@ -63,9 +66,11 @@ async fn create_pkce_authorization_code(
     extract_authorization_code(location)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_invalid_pkce_verifier() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -107,9 +112,11 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_accept_valid_pkce_verifier() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -148,9 +155,11 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
     assert_eq!(token_response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_missing_pkce_verifier() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -194,9 +203,11 @@ async fn oauth_token_should_reject_missing_pkce_verifier() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_reject_invalid_pkce_method() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,

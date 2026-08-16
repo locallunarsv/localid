@@ -12,6 +12,18 @@ impl ClientId {
     pub fn new() -> Self {
         Self(Uuid::now_v7())
     }
+
+    /// Creates a client identifier from UUID.
+    #[must_use]
+    pub const fn from_uuid(value: Uuid) -> Self {
+        Self(value)
+    }
+
+    /// Returns underlying UUID value.
+    #[must_use]
+    pub const fn as_uuid(&self) -> Uuid {
+        self.0
+    }
 }
 
 impl Default for ClientId {

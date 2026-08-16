@@ -21,7 +21,7 @@ impl<R> CreateOAuthClientUseCase<R> {
 
 impl<R> CreateOAuthClientUseCase<R>
 where
-    R: OAuthClientRepository<Error = ()>,
+    R: OAuthClientRepository,
 {
     /// Executes OAuth client creation.
     pub fn execute(

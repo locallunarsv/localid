@@ -5,11 +5,16 @@ use axum::{
 
 use tower::ServiceExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_issue_authorization_code() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -54,9 +59,11 @@ async fn oauth_authorize_should_issue_authorization_code() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_reject_unknown_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let identity_id = bootstrap.identity_id;
 
@@ -86,9 +93,11 @@ async fn oauth_authorize_should_reject_unknown_client() {
     assert_eq!(json["error"], "invalid_client");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_reject_invalid_redirect_uri() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -123,9 +132,11 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
     assert_eq!(json["error"], "invalid_request");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorization_should_preserve_state() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -162,9 +173,11 @@ async fn oauth_authorization_should_preserve_state() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorization_should_reject_invalid_response_type() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,
@@ -189,9 +202,11 @@ async fn oauth_authorization_should_reject_invalid_response_type() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_reject_disabled_client() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_internal_id = bootstrap.oauth_client_id.to_string();
     let oauth_client_public_id = bootstrap.oauth_client_public_id;

@@ -6,6 +6,9 @@ use axum::{
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use http_body_util::BodyExt;
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -64,9 +67,11 @@ async fn create_authorization_code(
     extract_authorization_code(location)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_exchange_authorization_code() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -114,9 +119,11 @@ async fn oauth_token_should_exchange_authorization_code() {
     assert!(json["expires_in"].as_i64().is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_accept_basic_client_authentication() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -160,9 +167,11 @@ async fn oauth_token_should_accept_basic_client_authentication() {
     assert_eq!(json["token_type"].as_str(), Some("Bearer"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_invalid_code() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
 
@@ -198,9 +207,11 @@ async fn oauth_token_should_reject_invalid_code() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_reused_authorization_code() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -261,9 +272,11 @@ async fn oauth_token_should_reject_reused_authorization_code() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_client_mismatch() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let other_oauth_client_id = bootstrap.oauth_client_other_public_id;
@@ -301,9 +314,11 @@ async fn oauth_token_should_reject_client_mismatch() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_invalid_client_secret() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -342,9 +357,11 @@ async fn oauth_token_should_reject_invalid_client_secret() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_redirect_uri_mismatch() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -381,9 +398,11 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
     assert_eq!(json["code"].as_str(), Some("invalid_grant"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_refresh_access_token() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -447,9 +466,11 @@ async fn oauth_token_should_refresh_access_token() {
     assert_eq!(refresh_response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_issue_id_token_for_openid_scope() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -525,9 +546,11 @@ async fn oauth_token_should_issue_id_token_for_openid_scope() {
     assert!(claims["exp"].as_i64().is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_missing_client_authentication() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -558,9 +581,11 @@ async fn oauth_token_should_reject_missing_client_authentication() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_reject_invalid_basic_authentication() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;

@@ -7,7 +7,9 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
+mod common;
 
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
 fn extract_authorization_code(location: &str) -> String {
@@ -19,9 +21,11 @@ fn extract_authorization_code(location: &str) -> String {
         .to_string()
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn oidc_token_should_issue_valid_id_token() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;

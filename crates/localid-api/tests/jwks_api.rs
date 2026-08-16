@@ -6,11 +6,16 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
+mod common;
+
+use common::{test_database, test_lock};
 use localid_api::{bootstrap::create_state, create_router};
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn jwks_should_return_key_set() {
-    let bootstrap = create_state();
+    let _guard = test_lock().lock().await;
+
+    let bootstrap = create_state(test_database()).await;
 
     let app = create_router(
         bootstrap.state,

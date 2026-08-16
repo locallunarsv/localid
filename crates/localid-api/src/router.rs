@@ -43,7 +43,7 @@ where
     ITI: IdTokenIssuer + Send + Sync + 'static,
     IR: IdentityRolePort + Send + Sync + 'static,
     CA: ClientAuthenticationPort + Send + Sync + 'static,
-    OCM: OAuthClientRepository<Error = ()> + Send + Sync + 'static,
+    OCM: OAuthClientRepository + Send + Sync + 'static,
 {
     let protected = Router::new()
         .route("/me", get(handler::me))
