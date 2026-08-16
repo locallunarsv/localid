@@ -69,6 +69,7 @@ async fn oauth_token_should_not_return_id_token_without_openid_scope() {
             json!({
                 "code": code,
                 "client_id": oauth_client_id,
+                "client_secret": "demo-secret",
                 "redirect_uri": "http://localhost:3000/callback"
             })
             .to_string(),
