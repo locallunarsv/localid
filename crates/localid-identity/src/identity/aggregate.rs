@@ -21,6 +21,18 @@ impl Identity {
         }
     }
 
+    /// Restores an Identity from persistent storage.
+    ///
+    /// This constructor is used by repository implementations when
+    /// reconstructing an Identity aggregate from stored data.
+    #[must_use]
+    pub const fn restore(id: IdentityId, lifecycle_state: LifecycleState) -> Self {
+        Self {
+            id,
+            lifecycle_state,
+        }
+    }
+
     /// Returns the stable identifier of this Identity.
     #[must_use]
     pub const fn id(&self) -> IdentityId {

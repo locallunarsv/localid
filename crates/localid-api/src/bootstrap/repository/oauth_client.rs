@@ -2,10 +2,8 @@ use localid_oauth_client::{OAuthClient, OAuthClientId, OAuthClientRepository};
 
 use super::SharedRepository;
 
+use localid_database_postgres::{DatabaseError, PostgresOAuthClientRepository};
 use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
-use localid_oauth_client_repository_postgres::{
-    PostgresOAuthClientRepository, PostgresOAuthClientRepositoryError,
-};
 
 impl OAuthClientRepository for SharedRepository<MemoryOAuthClientRepository> {
     type Error = ();
@@ -28,7 +26,7 @@ impl OAuthClientRepository for SharedRepository<MemoryOAuthClientRepository> {
 }
 
 impl OAuthClientRepository for SharedRepository<PostgresOAuthClientRepository> {
-    type Error = PostgresOAuthClientRepositoryError;
+    type Error = DatabaseError;
 
     fn save(&mut self, client: OAuthClient) -> Result<(), Self::Error> {
         self.with_mut(|repository| repository.save(client))

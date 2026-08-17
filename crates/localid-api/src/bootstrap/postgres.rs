@@ -3,9 +3,7 @@
 use tokio::runtime::Handle;
 
 use localid_config::DatabaseConfig;
-use localid_oauth_client_repository_postgres::{
-    migrate, PostgresOAuthClientRepository, PostgresOAuthClientRepositoryError,
-};
+use localid_database_postgres::{migrate, DatabaseError, PostgresOAuthClientRepository};
 
 use super::{repository::SharedRepository, SharedPostgresOAuthClientRepository};
 
@@ -13,12 +11,12 @@ use super::{repository::SharedRepository, SharedPostgresOAuthClientRepository};
 pub async fn create_postgres_oauth_client_repository(
     config: &DatabaseConfig,
     runtime: Handle,
-) -> Result<SharedPostgresOAuthClientRepository, PostgresOAuthClientRepositoryError> {
+) -> Result<SharedPostgresOAuthClientRepository, DatabaseError> {
     let repository = PostgresOAuthClientRepository::connect(config, runtime).await?;
 
     migrate(repository.pool())
         .await
-        .map_err(|_| PostgresOAuthClientRepositoryError::InvalidData)?;
+        .map_err(|_| DatabaseError::InvalidData)?;
 
     Ok(SharedRepository::new(repository))
 }

@@ -17,6 +17,8 @@ tracing-subscriber = "0.3"
 
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
 
+localid-database-postgres = { path = "../localid-database-postgres" }
+
 localid-application = { path = "../localid-application" }
 localid-authentication = { path = "../localid-authentication" }
 localid-credential = { path = "../localid-credential" }
@@ -37,7 +39,6 @@ localid-client = { path = "../localid-client" }
 localid-error = { path = "../localid-error" }
 localid-config = { path = "../localid-config" }
 localid-crypto = { path = "../localid-crypto" }
-localid-oauth-client-repository-postgres = { path = "../localid-oauth-client-repository-postgres" }
 
 # OAuth
 localid-oauth-client = { path = "../localid-oauth-client" }

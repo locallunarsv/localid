@@ -34,7 +34,7 @@ use localid_authentication::{
 };
 
 use localid_config::{DatabaseConfig, ServerConfig};
-use localid_oauth_client_repository_postgres::PostgresOAuthClientRepository;
+use localid_database_postgres::PostgresOAuthClientRepository;
 
 use std::path::PathBuf;
 

@@ -1,14 +1,12 @@
 use localid_application::ClientAuthenticationPort;
 
+use localid_database_postgres::{DatabaseError, PostgresOAuthClientRepository};
+
 use localid_oauth_client::{OAuthClient, OAuthClientRepository};
 
-use localid_oauth_client_repository_postgres::{
-    PostgresOAuthClientRepository, PostgresOAuthClientRepositoryError,
-};
+use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
 
 use super::SharedRepository;
-
-use localid_oauth_client_repository_memory::MemoryOAuthClientRepository;
 
 impl ClientAuthenticationPort for SharedRepository<MemoryOAuthClientRepository> {
     type Error = ();
@@ -19,7 +17,7 @@ impl ClientAuthenticationPort for SharedRepository<MemoryOAuthClientRepository> 
 }
 
 impl ClientAuthenticationPort for SharedRepository<PostgresOAuthClientRepository> {
-    type Error = PostgresOAuthClientRepositoryError;
+    type Error = DatabaseError;
 
     fn find_client(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error> {
         self.with(|repository| repository.find_by_client_id(client_id))

@@ -8,7 +8,7 @@ use localid_oauth_client::{
     OAuthClient, OAuthClientId, OAuthClientLifecycleState, OAuthClientRepository,
 };
 
-use crate::PostgresOAuthClientRepositoryError;
+use crate::DatabaseError;
 
 #[derive(Debug, sqlx::FromRow)]
 struct OAuthClientRow {
@@ -42,15 +42,12 @@ impl PostgresOAuthClientRepository {
     }
 
     /// Creates repository by connecting to PostgreSQL.
-    pub async fn connect(
-        config: &DatabaseConfig,
-        runtime: Handle,
-    ) -> Result<Self, PostgresOAuthClientRepositoryError> {
+    pub async fn connect(config: &DatabaseConfig, runtime: Handle) -> Result<Self, DatabaseError> {
         let pool = PgPoolOptions::new()
             .max_connections(config.max_connections())
             .connect(config.url())
             .await
-            .map_err(PostgresOAuthClientRepositoryError::Database)?;
+            .map_err(DatabaseError::Connection)?;
 
         Ok(Self::new(pool, runtime))
     }
@@ -62,22 +59,21 @@ impl PostgresOAuthClientRepository {
         tokio::task::block_in_place(|| self.runtime.block_on(future))
     }
 
-    fn map_state(
-        value: &str,
-    ) -> Result<OAuthClientLifecycleState, PostgresOAuthClientRepositoryError> {
+    fn map_state(value: &str) -> Result<OAuthClientLifecycleState, DatabaseError> {
         match value {
             "active" => Ok(OAuthClientLifecycleState::Active),
             "disabled" => Ok(OAuthClientLifecycleState::Disabled),
             "deleted" => Ok(OAuthClientLifecycleState::Deleted),
-            _ => Err(PostgresOAuthClientRepositoryError::InvalidData),
+
+            _ => Err(DatabaseError::InvalidData),
         }
     }
 
-    fn map_row(row: OAuthClientRow) -> Result<OAuthClient, PostgresOAuthClientRepositoryError> {
+    fn map_row(row: OAuthClientRow) -> Result<OAuthClient, DatabaseError> {
         let state = Self::map_state(&row.state)?;
 
-        let redirect_uris: Vec<String> = serde_json::from_value(row.redirect_uris)
-            .map_err(|_| PostgresOAuthClientRepositoryError::InvalidData)?;
+        let redirect_uris: Vec<String> =
+            serde_json::from_value(row.redirect_uris).map_err(|_| DatabaseError::InvalidData)?;
 
         Ok(OAuthClient::restore(
             OAuthClientId::from_uuid(row.id),
@@ -89,24 +85,25 @@ impl PostgresOAuthClientRepository {
             state,
         ))
     }
+
     /// Clears OAuth clients.
-    pub fn clear(&self) -> Result<(), PostgresOAuthClientRepositoryError> {
+    pub fn clear(&self) -> Result<(), DatabaseError> {
         self.block_on(async {
             sqlx::query(
                 r#"
-            TRUNCATE TABLE oauth_clients
-            "#,
+                TRUNCATE TABLE oauth_clients
+                "#,
             )
             .execute(&self.pool)
             .await
         })
         .map(|_| ())
-        .map_err(PostgresOAuthClientRepositoryError::Database)
+        .map_err(DatabaseError::Connection)
     }
 }
 
 impl OAuthClientRepository for PostgresOAuthClientRepository {
-    type Error = PostgresOAuthClientRepositoryError;
+    type Error = DatabaseError;
 
     fn find_by_id(&self, id: OAuthClientId) -> Result<Option<OAuthClient>, Self::Error> {
         let row = self
@@ -129,7 +126,7 @@ impl OAuthClientRepository for PostgresOAuthClientRepository {
                 .fetch_optional(&self.pool)
                 .await
             })
-            .map_err(PostgresOAuthClientRepositoryError::Database)?;
+            .map_err(DatabaseError::Connection)?;
 
         row.map(Self::map_row).transpose()
     }
@@ -155,7 +152,7 @@ impl OAuthClientRepository for PostgresOAuthClientRepository {
                 .fetch_optional(&self.pool)
                 .await
             })
-            .map_err(PostgresOAuthClientRepositoryError::Database)?;
+            .map_err(DatabaseError::Connection)?;
 
         row.map(Self::map_row).transpose()
     }
@@ -179,14 +176,14 @@ impl OAuthClientRepository for PostgresOAuthClientRepository {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(PostgresOAuthClientRepositoryError::Database)?;
+            .map_err(DatabaseError::Connection)?;
 
         rows.into_iter().map(Self::map_row).collect()
     }
 
     fn save(&mut self, client: OAuthClient) -> Result<(), Self::Error> {
-        let redirect_uris = serde_json::to_value(client.redirect_uris())
-            .map_err(|_| PostgresOAuthClientRepositoryError::InvalidData)?;
+        let redirect_uris =
+            serde_json::to_value(client.redirect_uris()).map_err(|_| DatabaseError::InvalidData)?;
 
         let state = match client.state() {
             OAuthClientLifecycleState::Active => "active",
@@ -227,7 +224,7 @@ impl OAuthClientRepository for PostgresOAuthClientRepository {
             .execute(&self.pool)
             .await
         })
-        .map_err(PostgresOAuthClientRepositoryError::Database)?;
+        .map_err(DatabaseError::Connection)?;
 
         Ok(())
     }

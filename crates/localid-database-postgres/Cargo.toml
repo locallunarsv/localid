@@ -1,0 +1,25 @@
+[package]
+name = "localid-database-postgres"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid"] }
+
+tokio = { version = "1", features = ["sync", "rt", "rt-multi-thread"] }
+
+thiserror = "2"
+uuid = "1"
+
+localid-config = { path = "../localid-config" }
+localid-identity = { path = "../localid-identity" }
+localid-repository = { path = "../localid-repository" }
+localid-client = { path = "../localid-client" }
+localid-oauth-client = { path = "../localid-oauth-client" }
+serde_json = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+localid-client = { path = "../localid-client" }
+localid-oauth-client = { path = "../localid-oauth-client" }
