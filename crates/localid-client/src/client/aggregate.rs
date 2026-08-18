@@ -20,6 +20,21 @@ impl Client {
             state: ClientLifecycleState::Active,
         }
     }
+    /// Restores an existing Client from persistence.
+    #[must_use]
+    pub const fn restore(
+        id: ClientId,
+        client_id: String,
+        name: String,
+        state: ClientLifecycleState,
+    ) -> Self {
+        Self {
+            id,
+            client_id,
+            name,
+            state,
+        }
+    }
 
     /// Returns client identifier.
     #[must_use]

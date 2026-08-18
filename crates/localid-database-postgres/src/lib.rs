@@ -2,11 +2,14 @@
 
 //! PostgreSQL database infrastructure for LocalID.
 
+mod client;
 mod credential;
 mod error;
 mod identity;
+mod identity_role;
 mod migration;
 mod oauth_client;
+mod password_material;
 mod pool;
 mod refresh_token;
 mod session;
@@ -21,3 +24,9 @@ pub use pool::connect;
 pub use refresh_token::PostgresRefreshTokenRepository;
 pub use session::PostgresSessionRepository;
 pub use token::PostgresTokenRepository;
+
+pub use password_material::PostgresPasswordMaterialRepository;
+
+pub use identity_role::PostgresIdentityRoleRepository;
+
+pub use client::PostgresClientRepository;
