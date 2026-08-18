@@ -47,6 +47,26 @@ impl Session {
         })
     }
 
+    /// Restores a Session aggregate from persistent storage.
+    #[must_use]
+    pub const fn restore(
+        id: SessionId,
+        identity_id: IdentityId,
+        client_id: ClientId,
+        lifecycle_state: SessionLifecycleState,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            identity_id,
+            client_id,
+            lifecycle_state,
+            created_at,
+            expires_at,
+        }
+    }
+
     /// Returns this Session's stable identifier.
     #[must_use]
     pub const fn id(&self) -> SessionId {

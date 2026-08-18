@@ -26,6 +26,22 @@ impl Credential {
         }
     }
 
+    /// Restores a Credential aggregate from persistent storage.
+    #[must_use]
+    pub const fn restore(
+        id: CredentialId,
+        identity_id: IdentityId,
+        kind: CredentialKind,
+        lifecycle_state: CredentialLifecycleState,
+    ) -> Self {
+        Self {
+            id,
+            identity_id,
+            kind,
+            lifecycle_state,
+        }
+    }
+
     /// Returns this Credential's stable identifier.
     #[must_use]
     pub const fn id(&self) -> CredentialId {
