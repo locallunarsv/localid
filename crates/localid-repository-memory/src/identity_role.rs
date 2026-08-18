@@ -18,11 +18,6 @@ impl MemoryIdentityRoleRepository {
     pub fn new() -> Self {
         Self::default()
     }
-
-    /// Assigns roles to an identity.
-    pub fn assign(&mut self, identity_id: IdentityId, roles: Vec<Role>) {
-        self.roles.insert(identity_id, roles);
-    }
 }
 
 impl IdentityRoleRepository for MemoryIdentityRoleRepository {
@@ -30,5 +25,11 @@ impl IdentityRoleRepository for MemoryIdentityRoleRepository {
 
     fn find_roles(&self, identity_id: IdentityId) -> Result<Vec<Role>, Self::Error> {
         Ok(self.roles.get(&identity_id).cloned().unwrap_or_default())
+    }
+
+    fn assign(&mut self, identity_id: IdentityId, roles: Vec<Role>) -> Result<(), Self::Error> {
+        self.roles.insert(identity_id, roles);
+
+        Ok(())
     }
 }

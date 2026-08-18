@@ -38,3 +38,4 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 localid-client = { path = "../localid-client" }
 localid-oauth-client = { path = "../localid-oauth-client" }
+serial_test = "3"

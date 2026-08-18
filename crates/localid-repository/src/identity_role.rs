@@ -8,4 +8,7 @@ pub trait IdentityRoleRepository {
 
     /// Finds roles assigned to an identity.
     fn find_roles(&self, identity_id: IdentityId) -> Result<Vec<Role>, Self::Error>;
+
+    /// Assigns roles to an identity.
+    fn assign(&mut self, identity_id: IdentityId, roles: Vec<Role>) -> Result<(), Self::Error>;
 }

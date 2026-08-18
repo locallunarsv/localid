@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::runtime::Handle;
@@ -5,14 +6,14 @@ use tokio::sync::Mutex;
 
 mod id_token;
 mod postgres;
-mod postgres_state;
 mod repository;
 mod seed;
 
 pub use id_token::BootstrapIdTokenIssuer;
 
-pub use postgres::create_postgres_oauth_client_repository;
-pub use postgres_state::create_postgres_repository;
+pub use postgres::{
+    create_postgres_oauth_client_repository, create_postgres_repositories, PostgresRepositories,
+};
 
 pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, seed_oauth_client};
 
@@ -33,30 +34,27 @@ use localid_authentication::{
     PasswordAuthenticationDependencies,
 };
 
-use localid_config::{DatabaseConfig, ServerConfig};
-use localid_database_postgres::PostgresOAuthClientRepository;
-
-use std::path::PathBuf;
-
-use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
-
 use localid_client::ClientId;
+use localid_config::{DatabaseConfig, ServerConfig};
 use localid_credential::CredentialId;
+use localid_database_postgres::PostgresOAuthClientRepository;
 use localid_identity::IdentityId;
 
 use localid_oauth_authorization_repository_memory::MemoryAuthorizationCodeRepository;
 use localid_oauth_client::OAuthClientId;
 
+use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
+
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
-
-use localid_repository_memory::{
-    MemoryClientRepository, MemoryCredentialRepository, MemoryIdentityRepository,
-    MemoryIdentityRoleRepository, MemoryPasswordMaterialRepository, MemoryRefreshTokenRepository,
-    MemorySessionRepository, MemoryTokenRepository,
-};
-
 use localid_token_random::RandomTokenIssuer;
+
+use crate::bootstrap::postgres::{
+    SharedPostgresClientRepository, SharedPostgresCredentialRepository,
+    SharedPostgresIdentityRepository, SharedPostgresIdentityRoleRepository,
+    SharedPostgresPasswordMaterialRepository, SharedPostgresRefreshTokenRepository,
+    SharedPostgresSessionRepository, SharedPostgresTokenRepository,
+};
 
 use crate::{
     middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
@@ -65,10 +63,21 @@ use crate::{
 
 use crate::bootstrap::repository::SharedRepository;
 
-type SharedIdentityRepository = SharedRepository<MemoryIdentityRepository>;
+type SharedIdentityRepository = SharedPostgresIdentityRepository;
+
+type SharedCredentialRepository = SharedPostgresCredentialRepository;
+
+type SharedPasswordMaterialRepository = SharedPostgresPasswordMaterialRepository;
+
+type SharedIdentityRoleRepository = SharedPostgresIdentityRoleRepository;
+
+type SharedSessionRepository = SharedPostgresSessionRepository;
+
+type SharedTokenRepository = SharedPostgresTokenRepository;
+
+type SharedRefreshTokenRepository = SharedPostgresRefreshTokenRepository;
 
 /// Context containing initialized application dependencies.
-///
 pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     /// Shared application state.
     pub state: AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>,
@@ -85,16 +94,16 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     /// Seeded identity identifier.
     pub identity_id: IdentityId,
 
-    /// Seeded client identifier.
+    /// Seeded local client identifier.
     pub client_id: ClientId,
 
-    /// Seeded second OAuth public identifier.
+    /// Seeded secondary OAuth client public identifier.
     pub oauth_client_other_public_id: String,
 
-    /// Seeded OAuth internal identifier.
+    /// Seeded OAuth client internal identifier.
     pub oauth_client_id: OAuthClientId,
 
-    /// Seeded OAuth public identifier.
+    /// Seeded OAuth client public identifier.
     pub oauth_client_public_id: String,
 
     /// Seeded OAuth client secret.
@@ -103,12 +112,6 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     /// Shared OAuth client repository.
     pub oauth_client_repository: OCM,
 }
-
-type SharedSessionRepository = SharedRepository<MemorySessionRepository>;
-
-type SharedTokenRepository = SharedRepository<MemoryTokenRepository>;
-
-type SharedRefreshTokenRepository = SharedRepository<MemoryRefreshTokenRepository>;
 
 type SharedAuthorizationCodeRepository = SharedRepository<MemoryAuthorizationCodeRepository>;
 
@@ -124,8 +127,8 @@ type BootstrapTokenIssuanceService = DefaultTokenIssuanceService<
 type BootstrapAuthenticationService = PasswordAuthenticationAdapter<
     DefaultPasswordAuthenticationService<
         SharedIdentityRepository,
-        MemoryCredentialRepository,
-        MemoryPasswordMaterialRepository,
+        SharedCredentialRepository,
+        SharedPasswordMaterialRepository,
         Argon2PasswordHasher,
         BootstrapTokenIssuanceService,
     >,
@@ -147,7 +150,7 @@ type BootstrapVerificationService = TokenVerificationAdapter<
 
 type BootstrapSessionService = SessionAdapter<DefaultSessionService<SharedSessionRepository>>;
 
-type BootstrapIdentityRoleAdapter = IdentityRoleAdapter<MemoryIdentityRoleRepository>;
+type BootstrapIdentityRoleAdapter = IdentityRoleAdapter<SharedIdentityRoleRepository>;
 
 /// Identity repository adapter used by bootstrap dependencies.
 pub type BootstrapIdentityRepositoryAdapter = IdentityRepositoryAdapter<SharedIdentityRepository>;
@@ -176,7 +179,7 @@ pub async fn create_state(
     BootstrapRefreshService,
     BootstrapVerificationService,
     BootstrapSessionService,
-    ClientRepositoryAdapter<MemoryClientRepository>,
+    ClientRepositoryAdapter<SharedPostgresClientRepository>,
     BootstrapAuthorizationAdapter<SharedPostgresOAuthClientRepository>,
     BootstrapTokenExchangeAdapter<SharedPostgresOAuthClientRepository>,
     BootstrapTokenIssuanceService,
@@ -186,13 +189,17 @@ pub async fn create_state(
     BootstrapClientAuthenticationRepository,
     BootstrapOAuthClientRepository,
 > {
-    let mut identity_repository = SharedRepository::new(MemoryIdentityRepository::new());
+    let repositories = create_postgres_repositories(&_database, Handle::current())
+        .await
+        .expect("postgres repositories should initialize");
 
-    let mut credential_repository = MemoryCredentialRepository::new();
+    let mut identity_repository = repositories.identity.clone();
 
-    let mut password_material_repository = MemoryPasswordMaterialRepository::new();
+    let mut credential_repository = repositories.credential.clone();
 
-    let mut identity_role_repository = MemoryIdentityRoleRepository::new();
+    let mut password_material_repository = repositories.password_material.clone();
+
+    let mut identity_role_repository = repositories.identity_role.clone();
 
     let (credential_id, identity_id) = seed_demo_identity(
         &mut identity_repository,
@@ -205,7 +212,7 @@ pub async fn create_state(
 
     let identity_use_case = GetIdentityUseCase::new(identity_repository_adapter);
 
-    let mut client_repository = MemoryClientRepository::new();
+    let mut client_repository = repositories.client.clone();
 
     let client_id = seed_demo_client(&mut client_repository);
 
@@ -258,11 +265,11 @@ pub async fn create_state(
 
     let authorize_use_case = AuthorizeUseCase::new(authorization_adapter);
 
-    let session_repository = SharedRepository::new(MemorySessionRepository::new());
+    let session_repository = repositories.session.clone();
 
-    let token_repository = SharedRepository::new(MemoryTokenRepository::new());
+    let token_repository = repositories.token.clone();
 
-    let refresh_token_repository = SharedRepository::new(MemoryRefreshTokenRepository::new());
+    let refresh_token_repository = repositories.refresh_token.clone();
 
     let token_issuance_service = DefaultTokenIssuanceService::new(
         session_repository.clone(),

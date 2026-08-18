@@ -6,9 +6,9 @@ use localid_password::{PasswordHasher, PasswordMaterial, PasswordSecret};
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_permission::Permission;
 use localid_repository::{
-    ClientRepository, CredentialRepository, IdentityRepository, PasswordMaterialRepository,
+    ClientRepository, CredentialRepository, IdentityRepository, IdentityRoleRepository,
+    PasswordMaterialRepository,
 };
-use localid_repository_memory::MemoryIdentityRoleRepository;
 use localid_role::Role;
 
 use localid_crypto::hash_secret;
@@ -16,16 +16,21 @@ use localid_crypto::hash_secret;
 /// Seeds a demo password identity.
 ///
 /// Returns credential identifier and identity identifier.
-pub fn seed_demo_identity<IR, CR, PR>(
+pub fn seed_demo_identity<IR, CR, PR, RR>(
     identity_repository: &mut IR,
     credential_repository: &mut CR,
     password_material_repository: &mut PR,
-    identity_role_repository: &mut MemoryIdentityRoleRepository,
+    identity_role_repository: &mut RR,
 ) -> (CredentialId, IdentityId)
 where
     IR: IdentityRepository,
     CR: CredentialRepository,
     PR: PasswordMaterialRepository,
+    RR: IdentityRoleRepository,
+    IR::Error: std::fmt::Debug,
+    CR::Error: std::fmt::Debug,
+    PR::Error: std::fmt::Debug,
+    RR::Error: std::fmt::Debug,
 {
     let identity_id = IdentityId::new();
 
@@ -33,7 +38,7 @@ where
 
     identity_repository
         .save(identity)
-        .unwrap_or_else(|_| panic!("identity seed should succeed"));
+        .unwrap_or_else(|error| panic!("identity seed should succeed: {error:?}"));
 
     let credential_id = CredentialId::new();
 
@@ -41,7 +46,7 @@ where
 
     credential_repository
         .save(credential)
-        .unwrap_or_else(|_| panic!("credential seed should succeed"));
+        .unwrap_or_else(|error| panic!("credential seed should succeed: {error:?}"));
 
     let hasher = Argon2PasswordHasher::new();
 
@@ -55,13 +60,15 @@ where
 
     password_material_repository
         .save(material)
-        .unwrap_or_else(|_| panic!("password material seed should succeed"));
+        .unwrap_or_else(|error| panic!("password material seed should succeed: {error:?}"));
 
     let permission = Permission::new("user.read").expect("demo permission should be valid");
 
     let role = Role::new("admin", vec![permission]).expect("demo role should be valid");
 
-    identity_role_repository.assign(identity_id, vec![role]);
+    identity_role_repository
+        .assign(identity_id, vec![role])
+        .unwrap_or_else(|error| panic!("role assignment should succeed: {error:?}"));
 
     (credential_id, identity_id)
 }

@@ -1,5 +1,6 @@
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tokio::runtime::Handle;
+use uuid::Uuid;
 
 use localid_config::DatabaseConfig;
 use localid_identity::IdentityId;
@@ -117,5 +118,108 @@ impl IdentityRoleRepository for PostgresIdentityRoleRepository {
         }
 
         Ok(roles)
+    }
+
+    fn assign(&mut self, identity_id: IdentityId, roles: Vec<Role>) -> Result<(), Self::Error> {
+        self.block_on(async {
+            let mut transaction = self.pool.begin().await?;
+
+            for role in roles {
+                let role_id = Uuid::now_v7();
+
+                sqlx::query(
+                    r#"
+                    INSERT INTO roles (
+                        id,
+                        name
+                    )
+                    VALUES ($1, $2)
+                    ON CONFLICT (name)
+                    DO NOTHING
+                    "#,
+                )
+                .bind(role_id)
+                .bind(role.name())
+                .execute(&mut *transaction)
+                .await?;
+
+                let existing_role_id: Uuid = sqlx::query_scalar(
+                    r#"
+                    SELECT id
+                    FROM roles
+                    WHERE name = $1
+                    "#,
+                )
+                .bind(role.name())
+                .fetch_one(&mut *transaction)
+                .await?;
+
+                sqlx::query(
+                    r#"
+                    INSERT INTO identity_roles (
+                        identity_id,
+                        role_id
+                    )
+                    VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING
+                    "#,
+                )
+                .bind(identity_id.as_uuid())
+                .bind(existing_role_id)
+                .execute(&mut *transaction)
+                .await?;
+
+                for permission in role.permissions() {
+                    let permission_id = Uuid::now_v7();
+
+                    sqlx::query(
+                        r#"
+                        INSERT INTO permissions (
+                            id,
+                            name
+                        )
+                        VALUES ($1, $2)
+                        ON CONFLICT (name)
+                        DO NOTHING
+                        "#,
+                    )
+                    .bind(permission_id)
+                    .bind(permission.name())
+                    .execute(&mut *transaction)
+                    .await?;
+
+                    let existing_permission_id: Uuid = sqlx::query_scalar(
+                        r#"
+                            SELECT id
+                            FROM permissions
+                            WHERE name = $1
+                            "#,
+                    )
+                    .bind(permission.name())
+                    .fetch_one(&mut *transaction)
+                    .await?;
+
+                    sqlx::query(
+                        r#"
+                        INSERT INTO role_permissions (
+                            role_id,
+                            permission_id
+                        )
+                        VALUES ($1, $2)
+                        ON CONFLICT DO NOTHING
+                        "#,
+                    )
+                    .bind(existing_role_id)
+                    .bind(existing_permission_id)
+                    .execute(&mut *transaction)
+                    .await?;
+                }
+            }
+
+            transaction.commit().await?;
+
+            Ok::<(), sqlx::Error>(())
+        })
+        .map_err(DatabaseError::Connection)
     }
 }

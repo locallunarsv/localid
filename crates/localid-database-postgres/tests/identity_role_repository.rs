@@ -7,6 +7,7 @@ use uuid::Uuid;
 use localid_database_postgres::{PostgresIdentityRoleRepository, migrate};
 use localid_identity::IdentityId;
 use localid_repository::IdentityRoleRepository;
+use serial_test::serial;
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
@@ -35,9 +36,29 @@ fn repository(pool: PgPool) -> PostgresIdentityRoleRepository {
     PostgresIdentityRoleRepository::new(pool, runtime().handle().clone())
 }
 
+async fn cleanup(pool: &PgPool) {
+    sqlx::query(
+        r#"
+        TRUNCATE TABLE
+            identity_roles,
+            role_permissions,
+            permissions,
+            roles
+        CASCADE;
+        "#,
+    )
+    .execute(pool)
+    .await
+    .expect("truncate should succeed");
+}
+
 async fn seed_role(pool: &PgPool, identity_id: IdentityId) {
+    cleanup(pool).await;
+
     let role_id = Uuid::now_v7();
+
     let permission_read_id = Uuid::now_v7();
+
     let permission_write_id = Uuid::now_v7();
 
     sqlx::query(
@@ -124,6 +145,7 @@ async fn seed_role(pool: &PgPool, identity_id: IdentityId) {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn find_roles_should_return_roles_and_permissions() {
     let pool = create_pool().await;
 
@@ -159,8 +181,11 @@ async fn find_roles_should_return_roles_and_permissions() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn find_roles_should_return_empty_when_identity_has_no_role() {
     let pool = create_pool().await;
+
+    cleanup(&pool).await;
 
     let repository = repository(pool);
 
