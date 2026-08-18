@@ -46,6 +46,26 @@ impl Token {
         })
     }
 
+    /// Restores a Token aggregate from persistent storage.
+    #[must_use]
+    pub const fn restore(
+        id: TokenId,
+        session_id: SessionId,
+        secret_hash: String,
+        lifecycle_state: TokenLifecycleState,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            session_id,
+            secret_hash,
+            lifecycle_state,
+            created_at,
+            expires_at,
+        }
+    }
+
     /// Returns the Token identifier.
     #[must_use]
     pub const fn id(&self) -> TokenId {
