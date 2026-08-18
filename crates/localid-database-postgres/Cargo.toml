@@ -26,6 +26,7 @@ localid-oauth-client = { path = "../localid-oauth-client" }
 localid-credential = { path = "../localid-credential" }
 localid-session = { path = "../localid-session" }
 localid-token = { path = "../localid-token" }
+localid-refresh-token = { path = "../localid-refresh-token" }
 
 serde_json = "1"
 

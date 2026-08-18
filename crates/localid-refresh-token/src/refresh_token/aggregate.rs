@@ -45,6 +45,26 @@ impl RefreshToken {
         })
     }
 
+    /// Restores a RefreshToken aggregate from persistent storage.
+    #[must_use]
+    pub const fn restore(
+        id: RefreshTokenId,
+        session_id: SessionId,
+        secret_hash: String,
+        lifecycle_state: RefreshTokenLifecycleState,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            session_id,
+            secret_hash,
+            lifecycle_state,
+            created_at,
+            expires_at,
+        }
+    }
+
     /// Returns the Refresh Token identifier.
     #[must_use]
     pub const fn id(&self) -> RefreshTokenId {
@@ -67,6 +87,18 @@ impl RefreshToken {
     #[must_use]
     pub const fn lifecycle_state(&self) -> RefreshTokenLifecycleState {
         self.lifecycle_state
+    }
+
+    /// Returns creation time.
+    #[must_use]
+    pub const fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    /// Returns expiration time.
+    #[must_use]
+    pub const fn expires_at(&self) -> DateTime<Utc> {
+        self.expires_at
     }
 
     /// Returns whether this token is active.
