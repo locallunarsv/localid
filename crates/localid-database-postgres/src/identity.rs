@@ -45,6 +45,13 @@ impl PostgresIdentityRepository {
         Ok(Self::new(pool, runtime))
     }
 
+    fn block_on<F, T>(&self, future: F) -> T
+    where
+        F: std::future::Future<Output = T>,
+    {
+        tokio::task::block_in_place(|| self.runtime.block_on(future))
+    }
+
     fn map_state(value: &str) -> Result<LifecycleState, DatabaseError> {
         match value {
             "active" => Ok(LifecycleState::Active),
@@ -67,7 +74,6 @@ impl IdentityRepository for PostgresIdentityRepository {
 
     fn find_by_id(&self, id: IdentityId) -> Result<Option<Identity>, Self::Error> {
         let row = self
-            .runtime
             .block_on(async {
                 sqlx::query_as::<_, IdentityRow>(
                     r#"
@@ -94,26 +100,25 @@ impl IdentityRepository for PostgresIdentityRepository {
             LifecycleState::Deleted => "deleted",
         };
 
-        self.runtime
-            .block_on(async {
-                sqlx::query(
-                    r#"
-                    INSERT INTO identities (
-                        id,
-                        lifecycle_state
-                    )
-                    VALUES ($1, $2)
-                    ON CONFLICT (id)
-                    DO UPDATE SET
-                        lifecycle_state = EXCLUDED.lifecycle_state
-                    "#,
+        self.block_on(async {
+            sqlx::query(
+                r#"
+                INSERT INTO identities (
+                    id,
+                    lifecycle_state
                 )
-                .bind(identity.id().as_uuid())
-                .bind(lifecycle_state)
-                .execute(&self.pool)
-                .await
-            })
-            .map_err(DatabaseError::Connection)?;
+                VALUES ($1, $2)
+                ON CONFLICT (id)
+                DO UPDATE SET
+                    lifecycle_state = EXCLUDED.lifecycle_state
+                "#,
+            )
+            .bind(identity.id().as_uuid())
+            .bind(lifecycle_state)
+            .execute(&self.pool)
+            .await
+        })
+        .map_err(DatabaseError::Connection)?;
 
         Ok(())
     }
