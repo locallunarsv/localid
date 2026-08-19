@@ -8,6 +8,7 @@ mod id_token;
 mod postgres;
 mod repository;
 mod seed;
+mod seed_context;
 
 pub use id_token::BootstrapIdTokenIssuer;
 
@@ -15,7 +16,7 @@ pub use postgres::{
     create_postgres_oauth_client_repository, create_postgres_repositories, PostgresRepositories,
 };
 
-pub use seed::{seed_demo_client, seed_demo_identity, seed_demo_oauth_client, seed_oauth_client};
+use crate::bootstrap::seed_context::seed_test_environment;
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
@@ -201,24 +202,11 @@ pub async fn create_state(
 
     let mut identity_role_repository = repositories.identity_role.clone();
 
-    let (credential_id, identity_id) = seed_demo_identity(
-        &mut identity_repository,
-        &mut credential_repository,
-        &mut password_material_repository,
-        &mut identity_role_repository,
-    );
-
     let identity_repository_adapter = IdentityRepositoryAdapter::new(identity_repository.clone());
 
     let identity_use_case = GetIdentityUseCase::new(identity_repository_adapter);
 
     let mut client_repository = repositories.client.clone();
-
-    let client_id = seed_demo_client(&mut client_repository);
-
-    let client_adapter = ClientRepositoryAdapter::new(client_repository);
-
-    let client_use_case = GetClientUseCase::new(client_adapter);
 
     let mut oauth_client_repository =
         create_postgres_oauth_client_repository(&_database, Handle::current())
@@ -231,13 +219,18 @@ pub async fn create_state(
             .expect("oauth client cleanup should succeed");
     });
 
-    let (oauth_client_id, oauth_client_public_id) =
-        seed_demo_oauth_client(&mut oauth_client_repository);
+    let test_seed = seed_test_environment(
+        &mut identity_repository,
+        &mut credential_repository,
+        &mut password_material_repository,
+        &mut identity_role_repository,
+        &mut client_repository,
+        &mut oauth_client_repository,
+    );
 
-    let oauth_client_secret = "demo-secret".to_string();
+    let client_adapter = ClientRepositoryAdapter::new(client_repository);
 
-    let (_, oauth_client_other_public_id) =
-        seed_oauth_client(&mut oauth_client_repository, "different-client".to_string());
+    let client_use_case = GetClientUseCase::new(client_adapter);
 
     let create_oauth_client_use_case =
         CreateOAuthClientUseCase::new(oauth_client_repository.clone());
@@ -385,14 +378,14 @@ pub async fn create_state(
         auth_state,
         authorization_state,
 
-        credential_id,
-        identity_id,
-        client_id,
+        credential_id: test_seed.credential_id,
+        identity_id: test_seed.identity_id,
+        client_id: test_seed.client_id,
 
-        oauth_client_id,
-        oauth_client_public_id,
-        oauth_client_secret,
-        oauth_client_other_public_id,
+        oauth_client_id: test_seed.oauth_client_id,
+        oauth_client_public_id: test_seed.oauth_client_public_id,
+        oauth_client_secret: test_seed.oauth_client_secret,
+        oauth_client_other_public_id: test_seed.oauth_client_other_public_id,
 
         oauth_client_repository,
     }
