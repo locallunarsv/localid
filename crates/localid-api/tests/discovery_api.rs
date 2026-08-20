@@ -9,13 +9,16 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn discovery_should_return_openid_configuration() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,

@@ -8,13 +8,16 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_issue_authorization_code() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -63,7 +66,7 @@ async fn oauth_authorize_should_issue_authorization_code() {
 async fn oauth_authorize_should_reject_unknown_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let identity_id = bootstrap.identity_id;
 
@@ -97,7 +100,7 @@ async fn oauth_authorize_should_reject_unknown_client() {
 async fn oauth_authorize_should_reject_invalid_redirect_uri() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -136,7 +139,7 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
 async fn oauth_authorization_should_preserve_state() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -177,7 +180,7 @@ async fn oauth_authorization_should_preserve_state() {
 async fn oauth_authorization_should_reject_invalid_response_type() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -206,7 +209,7 @@ async fn oauth_authorization_should_reject_invalid_response_type() {
 async fn oauth_authorize_should_reject_disabled_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_internal_id = bootstrap.oauth_client_id.to_string();
     let oauth_client_public_id = bootstrap.oauth_client_public_id;

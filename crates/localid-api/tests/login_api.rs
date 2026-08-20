@@ -4,7 +4,10 @@ use axum::{
 };
 use tower::ServiceExt;
 
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 mod common;
 
@@ -13,7 +16,7 @@ use common::{test_database, test_lock};
 #[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_malformed_credential_id() {
     let _guard = test_lock().lock().await;
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.client_id;
 
@@ -48,9 +51,13 @@ async fn login_rejects_malformed_credential_id() {
 #[tokio::test(flavor = "multi_thread")]
 async fn login_returns_success_response() {
     let _guard = test_lock().lock().await;
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = bootstrap.credential_id;
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
     let client_id = bootstrap.client_id;
 
     let app = create_router(
@@ -95,9 +102,14 @@ async fn login_returns_success_response() {
 #[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_invalid_password() {
     let _guard = test_lock().lock().await;
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = bootstrap.credential_id;
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
     let client_id = bootstrap.client_id;
 
     let app = create_router(
@@ -131,7 +143,7 @@ async fn login_rejects_invalid_password() {
 #[tokio::test(flavor = "multi_thread")]
 async fn login_rejects_unknown_credential() {
     let _guard = test_lock().lock().await;
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.client_id;
     let credential_id = localid_credential::CredentialId::new();

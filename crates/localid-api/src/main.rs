@@ -1,6 +1,9 @@
 use std::net::SocketAddr;
 
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 use localid_config::DatabaseConfig;
 
@@ -12,7 +15,7 @@ async fn main() {
     // Later replace with create_postgres_state().
     let database = DatabaseConfig::new("postgres://postgres@localhost/localid");
 
-    let bootstrap = create_state(database).await;
+    let bootstrap = create_state(database, Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,

@@ -11,12 +11,16 @@ mod seed;
 mod seed_context;
 
 pub use id_token::BootstrapIdTokenIssuer;
+mod environment;
+
+use crate::bootstrap::seed_context::DemoSeedContext;
+pub use environment::Environment;
 
 pub use postgres::{
     create_postgres_oauth_client_repository, create_postgres_repositories, PostgresRepositories,
 };
 
-use crate::bootstrap::seed_context::seed_test_environment;
+use crate::bootstrap::seed_context::seed_demo_environment;
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
@@ -112,6 +116,9 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
 
     /// Shared OAuth client repository.
     pub oauth_client_repository: OCM,
+
+    /// Development demo seed data.
+    pub demo_seed: Option<DemoSeedContext>,
 }
 
 type SharedAuthorizationCodeRepository = SharedRepository<MemoryAuthorizationCodeRepository>;
@@ -175,6 +182,7 @@ type BootstrapTokenExchangeAdapter<OCR> =
 /// Creates application state with in-memory dependencies.
 pub async fn create_state(
     _database: DatabaseConfig,
+    environment: Environment,
 ) -> BootstrapContext<
     BootstrapAuthenticationService,
     BootstrapRefreshService,
@@ -190,6 +198,8 @@ pub async fn create_state(
     BootstrapClientAuthenticationRepository,
     BootstrapOAuthClientRepository,
 > {
+    let _should_seed = environment.should_seed();
+
     let repositories = create_postgres_repositories(&_database, Handle::current())
         .await
         .expect("postgres repositories should initialize");
@@ -219,14 +229,18 @@ pub async fn create_state(
             .expect("oauth client cleanup should succeed");
     });
 
-    let test_seed = seed_test_environment(
-        &mut identity_repository,
-        &mut credential_repository,
-        &mut password_material_repository,
-        &mut identity_role_repository,
-        &mut client_repository,
-        &mut oauth_client_repository,
-    );
+    let demo_seed = if environment.should_seed() {
+        Some(seed_demo_environment(
+            &mut identity_repository,
+            &mut credential_repository,
+            &mut password_material_repository,
+            &mut identity_role_repository,
+            &mut client_repository,
+            &mut oauth_client_repository,
+        ))
+    } else {
+        None
+    };
 
     let client_adapter = ClientRepositoryAdapter::new(client_repository);
 
@@ -378,15 +392,50 @@ pub async fn create_state(
         auth_state,
         authorization_state,
 
-        credential_id: test_seed.credential_id,
-        identity_id: test_seed.identity_id,
-        client_id: test_seed.client_id,
+        credential_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .credential_id
+            .clone(),
 
-        oauth_client_id: test_seed.oauth_client_id,
-        oauth_client_public_id: test_seed.oauth_client_public_id,
-        oauth_client_secret: test_seed.oauth_client_secret,
-        oauth_client_other_public_id: test_seed.oauth_client_other_public_id,
+        identity_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .identity_id
+            .clone(),
+
+        client_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .client_id
+            .clone(),
+
+        oauth_client_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .oauth_client_id
+            .clone(),
+
+        oauth_client_public_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .oauth_client_public_id
+            .clone(),
+
+        oauth_client_secret: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .oauth_client_secret
+            .clone(),
+
+        oauth_client_other_public_id: demo_seed
+            .as_ref()
+            .expect("demo seed required")
+            .oauth_client_other_public_id
+            .clone(),
 
         oauth_client_repository,
+
+        demo_seed,
     }
 }

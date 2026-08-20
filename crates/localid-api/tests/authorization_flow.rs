@@ -9,15 +9,22 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn authorization_context_should_resolve_roles() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = bootstrap.credential_id;
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
     let client_id = bootstrap.client_id;
 
     let app = create_router(

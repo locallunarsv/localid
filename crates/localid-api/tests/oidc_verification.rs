@@ -8,7 +8,10 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 #[derive(Debug, Deserialize)]
 struct IdTokenClaims {
@@ -32,7 +35,7 @@ fn extract_authorization_code(location: &str) -> String {
 async fn oidc_id_token_should_verify_signature_using_jwks() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;

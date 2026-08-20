@@ -7,7 +7,10 @@ use http_body_util::BodyExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 use localid_oauth_client::OAuthClientRepository;
 use serde_json::{json, Value};
@@ -17,7 +20,7 @@ use tower::ServiceExt;
 async fn oauth_client_create_should_return_credentials() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -56,7 +59,7 @@ async fn oauth_client_create_should_return_credentials() {
 async fn oauth_client_create_should_not_store_plain_secret() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let repository = bootstrap.oauth_client_repository.clone();
 
@@ -108,7 +111,7 @@ async fn oauth_client_create_should_not_store_plain_secret() {
 async fn oauth_client_list_should_return_clients() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -138,7 +141,7 @@ async fn oauth_client_list_should_return_clients() {
 async fn oauth_client_get_should_return_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -172,7 +175,7 @@ async fn oauth_client_get_should_return_client() {
 async fn oauth_client_get_should_reject_unknown_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -195,7 +198,7 @@ async fn oauth_client_get_should_reject_unknown_client() {
 async fn oauth_client_disable_should_disable_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -220,7 +223,7 @@ async fn oauth_client_disable_should_disable_client() {
 async fn oauth_client_disable_should_reject_unknown_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -243,7 +246,7 @@ async fn oauth_client_disable_should_reject_unknown_client() {
 async fn oauth_client_delete_should_delete_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 
@@ -268,7 +271,7 @@ async fn oauth_client_delete_should_delete_client() {
 async fn oauth_client_delete_should_reject_unknown_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
@@ -291,7 +294,7 @@ async fn oauth_client_delete_should_reject_unknown_client() {
 async fn oauth_client_delete_should_reject_deleted_client() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let client_id = bootstrap.oauth_client_id.to_string();
 

@@ -10,7 +10,10 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 struct AuthTokens {
     access_token: String,
@@ -18,9 +21,13 @@ struct AuthTokens {
 }
 
 async fn login() -> AuthTokens {
-    let context = create_state(test_database()).await;
+    let context = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = context.credential_id;
+    let credential_id = context
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
     let client_id = context.client_id;
 
     let app = create_router(
@@ -77,9 +84,13 @@ async fn login_flow_should_return_tokens() {
 async fn verify_access_token_should_work() {
     let _guard = test_lock().lock().await;
 
-    let context = create_state(test_database()).await;
+    let context = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = context.credential_id;
+    let credential_id = context
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
     let client_id = context.client_id;
 
     let app = create_router(
@@ -148,9 +159,13 @@ async fn verify_access_token_should_work() {
 async fn refresh_token_should_issue_new_tokens() {
     let _guard = test_lock().lock().await;
 
-    let context = create_state(test_database()).await;
+    let context = create_state(test_database(), Environment::Development).await;
 
-    let credential_id = context.credential_id;
+    let credential_id = context
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
     let client_id = context.client_id;
 
     let app = create_router(
@@ -220,7 +235,7 @@ async fn refresh_token_should_issue_new_tokens() {
 async fn protected_route_requires_valid_token() {
     let _guard = test_lock().lock().await;
 
-    let context = create_state(test_database()).await;
+    let context = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         context.state,

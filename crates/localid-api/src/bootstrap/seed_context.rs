@@ -14,7 +14,7 @@ use super::seed::{
 };
 
 /// Test bootstrap seeded identifiers.
-pub struct TestSeedContext {
+pub struct DemoSeedContext {
     /// Seeded credential identifier.
     pub credential_id: CredentialId,
 
@@ -38,14 +38,14 @@ pub struct TestSeedContext {
 }
 
 /// Seeds all data required by API integration tests.
-pub fn seed_test_environment<IR, CR, PR, RR, CL, OCR>(
+pub fn seed_demo_environment<IR, CR, PR, RR, CL, OCR>(
     identity_repository: &mut IR,
     credential_repository: &mut CR,
     password_material_repository: &mut PR,
     identity_role_repository: &mut RR,
     client_repository: &mut CL,
     oauth_client_repository: &mut OCR,
-) -> TestSeedContext
+) -> DemoSeedContext
 where
     IR: IdentityRepository,
     CR: CredentialRepository,
@@ -74,7 +74,7 @@ where
     let (_, oauth_client_other_public_id) =
         seed_oauth_client(oauth_client_repository, "different-client".to_string());
 
-    TestSeedContext {
+    DemoSeedContext {
         credential_id,
         identity_id,
         client_id,

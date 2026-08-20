@@ -9,7 +9,10 @@ use http_body_util::BodyExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
@@ -71,7 +74,7 @@ async fn create_authorization_code(
 async fn oauth_token_should_exchange_authorization_code() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -123,7 +126,7 @@ async fn oauth_token_should_exchange_authorization_code() {
 async fn oauth_token_should_accept_basic_client_authentication() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -171,7 +174,7 @@ async fn oauth_token_should_accept_basic_client_authentication() {
 async fn oauth_token_should_reject_invalid_code() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
 
@@ -211,7 +214,7 @@ async fn oauth_token_should_reject_invalid_code() {
 async fn oauth_token_should_reject_reused_authorization_code() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -276,7 +279,7 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 async fn oauth_token_should_reject_client_mismatch() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let other_oauth_client_id = bootstrap.oauth_client_other_public_id;
@@ -318,7 +321,7 @@ async fn oauth_token_should_reject_client_mismatch() {
 async fn oauth_token_should_reject_invalid_client_secret() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -361,7 +364,7 @@ async fn oauth_token_should_reject_invalid_client_secret() {
 async fn oauth_token_should_reject_redirect_uri_mismatch() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -402,7 +405,7 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
 async fn oauth_token_should_refresh_access_token() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -470,7 +473,7 @@ async fn oauth_token_should_refresh_access_token() {
 async fn oauth_token_should_issue_id_token_for_openid_scope() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -550,7 +553,7 @@ async fn oauth_token_should_issue_id_token_for_openid_scope() {
 async fn oauth_token_should_reject_missing_client_authentication() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -585,7 +588,7 @@ async fn oauth_token_should_reject_missing_client_authentication() {
 async fn oauth_token_should_reject_invalid_basic_authentication() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;

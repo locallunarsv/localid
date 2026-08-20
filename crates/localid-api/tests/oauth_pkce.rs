@@ -12,7 +12,10 @@ use tower::ServiceExt;
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{bootstrap::create_state, create_router};
+use localid_api::{
+    bootstrap::{create_state, Environment},
+    create_router,
+};
 
 fn demo_client_secret() -> &'static str {
     "demo-secret"
@@ -70,7 +73,7 @@ async fn create_pkce_authorization_code(
 async fn oauth_token_should_reject_invalid_pkce_verifier() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -116,7 +119,7 @@ async fn oauth_token_should_reject_invalid_pkce_verifier() {
 async fn oauth_token_should_accept_valid_pkce_verifier() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -159,7 +162,7 @@ async fn oauth_token_should_accept_valid_pkce_verifier() {
 async fn oauth_token_should_reject_missing_pkce_verifier() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let identity_id = bootstrap.identity_id;
@@ -207,7 +210,7 @@ async fn oauth_token_should_reject_missing_pkce_verifier() {
 async fn oauth_authorize_should_reject_invalid_pkce_method() {
     let _guard = test_lock().lock().await;
 
-    let bootstrap = create_state(test_database()).await;
+    let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let app = create_router(
         bootstrap.state,
