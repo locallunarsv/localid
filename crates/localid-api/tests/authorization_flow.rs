@@ -6,13 +6,13 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
+
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn authorization_context_should_resolve_roles() {
@@ -21,11 +21,12 @@ async fn authorization_context_should_resolve_roles() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
-    let client_id = bootstrap.client_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
+
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         bootstrap.state,
@@ -61,7 +62,7 @@ async fn authorization_context_should_resolve_roles() {
     let request = Request::builder()
         .method("GET")
         .uri("/authorization/context")
-        .header("authorization", format!("Bearer {}", token))
+        .header("authorization", format!("Bearer {token}"))
         .body(Body::empty())
         .unwrap();
 
@@ -71,7 +72,7 @@ async fn authorization_context_should_resolve_roles() {
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
-    println!("authorization status: {}", status);
+    println!("authorization status: {status}");
     println!("authorization body: {}", String::from_utf8_lossy(&body));
 
     assert_eq!(status, StatusCode::OK);

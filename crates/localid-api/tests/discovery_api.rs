@@ -6,13 +6,13 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
+
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn discovery_should_return_openid_configuration() {
@@ -43,12 +43,8 @@ async fn discovery_should_return_openid_configuration() {
     assert_eq!(json["issuer"].as_str(), Some("http://localhost:8080"));
 
     assert!(json["authorization_endpoint"].as_str().is_some());
-
     assert!(json["token_endpoint"].as_str().is_some());
-
     assert!(json["userinfo_endpoint"].as_str().is_some());
-
-    assert_eq!(json["id_token_signing_alg_values_supported"][0], "RS256");
     assert!(json["jwks_uri"].as_str().is_some());
 
     assert_eq!(json["id_token_signing_alg_values_supported"][0], "RS256");

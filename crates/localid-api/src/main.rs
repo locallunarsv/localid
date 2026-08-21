@@ -1,24 +1,27 @@
 use std::net::SocketAddr;
 
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
+use localid_api::{bootstrap::create_state_with_config, create_router};
 
-use localid_config::DatabaseConfig;
+use localid_config::AppConfig;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // Development bootstrap.
-    // Later replace with create_postgres_state().
-    let database = DatabaseConfig::from_env().unwrap_or_else(|error| {
-        eprintln!("Failed to read LOCALID_DATABASE_URL: {error}");
+    let config = AppConfig::load().unwrap_or_else(|error| {
+        eprintln!("Failed to load LocalID configuration: {error}");
         std::process::exit(1);
     });
 
-    let bootstrap = create_state(database, Environment::Development).await;
+    let address = format!("{}:{}", config.server.host, config.server.port)
+        .parse::<SocketAddr>()
+        .unwrap_or_else(|error| {
+            eprintln!("Invalid server address: {error}");
+            std::process::exit(1);
+        });
+
+    let bootstrap =
+        create_state_with_config(config.database, config.server, config.environment).await;
 
     let app = create_router(
         bootstrap.state,
@@ -26,9 +29,7 @@ async fn main() {
         bootstrap.authorization_state,
     );
 
-    let address = SocketAddr::from(([127, 0, 0, 1], 8080));
-
-    println!("LocalID API listening on {}", address);
+    println!("LocalID API listening on {address}");
 
     axum::serve(
         tokio::net::TcpListener::bind(address)

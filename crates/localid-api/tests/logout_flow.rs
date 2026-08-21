@@ -6,19 +6,27 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
+
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn logout_should_revoke_session_and_invalidate_token() {
     let _guard = test_lock().lock().await;
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
+
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let credential_id = bootstrap
+        .credential_id
+        .expect("development seed should provide credential ID");
 
     let app = create_router(
         bootstrap.state,
@@ -33,8 +41,8 @@ async fn logout_should_revoke_session_and_invalidate_token() {
         .header("content-type", "application/json")
         .body(Body::from(
             json!({
-                "client_id": bootstrap.client_id.to_string(),
-                "credential_id": bootstrap.credential_id.to_string(),
+                "client_id": client_id.to_string(),
+                "credential_id": credential_id.to_string(),
                 "password": "correct-password"
             })
             .to_string(),
@@ -62,7 +70,7 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let me_request = Request::builder()
         .method("GET")
         .uri("/me")
-        .header("authorization", format!("Bearer {}", access_token))
+        .header("authorization", format!("Bearer {access_token}"))
         .body(Body::empty())
         .unwrap();
 
@@ -74,7 +82,7 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let logout_request = Request::builder()
         .method("POST")
         .uri("/auth/logout")
-        .header("authorization", format!("Bearer {}", access_token))
+        .header("authorization", format!("Bearer {access_token}"))
         .body(Body::empty())
         .unwrap();
 
@@ -86,7 +94,7 @@ async fn logout_should_revoke_session_and_invalidate_token() {
     let expired_me_request = Request::builder()
         .method("GET")
         .uri("/me")
-        .header("authorization", format!("Bearer {}", access_token))
+        .header("authorization", format!("Bearer {access_token}"))
         .body(Body::empty())
         .unwrap();
 

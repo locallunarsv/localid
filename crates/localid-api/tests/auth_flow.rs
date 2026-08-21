@@ -7,13 +7,12 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 struct AuthTokens {
     access_token: String,
@@ -24,11 +23,12 @@ async fn login() -> AuthTokens {
     let context = create_state(test_database(), Environment::Development).await;
 
     let credential_id = context
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
-    let client_id = context.client_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
+
+    let client_id = context
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         context.state,
@@ -87,11 +87,12 @@ async fn verify_access_token_should_work() {
     let context = create_state(test_database(), Environment::Development).await;
 
     let credential_id = context
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
-    let client_id = context.client_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
+
+    let client_id = context
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         context.state,
@@ -162,11 +163,12 @@ async fn refresh_token_should_issue_new_tokens() {
     let context = create_state(test_database(), Environment::Development).await;
 
     let credential_id = context
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
-    let client_id = context.client_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
+
+    let client_id = context
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         context.state,
@@ -261,12 +263,12 @@ async fn protected_route_should_accept_session_cookie() {
     let context = create_state(test_database(), Environment::Development).await;
 
     let credential_id = context
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = context.client_id;
+    let client_id = context
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         context.state,

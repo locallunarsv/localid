@@ -1,14 +1,15 @@
 //! Database configuration.
 
-use std::env;
+use serde::Deserialize;
 
 /// Database runtime configuration.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     /// PostgreSQL connection URL.
     pub url: String,
 
     /// Maximum number of database connections.
+    #[serde(default = "default_max_connections")]
     pub max_connections: u32,
 }
 
@@ -18,7 +19,7 @@ impl DatabaseConfig {
     pub fn new(url: impl Into<String>) -> Self {
         Self {
             url: url.into(),
-            max_connections: 10,
+            max_connections: default_max_connections(),
         }
     }
 
@@ -28,8 +29,8 @@ impl DatabaseConfig {
     ///
     /// Returns [`std::env::VarError`] when `LOCALID_DATABASE_URL`
     /// is not available in the process environment.
-    pub fn from_env() -> Result<Self, env::VarError> {
-        let url = env::var("LOCALID_DATABASE_URL")?;
+    pub fn from_env() -> Result<Self, std::env::VarError> {
+        let url = std::env::var("LOCALID_DATABASE_URL")?;
 
         Ok(Self::new(url))
     }
@@ -45,4 +46,8 @@ impl DatabaseConfig {
     pub const fn max_connections(&self) -> u32 {
         self.max_connections
     }
+}
+
+const fn default_max_connections() -> u32 {
+    10
 }

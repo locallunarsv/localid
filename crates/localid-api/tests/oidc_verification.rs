@@ -9,13 +9,12 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[derive(Debug, Deserialize)]
 struct IdTokenClaims {
@@ -76,13 +75,16 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -178,20 +180,19 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
 
     let key = jwks_json["keys"]
         .as_array()
-        .unwrap()
+        .expect("keys should be an array")
         .iter()
         .find(|key| key["kid"] == kid)
         .expect("matching jwk should exist");
 
-    let n = key["n"].as_str().unwrap();
+    let n = key["n"].as_str().expect("RSA modulus should exist");
 
-    let e = key["e"].as_str().unwrap();
+    let e = key["e"].as_str().expect("RSA exponent should exist");
 
     // Step 5: verify JWT signature and claims
     let mut validation = Validation::new(Algorithm::RS256);
 
     validation.set_issuer(&["http://localhost:8080"]);
-
     validation.validate_aud = false;
 
     let decoded = decode::<IdTokenClaims>(
@@ -202,10 +203,7 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
     .expect("id token signature should verify");
 
     assert_eq!(decoded.claims.iss, "http://localhost:8080");
-
     assert!(!decoded.claims.sub.is_empty());
-
     assert!(!decoded.claims.aud.is_empty());
-
     assert!(decoded.claims.exp > decoded.claims.iat);
 }

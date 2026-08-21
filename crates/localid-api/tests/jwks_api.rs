@@ -6,13 +6,12 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_should_return_key_set() {
@@ -47,14 +46,10 @@ async fn jwks_should_return_key_set() {
     let key = &keys[0];
 
     assert_eq!(key["kty"].as_str(), Some("RSA"));
-
     assert_eq!(key["kid"].as_str(), Some("localid-key-1"));
-
     assert_eq!(key["alg"].as_str(), Some("RS256"));
-
     assert_eq!(key["use"].as_str(), Some("sig"));
 
     assert!(key["n"].as_str().is_some_and(|value| !value.is_empty()));
-
     assert!(key["e"].as_str().is_some_and(|value| !value.is_empty()));
 }

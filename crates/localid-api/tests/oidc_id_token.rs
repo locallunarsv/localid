@@ -8,13 +8,12 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 fn extract_authorization_code(location: &str) -> String {
     location
@@ -66,13 +65,16 @@ async fn oidc_token_should_issue_valid_id_token() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -172,14 +174,9 @@ async fn oidc_token_should_issue_valid_id_token() {
     let claims: Value = serde_json::from_slice(&payload_bytes).expect("claims should be json");
 
     assert_eq!(claims["iss"].as_str(), Some("http://localhost:8080"));
-
     assert!(claims["sub"].is_string());
-
     assert_eq!(claims["aud"].as_str(), Some(oauth_client_id.as_str()));
-
     assert_eq!(claims["nonce"].as_str(), Some("test-nonce"));
-
     assert!(claims["iat"].is_number());
-
     assert!(claims["exp"].is_number());
 }

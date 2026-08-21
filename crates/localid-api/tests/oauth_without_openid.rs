@@ -7,13 +7,12 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 fn extract_authorization_code(location: &str) -> String {
     location
@@ -65,13 +64,16 @@ async fn oauth_token_should_not_return_id_token_without_openid_scope() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,

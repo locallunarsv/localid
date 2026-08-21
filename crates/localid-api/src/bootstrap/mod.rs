@@ -11,11 +11,6 @@ mod seed;
 mod seed_context;
 
 pub use id_token::BootstrapIdTokenIssuer;
-mod environment;
-
-use crate::bootstrap::seed_context::DemoSeedContext;
-pub use environment::Environment;
-
 pub use postgres::{create_postgres_repositories, PostgresRepositories};
 
 use crate::bootstrap::postgres::{
@@ -25,8 +20,7 @@ use crate::bootstrap::postgres::{
     SharedPostgresRefreshTokenRepository, SharedPostgresSessionRepository,
     SharedPostgresTokenRepository,
 };
-
-use crate::bootstrap::seed_context::seed_demo_environment;
+use crate::bootstrap::seed_context::{seed_demo_environment, DemoSeedContext};
 
 use localid_application::{
     authentication::{PasswordAuthenticationAdapter, TokenVerificationAdapter},
@@ -46,25 +40,21 @@ use localid_authentication::{
 };
 
 use localid_client::ClientId;
-use localid_config::{DatabaseConfig, ServerConfig};
+use localid_config::{DatabaseConfig, Environment, ServerConfig};
 use localid_credential::CredentialId;
+use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
 use localid_database_postgres::PostgresOAuthClientRepository;
 use localid_identity::IdentityId;
-
 use localid_oauth_client::OAuthClientId;
-
-use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
-
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
 use localid_token_random::RandomTokenIssuer;
 
+use crate::bootstrap::repository::SharedRepository;
 use crate::{
     middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
     AppState,
 };
-
-use crate::bootstrap::repository::SharedRepository;
 
 type SharedIdentityRepository = SharedPostgresIdentityRepository;
 
@@ -92,25 +82,25 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     pub authorization_state: AuthorizationMiddlewareState<AuthorizationContextResolver<IR>>,
 
     /// Seeded credential identifier.
-    pub credential_id: CredentialId,
+    pub credential_id: Option<CredentialId>,
 
     /// Seeded identity identifier.
-    pub identity_id: IdentityId,
+    pub identity_id: Option<IdentityId>,
 
     /// Seeded local client identifier.
-    pub client_id: ClientId,
+    pub client_id: Option<ClientId>,
 
     /// Seeded secondary OAuth client public identifier.
-    pub oauth_client_other_public_id: String,
+    pub oauth_client_other_public_id: Option<String>,
 
     /// Seeded OAuth client internal identifier.
-    pub oauth_client_id: OAuthClientId,
+    pub oauth_client_id: Option<OAuthClientId>,
 
     /// Seeded OAuth client public identifier.
-    pub oauth_client_public_id: String,
+    pub oauth_client_public_id: Option<String>,
 
     /// Seeded OAuth client secret.
-    pub oauth_client_secret: String,
+    pub oauth_client_secret: Option<String>,
 
     /// Shared OAuth client repository.
     pub oauth_client_repository: OCM,
@@ -177,9 +167,37 @@ type BootstrapAuthorizationAdapter<OCR> =
 type BootstrapTokenExchangeAdapter<OCR> =
     TokenExchangeRepositoryAdapter<OCR, SharedAuthorizationCodeRepository>;
 
-/// Creates application state with in-memory dependencies.
+/// Creates application state using the default server configuration.
 pub async fn create_state(
-    _database: DatabaseConfig,
+    database: DatabaseConfig,
+    environment: Environment,
+) -> BootstrapContext<
+    BootstrapAuthenticationService,
+    BootstrapRefreshService,
+    BootstrapVerificationService,
+    BootstrapSessionService,
+    ClientRepositoryAdapter<SharedPostgresClientRepository>,
+    BootstrapAuthorizationAdapter<SharedPostgresOAuthClientRepository>,
+    BootstrapTokenExchangeAdapter<SharedPostgresOAuthClientRepository>,
+    BootstrapTokenIssuanceService,
+    BootstrapIdentityRoleAdapter,
+    BootstrapIdentityUseCase,
+    BootstrapIdTokenIssuer,
+    BootstrapClientAuthenticationRepository,
+    BootstrapOAuthClientRepository,
+> {
+    create_state_with_config(
+        database,
+        ServerConfig::new("http://localhost:8080"),
+        environment,
+    )
+    .await
+}
+
+/// Creates application state with in-memory dependencies.
+pub async fn create_state_with_config(
+    database: DatabaseConfig,
+    config: ServerConfig,
     environment: Environment,
 ) -> BootstrapContext<
     BootstrapAuthenticationService,
@@ -198,7 +216,7 @@ pub async fn create_state(
 > {
     let should_seed = environment.should_seed();
 
-    let repositories = create_postgres_repositories(&_database, Handle::current())
+    let repositories = create_postgres_repositories(&database, Handle::current())
         .await
         .expect("postgres repositories should initialize");
 
@@ -324,8 +342,6 @@ pub async fn create_state(
         IdentityRoleAdapter::new(identity_role_repository),
     ));
 
-    let config = ServerConfig::new("http://localhost:8080");
-
     let key_storage = FileKeyStorage::new();
 
     let key_path = PathBuf::from(config.signing_key_path.clone());
@@ -380,47 +396,25 @@ pub async fn create_state(
         auth_state,
         authorization_state,
 
-        credential_id: demo_seed
-            .as_ref()
-            .expect("demo seed required")
-            .credential_id
-            .clone(),
+        credential_id: demo_seed.as_ref().map(|seed| seed.credential_id.clone()),
 
-        identity_id: demo_seed
-            .as_ref()
-            .expect("demo seed required")
-            .identity_id
-            .clone(),
+        identity_id: demo_seed.as_ref().map(|seed| seed.identity_id.clone()),
 
-        client_id: demo_seed
-            .as_ref()
-            .expect("demo seed required")
-            .client_id
-            .clone(),
+        client_id: demo_seed.as_ref().map(|seed| seed.client_id.clone()),
 
-        oauth_client_id: demo_seed
-            .as_ref()
-            .expect("demo seed required")
-            .oauth_client_id
-            .clone(),
+        oauth_client_id: demo_seed.as_ref().map(|seed| seed.oauth_client_id.clone()),
 
         oauth_client_public_id: demo_seed
             .as_ref()
-            .expect("demo seed required")
-            .oauth_client_public_id
-            .clone(),
+            .map(|seed| seed.oauth_client_public_id.clone()),
 
         oauth_client_secret: demo_seed
             .as_ref()
-            .expect("demo seed required")
-            .oauth_client_secret
-            .clone(),
+            .map(|seed| seed.oauth_client_secret.clone()),
 
         oauth_client_other_public_id: demo_seed
             .as_ref()
-            .expect("demo seed required")
-            .oauth_client_other_public_id
-            .clone(),
+            .map(|seed| seed.oauth_client_other_public_id.clone()),
 
         oauth_client_repository,
 

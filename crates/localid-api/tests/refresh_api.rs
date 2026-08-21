@@ -4,13 +4,13 @@ use axum::{
 };
 
 use tower::ServiceExt;
+
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn refresh_returns_new_tokens() {
@@ -18,8 +18,13 @@ async fn refresh_returns_new_tokens() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let client_id = bootstrap.client_id;
-    let credential_id = bootstrap.credential_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let credential_id = bootstrap
+        .credential_id
+        .expect("development seed should provide credential ID");
 
     let app = create_router(
         bootstrap.state,

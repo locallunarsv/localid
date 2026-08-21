@@ -4,17 +4,16 @@ use axum::{
 };
 use http_body_util::BodyExt;
 
+use serde_json::{json, Value};
+use tower::ServiceExt;
+
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+use localid_oauth_client::OAuthClientRepository;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
-
-use localid_oauth_client::OAuthClientRepository;
-use serde_json::{json, Value};
-use tower::ServiceExt;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn oauth_client_create_should_return_credentials() {
@@ -97,14 +96,13 @@ async fn oauth_client_create_should_not_store_plain_secret() {
         .expect("client secret should exist");
 
     let client_id = json["client_id"].as_str().expect("client id should exist");
+
     let stored_client = repository
         .find_by_client_id(client_id)
         .expect("repository lookup should succeed")
         .expect("client should exist");
 
     assert_ne!(stored_client.secret_hash(), client_secret);
-
-    // nanti ambil dari repository
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -143,7 +141,10 @@ async fn oauth_client_get_should_return_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let client_id = bootstrap.oauth_client_id.to_string();
+    let client_id = bootstrap
+        .oauth_client_id
+        .expect("development seed should provide OAuth client internal ID")
+        .to_string();
 
     let app = create_router(
         bootstrap.state,
@@ -166,7 +167,6 @@ async fn oauth_client_get_should_return_client() {
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(json["client"]["state"], "active");
-
     assert!(json["client"]["client_id"].is_string());
     assert!(json["client"]["name"].is_string());
 }
@@ -200,7 +200,10 @@ async fn oauth_client_disable_should_disable_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let client_id = bootstrap.oauth_client_id.to_string();
+    let client_id = bootstrap
+        .oauth_client_id
+        .expect("development seed should provide OAuth client internal ID")
+        .to_string();
 
     let app = create_router(
         bootstrap.state,
@@ -248,7 +251,10 @@ async fn oauth_client_delete_should_delete_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let client_id = bootstrap.oauth_client_id.to_string();
+    let client_id = bootstrap
+        .oauth_client_id
+        .expect("development seed should provide OAuth client internal ID")
+        .to_string();
 
     let app = create_router(
         bootstrap.state,
@@ -296,7 +302,10 @@ async fn oauth_client_delete_should_reject_deleted_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let client_id = bootstrap.oauth_client_id.to_string();
+    let client_id = bootstrap
+        .oauth_client_id
+        .expect("development seed should provide OAuth client internal ID")
+        .to_string();
 
     let app = create_router(
         bootstrap.state,

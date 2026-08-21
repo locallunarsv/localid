@@ -5,13 +5,12 @@ use axum::{
 
 use tower::ServiceExt;
 
+use localid_api::{bootstrap::create_state, create_router};
+use localid_config::Environment;
+
 mod common;
 
 use common::{test_database, test_lock};
-use localid_api::{
-    bootstrap::{create_state, Environment},
-    create_router,
-};
 
 async fn login_session_cookie(
     app: &axum::Router,
@@ -54,13 +53,16 @@ async fn oauth_authorize_should_issue_authorization_code() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -109,12 +111,12 @@ async fn oauth_authorize_should_reject_unknown_client() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
 
     let app = create_router(
         bootstrap.state,
@@ -152,13 +154,16 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -197,13 +202,16 @@ async fn oauth_authorization_should_preserve_state() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -247,13 +255,16 @@ async fn oauth_authorization_should_reject_invalid_response_type() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -285,14 +296,21 @@ async fn oauth_authorize_should_reject_disabled_client() {
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
     let credential_id = bootstrap
-        .demo_seed
-        .as_ref()
-        .expect("demo seed should exist")
-        .credential_id;
+        .credential_id
+        .expect("development seed should provide credential ID");
 
-    let client_id = bootstrap.client_id;
-    let oauth_client_internal_id = bootstrap.oauth_client_id.to_string();
-    let oauth_client_public_id = bootstrap.oauth_client_public_id;
+    let client_id = bootstrap
+        .client_id
+        .expect("development seed should provide client ID");
+
+    let oauth_client_internal_id = bootstrap
+        .oauth_client_id
+        .expect("development seed should provide OAuth client internal ID")
+        .to_string();
+
+    let oauth_client_public_id = bootstrap
+        .oauth_client_public_id
+        .expect("development seed should provide OAuth client public ID");
 
     let app = create_router(
         bootstrap.state,
@@ -330,7 +348,6 @@ async fn oauth_authorize_should_reject_disabled_client() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body();
-
     let bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap();
 
     let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
