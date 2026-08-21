@@ -21,34 +21,46 @@ where
         + Sync
         + 'static,
 {
-    let header = request
-        .headers()
-        .get("Authorization")
-        .ok_or(ApiError::AuthenticationFailed)?;
+    let token = bearer_token(&request).or_else(|| session_cookie(&request));
 
-    let value = header
-        .to_str()
-        .map_err(|_| ApiError::AuthenticationFailed)?;
-
-    let token = value
-        .strip_prefix("Bearer ")
-        .ok_or(ApiError::AuthenticationFailed)?;
+    let token = token.ok_or(ApiError::AuthenticationFailed)?;
 
     let query = VerifyTokenQuery::new(token);
 
     let mut use_case = state.verify_token_use_case.lock().await;
 
-    // let identity = use_case
-    //     .execute(query)
-    //     .map_err(|_| ApiError::AuthenticationFailed)?;
-    let identity = use_case.execute(query).map_err(|error| {
-        println!("VERIFY TOKEN ERROR: {:?}", error);
-        ApiError::AuthenticationFailed
-    })?;
+    let identity = use_case
+        .execute(query)
+        .map_err(|_| ApiError::AuthenticationFailed)?;
 
     let context = IdentityContext::new(identity.identity_id(), identity.session_id());
 
     request.extensions_mut().insert(context);
 
     Ok(next.run(request).await)
+}
+
+fn bearer_token(request: &Request) -> Option<&str> {
+    request
+        .headers()
+        .get("Authorization")
+        .and_then(|header| header.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+}
+
+fn session_cookie(request: &Request) -> Option<&str> {
+    let cookies = request
+        .headers()
+        .get("Cookie")
+        .and_then(|header| header.to_str().ok())?;
+
+    cookies.split(';').find_map(|cookie| {
+        let (name, value) = cookie.trim().split_once('=')?;
+
+        if name == "localid_session" {
+            Some(value)
+        } else {
+            None
+        }
+    })
 }

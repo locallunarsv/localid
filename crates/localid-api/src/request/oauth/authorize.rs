@@ -1,6 +1,3 @@
-use std::str::FromStr;
-
-use localid_identity::IdentityId;
 use serde::Deserialize;
 
 /// OAuth authorization request query.
@@ -9,7 +6,6 @@ pub struct AuthorizeRequest {
     client_id: String,
     redirect_uri: String,
     scope: Option<String>,
-    identity_id: String,
     nonce: Option<String>,
     state: Option<String>,
     response_type: String,
@@ -21,11 +17,6 @@ impl AuthorizeRequest {
     /// Returns OAuth client identifier.
     pub fn client_id(&self) -> &str {
         &self.client_id
-    }
-
-    /// Returns identity identifier.
-    pub fn identity_id(&self) -> Result<IdentityId, uuid::Error> {
-        IdentityId::from_str(&self.identity_id)
     }
 
     /// Returns redirect URI.
@@ -62,6 +53,7 @@ impl AuthorizeRequest {
     pub fn response_type(&self) -> &str {
         &self.response_type
     }
+
     /// Returns PKCE code challenge.
     #[must_use]
     pub fn code_challenge(&self) -> Option<&str> {

@@ -6,6 +6,7 @@ use axum::{
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use http_body_util::BodyExt;
+
 mod common;
 
 use common::{test_database, test_lock};
@@ -30,6 +31,40 @@ fn demo_client_secret() -> &'static str {
     "demo-secret"
 }
 
+async fn login_session_cookie(
+    app: &axum::Router,
+    client_id: impl std::fmt::Display,
+    credential_id: impl std::fmt::Display,
+) -> String {
+    let payload = json!({
+        "client_id": client_id.to_string(),
+        "credential_id": credential_id.to_string(),
+        "password": "correct-password"
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/auth/login")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid")
+        .split(';')
+        .next()
+        .expect("session cookie should exist")
+        .to_owned()
+}
+
 fn extract_authorization_code(location: &str) -> String {
     location
         .split("code=")
@@ -42,17 +77,15 @@ fn extract_authorization_code(location: &str) -> String {
 async fn create_authorization_code(
     app: &axum::Router,
     client_id: &str,
-    identity_id: impl std::fmt::Display,
+    session_cookie: &str,
 ) -> String {
     let request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
-                client_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code",
+            client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -76,8 +109,14 @@ async fn oauth_token_should_exchange_authorization_code() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -85,7 +124,9 @@ async fn oauth_token_should_exchange_authorization_code() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let token_request = Request::builder()
         .method("POST")
@@ -128,8 +169,14 @@ async fn oauth_token_should_accept_basic_client_authentication() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -137,7 +184,9 @@ async fn oauth_token_should_accept_basic_client_authentication() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let credentials = format!("{}:{}", oauth_client_id, demo_client_secret());
 
@@ -216,8 +265,14 @@ async fn oauth_token_should_reject_reused_authorization_code() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -225,7 +280,9 @@ async fn oauth_token_should_reject_reused_authorization_code() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let first_request = Request::builder()
         .method("POST")
@@ -281,9 +338,15 @@ async fn oauth_token_should_reject_client_mismatch() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
     let other_oauth_client_id = bootstrap.oauth_client_other_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -291,7 +354,9 @@ async fn oauth_token_should_reject_client_mismatch() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let request = Request::builder()
         .method("POST")
@@ -323,8 +388,14 @@ async fn oauth_token_should_reject_invalid_client_secret() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -332,7 +403,9 @@ async fn oauth_token_should_reject_invalid_client_secret() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let request = Request::builder()
         .method("POST")
@@ -366,8 +439,14 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -375,7 +454,9 @@ async fn oauth_token_should_reject_redirect_uri_mismatch() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let request = Request::builder()
         .method("POST")
@@ -407,8 +488,14 @@ async fn oauth_token_should_refresh_access_token() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -416,7 +503,9 @@ async fn oauth_token_should_refresh_access_token() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let token_request = Request::builder()
         .method("POST")
@@ -475,8 +564,14 @@ async fn oauth_token_should_issue_id_token_for_openid_scope() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -484,15 +579,15 @@ async fn oauth_token_should_issue_id_token_for_openid_scope() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let authorize_request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&nonce=test-nonce",
-                oauth_client_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&scope=openid&response_type=code&nonce=test-nonce",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -555,8 +650,14 @@ async fn oauth_token_should_reject_missing_client_authentication() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -564,7 +665,9 @@ async fn oauth_token_should_reject_missing_client_authentication() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let request = Request::builder()
         .method("POST")
@@ -590,8 +693,14 @@ async fn oauth_token_should_reject_invalid_basic_authentication() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -599,7 +708,9 @@ async fn oauth_token_should_reject_invalid_basic_authentication() {
         bootstrap.authorization_state,
     );
 
-    let code = create_authorization_code(&app, &oauth_client_id, identity_id).await;
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
+    let code = create_authorization_code(&app, &oauth_client_id, &session_cookie).await;
 
     let credentials = format!("{}:{}", oauth_client_id, "wrong-secret");
 

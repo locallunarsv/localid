@@ -5,13 +5,16 @@ use tokio::runtime::Handle;
 use localid_config::DatabaseConfig;
 
 use localid_database_postgres::{
-    migrate, DatabaseError, PostgresClientRepository, PostgresCredentialRepository,
-    PostgresIdentityRepository, PostgresIdentityRoleRepository, PostgresOAuthClientRepository,
-    PostgresPasswordMaterialRepository, PostgresRefreshTokenRepository, PostgresSessionRepository,
-    PostgresTokenRepository,
+    connect, migrate, DatabaseError, PostgresAuthorizationCodeRepository, PostgresClientRepository,
+    PostgresCredentialRepository, PostgresIdentityRepository, PostgresIdentityRoleRepository,
+    PostgresOAuthClientRepository, PostgresPasswordMaterialRepository,
+    PostgresRefreshTokenRepository, PostgresSessionRepository, PostgresTokenRepository,
 };
 
 use super::repository::SharedRepository;
+
+pub type SharedPostgresAuthorizationCodeRepository =
+    SharedRepository<PostgresAuthorizationCodeRepository>;
 
 pub type SharedPostgresClientRepository = SharedRepository<PostgresClientRepository>;
 
@@ -34,6 +37,9 @@ pub type SharedPostgresTokenRepository = SharedRepository<PostgresTokenRepositor
 
 /// Collection of PostgreSQL repositories required by the application.
 pub struct PostgresRepositories {
+    /// Authorization code repository.
+    pub authorization_code: SharedPostgresAuthorizationCodeRepository,
+
     /// Client repository.
     pub client: SharedPostgresClientRepository,
 
@@ -67,30 +73,35 @@ pub async fn create_postgres_repositories(
     config: &DatabaseConfig,
     runtime: Handle,
 ) -> Result<PostgresRepositories, DatabaseError> {
-    let client = PostgresClientRepository::connect(config, runtime.clone()).await?;
+    let pool = connect(config).await?;
 
-    let credential = PostgresCredentialRepository::connect(config, runtime.clone()).await?;
-
-    let identity = PostgresIdentityRepository::connect(config, runtime.clone()).await?;
-
-    let identity_role = PostgresIdentityRoleRepository::connect(config, runtime.clone()).await?;
-
-    let oauth_client = PostgresOAuthClientRepository::connect(config, runtime.clone()).await?;
-
-    let password_material =
-        PostgresPasswordMaterialRepository::connect(config, runtime.clone()).await?;
-
-    let refresh_token = PostgresRefreshTokenRepository::connect(config, runtime.clone()).await?;
-
-    let session = PostgresSessionRepository::connect(config, runtime.clone()).await?;
-
-    let token = PostgresTokenRepository::connect(config, runtime).await?;
-
-    migrate(oauth_client.pool())
+    migrate(&pool)
         .await
         .map_err(|_| DatabaseError::InvalidData)?;
 
+    let authorization_code =
+        PostgresAuthorizationCodeRepository::new(pool.clone(), runtime.clone());
+
+    let client = PostgresClientRepository::new(pool.clone(), runtime.clone());
+
+    let credential = PostgresCredentialRepository::new(pool.clone(), runtime.clone());
+
+    let identity = PostgresIdentityRepository::new(pool.clone(), runtime.clone());
+
+    let identity_role = PostgresIdentityRoleRepository::new(pool.clone(), runtime.clone());
+
+    let oauth_client = PostgresOAuthClientRepository::new(pool.clone(), runtime.clone());
+
+    let password_material = PostgresPasswordMaterialRepository::new(pool.clone(), runtime.clone());
+
+    let refresh_token = PostgresRefreshTokenRepository::new(pool.clone(), runtime.clone());
+
+    let session = PostgresSessionRepository::new(pool.clone(), runtime.clone());
+
+    let token = PostgresTokenRepository::new(pool, runtime);
+
     Ok(PostgresRepositories {
+        authorization_code: SharedRepository::new(authorization_code),
         client: SharedRepository::new(client),
         credential: SharedRepository::new(credential),
         identity: SharedRepository::new(identity),
@@ -101,14 +112,4 @@ pub async fn create_postgres_repositories(
         session: SharedRepository::new(session),
         token: SharedRepository::new(token),
     })
-}
-
-/// Creates PostgreSQL OAuth client repository.
-pub async fn create_postgres_oauth_client_repository(
-    config: &DatabaseConfig,
-    runtime: Handle,
-) -> Result<SharedPostgresOAuthClientRepository, DatabaseError> {
-    let repositories = create_postgres_repositories(config, runtime).await?;
-
-    Ok(repositories.oauth_client)
 }

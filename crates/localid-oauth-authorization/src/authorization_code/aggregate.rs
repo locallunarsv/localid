@@ -124,6 +124,41 @@ impl AuthorizationCode {
         })
     }
 
+    /// Restores an authorization code aggregate from persistent storage.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn restore(
+        id: AuthorizationCodeId,
+        client_id: OAuthClientId,
+        identity_id: IdentityId,
+        code_hash: String,
+        redirect_uri: String,
+        nonce: Option<String>,
+        scope: Vec<String>,
+        request_state: Option<String>,
+        pkce_challenge: Option<String>,
+        pkce_method: Option<CodeChallengeMethod>,
+        created_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+        state: AuthorizationCodeLifecycleState,
+    ) -> Self {
+        Self {
+            id,
+            client_id,
+            identity_id,
+            code_hash,
+            redirect_uri,
+            nonce,
+            scope,
+            request_state,
+            pkce_challenge,
+            pkce_method,
+            created_at,
+            expires_at,
+            state,
+        }
+    }
+
     #[must_use]
     pub const fn id(&self) -> AuthorizationCodeId {
         self.id
@@ -208,6 +243,7 @@ impl AuthorizationCode {
     pub fn is_expired_at(&self, time: DateTime<Utc>) -> bool {
         time >= self.expires_at
     }
+
     /// Returns OAuth request state.
     #[must_use]
     pub fn request_state(&self) -> Option<&str> {

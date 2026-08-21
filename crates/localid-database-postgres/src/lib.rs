@@ -2,6 +2,7 @@
 
 //! PostgreSQL database infrastructure for LocalID.
 
+mod authorization_code;
 mod client;
 mod credential;
 mod error;
@@ -15,6 +16,7 @@ mod refresh_token;
 mod session;
 mod token;
 
+pub use authorization_code::PostgresAuthorizationCodeRepository;
 pub use credential::PostgresCredentialRepository;
 pub use error::DatabaseError;
 pub use identity::PostgresIdentityRepository;

@@ -4,10 +4,11 @@ use localid_oauth_authorization::{
 
 use super::SharedRepository;
 
-use localid_oauth_authorization_repository_memory::MemoryAuthorizationCodeRepository;
-
-impl AuthorizationCodeRepository for SharedRepository<MemoryAuthorizationCodeRepository> {
-    type Error = ();
+impl<R> AuthorizationCodeRepository for SharedRepository<R>
+where
+    R: AuthorizationCodeRepository,
+{
+    type Error = R::Error;
 
     fn save(&mut self, code: AuthorizationCode) -> Result<(), Self::Error> {
         self.with_mut(|repository| repository.save(code))

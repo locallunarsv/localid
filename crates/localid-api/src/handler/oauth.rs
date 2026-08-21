@@ -25,6 +25,7 @@ use crate::response::build_authorization_redirect;
 
 /// Handles OAuth authorization request.
 pub async fn authorize<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>(
+    AuthenticatedIdentity(identity): AuthenticatedIdentity,
     Query(request): Query<AuthorizeRequest>,
     State(state): State<AppState<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>>,
 ) -> Response
@@ -72,20 +73,6 @@ where
             .into_response();
     }
 
-    let identity_id = match request.identity_id() {
-        Ok(value) => value,
-
-        Err(_) => {
-            return (
-                axum::http::StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_identity_id"
-                })),
-            )
-                .into_response();
-        }
-    };
-
     let code_challenge_method = match request.code_challenge_method() {
         Some(value) => match localid_oauth_authorization::CodeChallengeMethod::from_str(value) {
             Some(method) => Some(method),
@@ -106,7 +93,7 @@ where
 
     let command = AuthorizeCommand::new_with_nonce_and_pkce(
         request.client_id(),
-        identity_id,
+        identity.identity_id(),
         request.redirect_uri(),
         scopes,
         request.nonce().map(ToOwned::to_owned),

@@ -55,6 +55,15 @@ impl IdentityRepository for MemoryStorage {
         Ok(storage.identities.get(&id).cloned())
     }
 
+    fn find_all(&self) -> Result<Vec<Identity>, Self::Error> {
+        let storage = self
+            .inner
+            .read()
+            .map_err(|_| MemoryStorageError::LockPoisoned)?;
+
+        Ok(storage.identities.values().cloned().collect())
+    }
+
     fn save(&mut self, identity: Identity) -> Result<(), Self::Error> {
         let mut storage = self
             .inner

@@ -22,20 +22,20 @@ impl<C, A> AuthorizationRepositoryAdapter<C, A> {
 
 /// Repository adapter error.
 #[derive(Debug)]
-pub enum AuthorizationRepositoryError<CE> {
+pub enum AuthorizationRepositoryError<CE, AE> {
     /// OAuth client repository error.
     Client(CE),
 
     /// Authorization code repository error.
-    Code(()),
+    Code(AE),
 }
 
 impl<C, A> AuthorizationPort for AuthorizationRepositoryAdapter<C, A>
 where
     C: OAuthClientRepository,
-    A: AuthorizationCodeRepository<Error = ()>,
+    A: AuthorizationCodeRepository,
 {
-    type Error = AuthorizationRepositoryError<C::Error>;
+    type Error = AuthorizationRepositoryError<C::Error, A::Error>;
 
     fn find_client(&self, client_id: &str) -> Result<Option<OAuthClient>, Self::Error> {
         self.client_repository

@@ -22,20 +22,20 @@ impl<C, A> TokenExchangeRepositoryAdapter<C, A> {
 
 /// Repository adapter error.
 #[derive(Debug)]
-pub enum TokenExchangeRepositoryError<CE> {
+pub enum TokenExchangeRepositoryError<CE, AE> {
     /// OAuth client repository error.
     Client(CE),
 
     /// Authorization code repository error.
-    Code(()),
+    Code(AE),
 }
 
 impl<C, A> TokenExchangePort for TokenExchangeRepositoryAdapter<C, A>
 where
     C: OAuthClientRepository,
-    A: AuthorizationCodeRepository<Error = ()>,
+    A: AuthorizationCodeRepository,
 {
-    type Error = TokenExchangeRepositoryError<C::Error>;
+    type Error = TokenExchangeRepositoryError<C::Error, A::Error>;
 
     fn find_authorization_code_by_hash(
         &self,

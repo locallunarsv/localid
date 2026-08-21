@@ -13,6 +13,10 @@ where
         self.with(|repository| repository.find_by_id(id))
     }
 
+    fn find_all(&self) -> Result<Vec<Identity>, Self::Error> {
+        self.with(|repository| repository.find_all())
+    }
+
     fn save(&mut self, identity: Identity) -> Result<(), Self::Error> {
         self.with_mut(|repository| repository.save(identity))
     }

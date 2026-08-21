@@ -44,7 +44,6 @@ localid-crypto = { path = "../localid-crypto" }
 localid-oauth-client = { path = "../localid-oauth-client" }
 localid-oauth-client-repository-memory = { path = "../localid-oauth-client-repository-memory" }
 localid-oauth-authorization = { path = "../localid-oauth-authorization" }
-localid-oauth-authorization-repository-memory = { path = "../localid-oauth-authorization-repository-memory" }
 
 
 [dev-dependencies]

@@ -31,5 +31,5 @@ members = [
     "crates/localid-config",
     "crates/localid-crypto",
     "crates/localid-authorization-code-random",
-    "crates/localid-database-postgres",
+    "crates/localid-database-postgres", "crates/localid-cli",
 ]

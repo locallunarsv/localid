@@ -16,8 +16,14 @@ mod environment;
 use crate::bootstrap::seed_context::DemoSeedContext;
 pub use environment::Environment;
 
-pub use postgres::{
-    create_postgres_oauth_client_repository, create_postgres_repositories, PostgresRepositories,
+pub use postgres::{create_postgres_repositories, PostgresRepositories};
+
+use crate::bootstrap::postgres::{
+    SharedPostgresAuthorizationCodeRepository, SharedPostgresClientRepository,
+    SharedPostgresCredentialRepository, SharedPostgresIdentityRepository,
+    SharedPostgresIdentityRoleRepository, SharedPostgresPasswordMaterialRepository,
+    SharedPostgresRefreshTokenRepository, SharedPostgresSessionRepository,
+    SharedPostgresTokenRepository,
 };
 
 use crate::bootstrap::seed_context::seed_demo_environment;
@@ -45,7 +51,6 @@ use localid_credential::CredentialId;
 use localid_database_postgres::PostgresOAuthClientRepository;
 use localid_identity::IdentityId;
 
-use localid_oauth_authorization_repository_memory::MemoryAuthorizationCodeRepository;
 use localid_oauth_client::OAuthClientId;
 
 use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
@@ -53,13 +58,6 @@ use localid_crypto::{FileKeyStorage, KeyId, KeyPair};
 use localid_password_argon2::Argon2PasswordHasher;
 use localid_refresh_token_random::RandomRefreshTokenIssuer;
 use localid_token_random::RandomTokenIssuer;
-
-use crate::bootstrap::postgres::{
-    SharedPostgresClientRepository, SharedPostgresCredentialRepository,
-    SharedPostgresIdentityRepository, SharedPostgresIdentityRoleRepository,
-    SharedPostgresPasswordMaterialRepository, SharedPostgresRefreshTokenRepository,
-    SharedPostgresSessionRepository, SharedPostgresTokenRepository,
-};
 
 use crate::{
     middleware::{AuthMiddlewareState, AuthorizationMiddlewareState},
@@ -121,7 +119,7 @@ pub struct BootstrapContext<L, R, V, S, C, O, REX, TEX, IR, ID, ITI, CA, OCM> {
     pub demo_seed: Option<DemoSeedContext>,
 }
 
-type SharedAuthorizationCodeRepository = SharedRepository<MemoryAuthorizationCodeRepository>;
+type SharedAuthorizationCodeRepository = SharedPostgresAuthorizationCodeRepository;
 
 type BootstrapTokenIssuanceService = DefaultTokenIssuanceService<
     SharedSessionRepository,
@@ -198,7 +196,7 @@ pub async fn create_state(
     BootstrapClientAuthenticationRepository,
     BootstrapOAuthClientRepository,
 > {
-    let _should_seed = environment.should_seed();
+    let should_seed = environment.should_seed();
 
     let repositories = create_postgres_repositories(&_database, Handle::current())
         .await
@@ -218,18 +216,9 @@ pub async fn create_state(
 
     let mut client_repository = repositories.client.clone();
 
-    let mut oauth_client_repository =
-        create_postgres_oauth_client_repository(&_database, Handle::current())
-            .await
-            .expect("postgres oauth repository should initialize");
+    let mut oauth_client_repository = repositories.oauth_client.clone();
 
-    oauth_client_repository.with(|repository| {
-        repository
-            .clear()
-            .expect("oauth client cleanup should succeed");
-    });
-
-    let demo_seed = if environment.should_seed() {
+    let demo_seed = if should_seed {
         Some(seed_demo_environment(
             &mut identity_repository,
             &mut credential_repository,
@@ -262,8 +251,7 @@ pub async fn create_state(
     let delete_oauth_client_use_case =
         DeleteOAuthClientUseCase::new(oauth_client_repository.clone());
 
-    let authorization_code_repository =
-        SharedRepository::new(MemoryAuthorizationCodeRepository::new());
+    let authorization_code_repository = repositories.authorization_code.clone();
 
     let authorization_adapter = AuthorizationRepositoryAdapter::new(
         oauth_client_repository.clone(),

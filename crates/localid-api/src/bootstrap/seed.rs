@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use localid_client::{Client, ClientId};
 use localid_credential::{Credential, CredentialId, CredentialKind};
 use localid_identity::{Identity, IdentityId};
@@ -12,6 +14,16 @@ use localid_repository::{
 use localid_role::Role;
 
 use localid_crypto::hash_secret;
+
+const DEMO_IDENTITY_UUID: Uuid = Uuid::from_u128(0x00000000000070008000000000000001);
+
+const DEMO_CREDENTIAL_UUID: Uuid = Uuid::from_u128(0x00000000000070008000000000000002);
+
+const DEMO_CLIENT_UUID: Uuid = Uuid::from_u128(0x00000000000070008000000000000003);
+
+const DEMO_OAUTH_CLIENT_UUID: Uuid = Uuid::from_u128(0x00000000000070008000000000000004);
+
+const DEMO_OAUTH_OTHER_CLIENT_UUID: Uuid = Uuid::from_u128(0x00000000000070008000000000000005);
 
 /// Seeds a demo password identity.
 ///
@@ -32,7 +44,7 @@ where
     PR::Error: std::fmt::Debug,
     RR::Error: std::fmt::Debug,
 {
-    let identity_id = IdentityId::new();
+    let identity_id = IdentityId::from_uuid(DEMO_IDENTITY_UUID);
 
     let identity = Identity::new(identity_id);
 
@@ -40,7 +52,7 @@ where
         .save(identity)
         .unwrap_or_else(|error| panic!("identity seed should succeed: {error:?}"));
 
-    let credential_id = CredentialId::new();
+    let credential_id = CredentialId::from_uuid(DEMO_CREDENTIAL_UUID);
 
     let credential = Credential::new(credential_id, identity_id, CredentialKind::Password);
 
@@ -79,14 +91,15 @@ where
 pub fn seed_demo_client<CR>(client_repository: &mut CR) -> ClientId
 where
     CR: ClientRepository,
+    CR::Error: std::fmt::Debug,
 {
-    let client_id = ClientId::new();
+    let client_id = ClientId::from_uuid(DEMO_CLIENT_UUID);
 
     let client = Client::new(client_id, client_id.to_string(), "LocalID Demo Application");
 
     client_repository
         .save(client)
-        .unwrap_or_else(|_| panic!("client seed should succeed"));
+        .unwrap_or_else(|error| panic!("client seed should succeed: {error:?}"));
 
     client_id
 }
@@ -99,7 +112,11 @@ where
     R: OAuthClientRepository,
     R::Error: std::fmt::Debug,
 {
-    seed_oauth_client(repository, "demo-client".to_string())
+    seed_oauth_client_with_id(
+        repository,
+        OAuthClientId::from_uuid(DEMO_OAUTH_CLIENT_UUID),
+        "demo-client".to_string(),
+    )
 }
 
 /// Seeds OAuth client with custom public id.
@@ -110,20 +127,43 @@ where
     R: OAuthClientRepository,
     R::Error: std::fmt::Debug,
 {
-    let local_client_id = ClientId::new();
+    let fallback_id = if public_client_id == "different-client" {
+        OAuthClientId::from_uuid(DEMO_OAUTH_OTHER_CLIENT_UUID)
+    } else {
+        OAuthClientId::new()
+    };
+
+    seed_oauth_client_with_id(repository, fallback_id, public_client_id)
+}
+
+fn seed_oauth_client_with_id<R>(
+    repository: &mut R,
+    fallback_id: OAuthClientId,
+    public_client_id: String,
+) -> (OAuthClientId, String)
+where
+    R: OAuthClientRepository,
+    R::Error: std::fmt::Debug,
+{
+    let existing = repository
+        .find_by_client_id(&public_client_id)
+        .unwrap_or_else(|error| panic!("oauth client lookup should succeed: {error:?}"));
 
     let client_secret = "demo-secret";
 
+    let (internal_id, local_client_id) = match existing {
+        Some(client) => (client.id(), client.local_client_id()),
+        None => (fallback_id, ClientId::new()),
+    };
+
     let client = OAuthClient::new(
-        OAuthClientId::new(),
+        internal_id,
         local_client_id,
         public_client_id.clone(),
         "LocalID Demo Client",
         hash_secret(client_secret),
         vec!["http://localhost:3000/callback".to_string()],
     );
-
-    let internal_id = client.id();
 
     repository
         .save(client)

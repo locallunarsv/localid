@@ -1,4 +1,9 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::State,
+    http::{header::SET_COOKIE, HeaderValue, StatusCode},
+    response::IntoResponse,
+    Json,
+};
 
 use localid_application::{
     AuthenticationPort, ClientPort, LoginCommand, RefreshTokenPort, SessionPort, VerifyTokenQuery,
@@ -55,7 +60,25 @@ where
     let mut use_case = state.login_use_case.lock().await;
 
     match use_case.execute(command) {
-        Ok(response) => Json(LoginResponseBody::from(response)).into_response(),
+        Ok(response) => {
+            let cookie = format!(
+                "localid_session={}; HttpOnly; SameSite=Lax; Path=/",
+                response.access_token()
+            );
+
+            let mut http_response = Json(LoginResponseBody::from(response)).into_response();
+
+            let cookie = match HeaderValue::from_str(&cookie) {
+                Ok(value) => value,
+                Err(_) => {
+                    return ApiError::InternalFailure.into_response();
+                }
+            };
+
+            http_response.headers_mut().append(SET_COOKIE, cookie);
+
+            http_response
+        }
 
         Err(error) => ApiError::from(error).into_response(),
     }

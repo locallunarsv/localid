@@ -45,6 +45,16 @@ where
     CA: ClientAuthenticationPort + Send + Sync + 'static,
     OCM: OAuthClientRepository + Send + Sync + 'static,
 {
+    let oauth_authorization = Router::new()
+        .route(
+            "/oauth/authorize",
+            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
+        )
+        .layer(middleware::from_fn_with_state(
+            auth_state.clone(),
+            crate::middleware::auth::require_auth,
+        ));
+
     let protected = Router::new()
         .route("/me", get(handler::me))
         .route(
@@ -121,13 +131,10 @@ where
             post(auth::verify::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
         )
         .route(
-            "/oauth/authorize",
-            get(handler::oauth::authorize::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
-        )
-        .route(
             "/oauth/token",
             post(handler::oauth::token::<L, R, V, S, C, O, REX, TEX, ID, ITI, CA, OCM>),
         )
+        .merge(oauth_authorization)
         .merge(protected)
         .layer(TraceLayer::new_for_http())
         .layer(propagate_request_id_layer)

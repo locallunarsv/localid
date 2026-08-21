@@ -24,14 +24,54 @@ fn extract_authorization_code(location: &str) -> String {
         .to_string()
 }
 
+async fn login_session_cookie(
+    app: &axum::Router,
+    client_id: impl std::fmt::Display,
+    credential_id: impl std::fmt::Display,
+) -> String {
+    let payload = json!({
+        "client_id": client_id.to_string(),
+        "credential_id": credential_id.to_string(),
+        "password": "correct-password"
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/auth/login")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid")
+        .split(';')
+        .next()
+        .expect("session cookie should exist")
+        .to_owned()
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn oauth_token_should_not_return_id_token_without_openid_scope() {
     let _guard = test_lock().lock().await;
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -39,14 +79,16 @@ async fn oauth_token_should_not_return_id_token_without_openid_scope() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     // Step 1: create authorization code without openid scope
     let authorize_request = Request::builder()
         .method("GET")
         .uri(format!(
-            "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=profile",
-            oauth_client_id,
-            identity_id
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=profile",
+            oauth_client_id
         ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 

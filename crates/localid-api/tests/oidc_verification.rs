@@ -1,10 +1,14 @@
-use axum::{body::Body, http::Request};
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 
 use http_body_util::BodyExt;
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tower::ServiceExt;
+
 mod common;
 
 use common::{test_database, test_lock};
@@ -31,14 +35,54 @@ fn extract_authorization_code(location: &str) -> String {
         .to_string()
 }
 
+async fn login_session_cookie(
+    app: &axum::Router,
+    client_id: impl std::fmt::Display,
+    credential_id: impl std::fmt::Display,
+) -> String {
+    let payload = json!({
+        "client_id": client_id.to_string(),
+        "credential_id": credential_id.to_string(),
+        "password": "correct-password"
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/auth/login")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid")
+        .split(';')
+        .next()
+        .expect("session cookie should exist")
+        .to_owned()
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_id_token_should_verify_signature_using_jwks() {
     let _guard = test_lock().lock().await;
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -46,20 +90,22 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     // Step 1: create authorization code
     let authorize_request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
-                oauth_client_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
     let authorize_response = app.clone().oneshot(authorize_request).await.unwrap();
+
+    assert_eq!(authorize_response.status(), StatusCode::TEMPORARY_REDIRECT);
 
     let location = authorize_response
         .headers()
@@ -87,6 +133,8 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
         .unwrap();
 
     let token_response = app.clone().oneshot(token_request).await.unwrap();
+
+    assert_eq!(token_response.status(), StatusCode::OK);
 
     let token_body = token_response
         .into_body()
@@ -116,6 +164,8 @@ async fn oidc_id_token_should_verify_signature_using_jwks() {
         .unwrap();
 
     let jwks_response = app.oneshot(jwks_request).await.unwrap();
+
+    assert_eq!(jwks_response.status(), StatusCode::OK);
 
     let jwks_body = jwks_response
         .into_body()

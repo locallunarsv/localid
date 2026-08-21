@@ -58,6 +58,7 @@ async fn login_returns_success_response() {
         .as_ref()
         .expect("demo seed should exist")
         .credential_id;
+
     let client_id = bootstrap.client_id;
 
     let app = create_router(
@@ -87,6 +88,19 @@ async fn login_returns_success_response() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
+    let set_cookie = response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid")
+        .to_owned();
+
+    assert!(set_cookie.contains("localid_session="));
+    assert!(set_cookie.contains("HttpOnly"));
+    assert!(set_cookie.contains("SameSite=Lax"));
+    assert!(set_cookie.contains("Path=/"));
+
     let body = to_bytes(response.into_body(), usize::MAX)
         .await
         .expect("response body should be readable");
@@ -94,9 +108,17 @@ async fn login_returns_success_response() {
     let json: serde_json::Value =
         serde_json::from_slice(&body).expect("response should be valid json");
 
-    assert!(json["access_token"].is_string());
+    let access_token = json["access_token"]
+        .as_str()
+        .expect("access token should be a string");
+
     assert!(json["refresh_token"].is_string());
     assert!(json["expires_at"].is_string());
+
+    assert!(
+        set_cookie.contains(&format!("localid_session={access_token}")),
+        "session cookie should contain the issued access token"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]

@@ -13,14 +13,54 @@ use localid_api::{
     create_router,
 };
 
+async fn login_session_cookie(
+    app: &axum::Router,
+    client_id: impl std::fmt::Display,
+    credential_id: impl std::fmt::Display,
+) -> String {
+    let payload = serde_json::json!({
+        "client_id": client_id.to_string(),
+        "credential_id": credential_id.to_string(),
+        "password": "correct-password"
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/auth/login")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid")
+        .split(';')
+        .next()
+        .expect("session cookie should exist")
+        .to_owned()
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn oauth_authorize_should_issue_authorization_code() {
     let _guard = test_lock().lock().await;
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -28,15 +68,15 @@ async fn oauth_authorize_should_issue_authorization_code() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
-                oauth_client_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -68,7 +108,13 @@ async fn oauth_authorize_should_reject_unknown_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
-    let identity_id = bootstrap.identity_id;
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
 
     let app = create_router(
         bootstrap.state,
@@ -76,11 +122,14 @@ async fn oauth_authorize_should_reject_unknown_client() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let request = Request::builder()
         .method("GET")
         .uri(
-            format!("/oauth/authorize?client_id=unknown-client&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid", identity_id)
+            "/oauth/authorize?client_id=unknown-client&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
         )
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -102,8 +151,14 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
@@ -111,15 +166,15 @@ async fn oauth_authorize_should_reject_invalid_redirect_uri() {
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://evil.com/callback&response_type=code&scope=openid",
-                oauth_client_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://evil.com/callback&response_type=code&scope=openid",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -141,21 +196,30 @@ async fn oauth_authorization_should_preserve_state() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+
     let app = create_router(
         bootstrap.state,
         bootstrap.auth_state,
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid&state=test-state",
-                bootstrap.oauth_client_public_id,
-                bootstrap.identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid&state=test-state",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -182,21 +246,30 @@ async fn oauth_authorization_should_reject_invalid_response_type() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
+    let oauth_client_id = bootstrap.oauth_client_public_id;
+
     let app = create_router(
         bootstrap.state,
         bootstrap.auth_state,
         bootstrap.authorization_state,
     );
 
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
+
     let request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=token&scope=openid",
-                bootstrap.oauth_client_public_id,
-                bootstrap.identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=token&scope=openid",
+            oauth_client_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 
@@ -211,15 +284,23 @@ async fn oauth_authorize_should_reject_disabled_client() {
 
     let bootstrap = create_state(test_database(), Environment::Development).await;
 
+    let credential_id = bootstrap
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = bootstrap.client_id;
     let oauth_client_internal_id = bootstrap.oauth_client_id.to_string();
     let oauth_client_public_id = bootstrap.oauth_client_public_id;
-    let identity_id = bootstrap.identity_id;
 
     let app = create_router(
         bootstrap.state,
         bootstrap.auth_state,
         bootstrap.authorization_state,
     );
+
+    let session_cookie = login_session_cookie(&app, client_id, credential_id).await;
 
     let disable_request = Request::builder()
         .method("POST")
@@ -236,13 +317,11 @@ async fn oauth_authorize_should_reject_disabled_client() {
 
     let authorize_request = Request::builder()
         .method("GET")
-        .uri(
-            format!(
-                "/oauth/authorize?client_id={}&identity_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
-                oauth_client_public_id,
-                identity_id
-            )
-        )
+        .uri(format!(
+            "/oauth/authorize?client_id={}&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid",
+            oauth_client_public_id
+        ))
+        .header("cookie", session_cookie)
         .body(Body::empty())
         .unwrap();
 

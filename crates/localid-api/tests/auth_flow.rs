@@ -253,3 +253,65 @@ async fn protected_route_requires_valid_token() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn protected_route_should_accept_session_cookie() {
+    let _guard = test_lock().lock().await;
+
+    let context = create_state(test_database(), Environment::Development).await;
+
+    let credential_id = context
+        .demo_seed
+        .as_ref()
+        .expect("demo seed should exist")
+        .credential_id;
+
+    let client_id = context.client_id;
+
+    let app = create_router(
+        context.state,
+        context.auth_state,
+        context.authorization_state,
+    );
+
+    let login_payload = serde_json::json!({
+        "client_id": client_id.to_string(),
+        "credential_id": credential_id.to_string(),
+        "password": "correct-password"
+    });
+
+    let login_request = Request::builder()
+        .method("POST")
+        .uri("/auth/login")
+        .header("content-type", "application/json")
+        .body(Body::from(login_payload.to_string()))
+        .unwrap();
+
+    let login_response = app.clone().oneshot(login_request).await.unwrap();
+
+    assert_eq!(login_response.status(), StatusCode::OK);
+
+    let set_cookie = login_response
+        .headers()
+        .get("set-cookie")
+        .expect("login should set session cookie")
+        .to_str()
+        .expect("set-cookie header should be valid");
+
+    let session_cookie = set_cookie
+        .split(';')
+        .next()
+        .expect("session cookie should exist")
+        .to_owned();
+
+    let request = Request::builder()
+        .method("GET")
+        .uri("/me")
+        .header("cookie", session_cookie)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
