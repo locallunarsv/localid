@@ -1,13 +1,19 @@
+mod common;
+
 use sqlx::{PgPool, postgres::PgPoolOptions};
 
 use localid_database_postgres::migrate;
 
+use common::test_database;
+
 async fn pool() -> PgPool {
+    let database = test_database();
+
     PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect")
+        .expect("test database should connect")
 }
 
 #[tokio::test(flavor = "multi_thread")]

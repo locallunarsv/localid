@@ -1,3 +1,5 @@
+mod common;
+
 use std::sync::OnceLock;
 
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -11,6 +13,8 @@ use localid_identity::IdentityId;
 use localid_password::{PasswordHash, PasswordMaterial};
 use localid_repository::{CredentialRepository, PasswordMaterialRepository};
 
+use common::{test_database, test_lock};
+
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
 fn runtime() -> &'static Runtime {
@@ -23,11 +27,13 @@ fn runtime() -> &'static Runtime {
 }
 
 async fn create_pool() -> PgPool {
+    let database = test_database();
+
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect");
+        .expect("test database should connect");
 
     migrate(&pool).await.expect("migration should succeed");
 
@@ -59,13 +65,14 @@ fn create_material(credential_id: CredentialId) -> PasswordMaterial {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_and_find_password_material() {
+    let _guard = test_lock().lock().await;
+
     let pool = create_pool().await;
 
     let mut credential_repo = credential_repository(pool.clone());
     let mut repository = repository(pool);
 
     let credential = create_credential();
-
     let credential_id = credential.id();
 
     credential_repo
@@ -86,13 +93,14 @@ async fn save_and_find_password_material() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_should_replace_existing_hash() {
+    let _guard = test_lock().lock().await;
+
     let pool = create_pool().await;
 
     let mut credential_repo = credential_repository(pool.clone());
     let mut repository = repository(pool);
 
     let credential = create_credential();
-
     let credential_id = credential.id();
 
     credential_repo
@@ -117,8 +125,9 @@ async fn save_should_replace_existing_hash() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_unknown_password_material_should_return_none() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let repository = repository(pool);
 
     let result = repository

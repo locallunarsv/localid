@@ -1,3 +1,5 @@
+mod common;
+
 use std::sync::OnceLock;
 
 use chrono::{TimeDelta, Utc};
@@ -9,6 +11,8 @@ use localid_database_postgres::{PostgresTokenRepository, migrate};
 use localid_repository::TokenRepository;
 use localid_session::SessionId;
 use localid_token::{Token, TokenId, TokenLifecycleState};
+
+use common::{test_database, test_lock};
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
@@ -22,11 +26,13 @@ fn runtime() -> &'static Runtime {
 }
 
 async fn create_pool() -> PgPool {
+    let database = test_database();
+
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect");
+        .expect("test database should connect");
 
     migrate(&pool).await.expect("migration should succeed");
 
@@ -53,12 +59,12 @@ fn create_token() -> Token {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_and_find_token() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let token = create_token();
-
     let token_id = token.id();
 
     repository.save(token).expect("save should succeed");
@@ -74,12 +80,12 @@ async fn save_and_find_token() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_by_secret_hash_should_return_token() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let token = create_token();
-
     let secret_hash = token.secret_hash().to_string();
 
     repository.save(token).expect("save should succeed");
@@ -94,12 +100,12 @@ async fn find_by_secret_hash_should_return_token() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_should_update_revoked_token_state() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let mut token = create_token();
-
     let token_id = token.id();
 
     repository
@@ -120,8 +126,9 @@ async fn save_should_update_revoked_token_state() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_unknown_token_should_return_none() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let repository = repository(pool);
 
     let result = repository

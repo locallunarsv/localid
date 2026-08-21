@@ -1,3 +1,5 @@
+mod common;
+
 use std::sync::OnceLock;
 
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -7,7 +9,8 @@ use uuid::Uuid;
 use localid_database_postgres::{PostgresIdentityRoleRepository, migrate};
 use localid_identity::IdentityId;
 use localid_repository::IdentityRoleRepository;
-use serial_test::serial;
+
+use common::{test_database, test_lock};
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
@@ -21,11 +24,13 @@ fn runtime() -> &'static Runtime {
 }
 
 async fn create_pool() -> PgPool {
+    let database = test_database();
+
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect");
+        .expect("test database should connect");
 
     migrate(&pool).await.expect("migration should succeed");
 
@@ -56,9 +61,7 @@ async fn seed_role(pool: &PgPool, identity_id: IdentityId) {
     cleanup(pool).await;
 
     let role_id = Uuid::now_v7();
-
     let permission_read_id = Uuid::now_v7();
-
     let permission_write_id = Uuid::now_v7();
 
     sqlx::query(
@@ -145,8 +148,9 @@ async fn seed_role(pool: &PgPool, identity_id: IdentityId) {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn find_roles_should_return_roles_and_permissions() {
+    let _guard = test_lock().lock().await;
+
     let pool = create_pool().await;
 
     let identity_id = IdentityId::new();
@@ -164,7 +168,6 @@ async fn find_roles_should_return_roles_and_permissions() {
     let role = &roles[0];
 
     assert_eq!(role.name(), "admin");
-
     assert_eq!(role.permissions().len(), 2);
 
     assert!(
@@ -181,8 +184,9 @@ async fn find_roles_should_return_roles_and_permissions() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn find_roles_should_return_empty_when_identity_has_no_role() {
+    let _guard = test_lock().lock().await;
+
     let pool = create_pool().await;
 
     cleanup(&pool).await;

@@ -1,3 +1,5 @@
+mod common;
+
 use std::sync::OnceLock;
 
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -7,6 +9,8 @@ use localid_credential::{Credential, CredentialId, CredentialKind, CredentialLif
 use localid_database_postgres::{PostgresCredentialRepository, migrate};
 use localid_identity::IdentityId;
 use localid_repository::CredentialRepository;
+
+use common::{test_database, test_lock};
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
@@ -20,11 +24,13 @@ fn runtime() -> &'static Runtime {
 }
 
 async fn create_pool() -> PgPool {
+    let database = test_database();
+
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect");
+        .expect("test database should connect");
 
     migrate(&pool).await.expect("migration should succeed");
 
@@ -41,14 +47,13 @@ fn create_credential(identity_id: IdentityId) -> Credential {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_and_find_credential() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
-
     let credential = create_credential(identity_id);
-
     let credential_id = credential.id();
 
     repository.save(credential).expect("save should succeed");
@@ -66,14 +71,13 @@ async fn save_and_find_credential() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_should_update_existing_credential_state() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
-
     let mut credential = create_credential(identity_id);
-
     let credential_id = credential.id();
 
     repository
@@ -96,8 +100,9 @@ async fn save_should_update_existing_credential_state() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_by_identity_id_should_return_credentials() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
@@ -119,8 +124,9 @@ async fn find_by_identity_id_should_return_credentials() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_unknown_credential_should_return_none() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let repository = repository(pool);
 
     let result = repository

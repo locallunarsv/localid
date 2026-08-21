@@ -11,9 +11,11 @@ pub fn test_database() -> DatabaseConfig {
     DatabaseConfig::new(url)
 }
 
+#[allow(dead_code)]
 static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
 
 /// Returns the global integration-test database lock.
+#[allow(dead_code)]
 pub fn test_lock() -> &'static Mutex<()> {
     TEST_MUTEX.get_or_init(|| Mutex::new(()))
 }

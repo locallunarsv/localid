@@ -1,5 +1,7 @@
 //! Database configuration.
 
+use std::env;
+
 /// Database runtime configuration.
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -18,6 +20,18 @@ impl DatabaseConfig {
             url: url.into(),
             max_connections: 10,
         }
+    }
+
+    /// Creates database configuration from `LOCALID_DATABASE_URL`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`std::env::VarError`] when `LOCALID_DATABASE_URL`
+    /// is not available in the process environment.
+    pub fn from_env() -> Result<Self, env::VarError> {
+        let url = env::var("LOCALID_DATABASE_URL")?;
+
+        Ok(Self::new(url))
     }
 
     /// Returns PostgreSQL connection URL.

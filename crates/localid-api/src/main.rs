@@ -13,7 +13,10 @@ async fn main() {
 
     // Development bootstrap.
     // Later replace with create_postgres_state().
-    let database = DatabaseConfig::new("postgres://postgres@localhost/localid");
+    let database = DatabaseConfig::from_env().unwrap_or_else(|error| {
+        eprintln!("Failed to read LOCALID_DATABASE_URL: {error}");
+        std::process::exit(1);
+    });
 
     let bootstrap = create_state(database, Environment::Development).await;
 

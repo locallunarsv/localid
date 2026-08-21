@@ -30,6 +30,7 @@ localid-refresh-token = { path = "../localid-refresh-token" }
 localid-password = { path = "../localid-password" }
 localid-role = { path = "../localid-role" }
 localid-permission = { path = "../localid-permission" }
+localid-oauth-authorization = { path = "../localid-oauth-authorization" }
 
 serde_json = "1"
 

@@ -1,3 +1,5 @@
+mod common;
+
 use std::sync::OnceLock;
 
 use chrono::{TimeDelta, Utc};
@@ -9,6 +11,8 @@ use localid_database_postgres::{PostgresSessionRepository, migrate};
 use localid_identity::IdentityId;
 use localid_repository::SessionRepository;
 use localid_session::{Session, SessionId, SessionLifecycleState};
+
+use common::{test_database, test_lock};
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
@@ -22,11 +26,13 @@ fn runtime() -> &'static Runtime {
 }
 
 async fn create_pool() -> PgPool {
+    let database = test_database();
+
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:postgres@localhost:5432/localid")
+        .max_connections(database.max_connections())
+        .connect(database.url())
         .await
-        .expect("database should connect");
+        .expect("test database should connect");
 
     migrate(&pool).await.expect("migration should succeed");
 
@@ -53,14 +59,13 @@ fn create_session(identity_id: IdentityId) -> Session {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_and_find_session() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
-
     let session = create_session(identity_id);
-
     let session_id = session.id();
 
     repository.save(session).expect("save should succeed");
@@ -77,14 +82,13 @@ async fn save_and_find_session() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn save_should_update_revoked_session_state() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
-
     let mut session = create_session(identity_id);
-
     let session_id = session.id();
 
     repository
@@ -107,8 +111,9 @@ async fn save_should_update_revoked_session_state() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_by_identity_id_should_return_sessions() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let mut repository = repository(pool);
 
     let identity_id = IdentityId::new();
@@ -130,8 +135,9 @@ async fn find_by_identity_id_should_return_sessions() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn find_unknown_session_should_return_none() {
-    let pool = create_pool().await;
+    let _guard = test_lock().lock().await;
 
+    let pool = create_pool().await;
     let repository = repository(pool);
 
     let result = repository
