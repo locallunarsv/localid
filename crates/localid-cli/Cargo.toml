@@ -1,0 +1,20 @@
+[package]
+name = "localid-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rpassword = "7"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+localid-application = { path = "../localid-application" }
+localid-authentication = { path = "../localid-authentication" }
+localid-config = { path = "../localid-config" }
+localid-credential = { path = "../localid-credential" }
+localid-database-postgres = { path = "../localid-database-postgres" }
+localid-identity = { path = "../localid-identity" }
+localid-password = { path = "../localid-password" }
+localid-password-argon2 = { path = "../localid-password-argon2" }
+localid-repository = { path = "../localid-repository" }
+localid-oauth-client = { path = "../localid-oauth-client" }

@@ -93,6 +93,26 @@ impl IdentityRepository for PostgresIdentityRepository {
         row.map(Self::map_row).transpose()
     }
 
+    fn find_all(&self) -> Result<Vec<Identity>, Self::Error> {
+        let rows = self
+            .block_on(async {
+                sqlx::query_as::<_, IdentityRow>(
+                    r#"
+                    SELECT
+                        id,
+                        lifecycle_state
+                    FROM identities
+                    ORDER BY id
+                    "#,
+                )
+                .fetch_all(&self.pool)
+                .await
+            })
+            .map_err(DatabaseError::Connection)?;
+
+        rows.into_iter().map(Self::map_row).collect()
+    }
+
     fn save(&mut self, identity: Identity) -> Result<(), Self::Error> {
         let lifecycle_state = match identity.lifecycle_state() {
             LifecycleState::Active => "active",

@@ -26,6 +26,10 @@ impl IdentityRepository for MemoryIdentityRepository {
         Ok(self.identities.get(&id).cloned())
     }
 
+    fn find_all(&self) -> Result<Vec<Identity>, Self::Error> {
+        Ok(self.identities.values().cloned().collect())
+    }
+
     fn save(&mut self, identity: Identity) -> Result<(), Self::Error> {
         self.identities.insert(identity.id(), identity);
 
