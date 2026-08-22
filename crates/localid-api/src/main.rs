@@ -20,8 +20,12 @@ async fn main() {
             std::process::exit(1);
         });
 
-    let bootstrap =
-        create_state_with_config(config.database, config.server, config.environment).await;
+    let bootstrap = create_state_with_config(config.database, config.server, config.environment)
+        .await
+        .unwrap_or_else(|error| {
+            eprintln!("Failed to initialize LocalID: {error}");
+            std::process::exit(1);
+        });
 
     let app = create_router(
         bootstrap.state,
@@ -31,12 +35,15 @@ async fn main() {
 
     println!("LocalID API listening on {address}");
 
-    axum::serve(
-        tokio::net::TcpListener::bind(address)
-            .await
-            .expect("failed to bind server"),
-        app,
-    )
-    .await
-    .expect("server error");
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
+        .unwrap_or_else(|error| {
+            eprintln!("Failed to bind LocalID server on {address}: {error}");
+            std::process::exit(1);
+        });
+
+    if let Err(error) = axum::serve(listener, app).await {
+        eprintln!("LocalID server error: {error}");
+        std::process::exit(1);
+    }
 }

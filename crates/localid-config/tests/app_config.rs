@@ -4,7 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use localid_config::AppConfig;
+use localid_config::{AppConfig, Environment};
 
 static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
@@ -405,4 +405,86 @@ fn invalid_database_max_connections_override_should_fail() {
         error.to_string(),
         "invalid LOCALID_DATABASE_MAX_CONNECTIONS: invalid"
     );
+}
+
+#[test]
+fn environment_should_override_runtime_environment() {
+    let _guard = env_lock().lock().expect("environment lock should succeed");
+
+    let source = r#"
+        environment = "development"
+
+        [database]
+        url = "postgres://localhost/localid"
+
+        [server]
+        issuer = "https://id.home.arpa"
+    "#;
+
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should be valid")
+        .as_nanos();
+
+    let path =
+        std::env::temp_dir().join(format!("localid-config-environment-override-{unique}.toml"));
+
+    fs::write(&path, source).expect("temporary configuration should be written");
+
+    unsafe {
+        std::env::set_var("LOCALID_CONFIG", &path);
+        std::env::set_var("LOCALID_ENVIRONMENT", "production");
+    }
+
+    let config = AppConfig::load().expect("application configuration should load");
+
+    unsafe {
+        std::env::remove_var("LOCALID_ENVIRONMENT");
+        std::env::remove_var("LOCALID_CONFIG");
+    }
+
+    fs::remove_file(&path).expect("temporary configuration should be removed");
+
+    assert_eq!(config.environment, Environment::Production);
+}
+
+#[test]
+fn invalid_environment_override_should_fail() {
+    let _guard = env_lock().lock().expect("environment lock should succeed");
+
+    let source = r#"
+        environment = "development"
+
+        [database]
+        url = "postgres://localhost/localid"
+
+        [server]
+        issuer = "https://id.home.arpa"
+    "#;
+
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should be valid")
+        .as_nanos();
+
+    let path =
+        std::env::temp_dir().join(format!("localid-config-invalid-environment-{unique}.toml"));
+
+    fs::write(&path, source).expect("temporary configuration should be written");
+
+    unsafe {
+        std::env::set_var("LOCALID_CONFIG", &path);
+        std::env::set_var("LOCALID_ENVIRONMENT", "invalid");
+    }
+
+    let error = AppConfig::load().expect_err("invalid runtime environment should fail");
+
+    unsafe {
+        std::env::remove_var("LOCALID_ENVIRONMENT");
+        std::env::remove_var("LOCALID_CONFIG");
+    }
+
+    fs::remove_file(&path).expect("temporary configuration should be removed");
+
+    assert_eq!(error.to_string(), "invalid LOCALID_ENVIRONMENT: invalid");
 }

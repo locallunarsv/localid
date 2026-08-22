@@ -4,12 +4,14 @@ use std::sync::Arc;
 use tokio::runtime::Handle;
 use tokio::sync::Mutex;
 
+mod error;
 mod id_token;
 mod postgres;
 mod repository;
 mod seed;
 mod seed_context;
 
+pub use error::BootstrapError;
 pub use id_token::BootstrapIdTokenIssuer;
 pub use postgres::{create_postgres_repositories, PostgresRepositories};
 
@@ -192,6 +194,7 @@ pub async fn create_state(
         environment,
     )
     .await
+    .expect("application state should initialize")
 }
 
 /// Creates application state with in-memory dependencies.
@@ -199,26 +202,27 @@ pub async fn create_state_with_config(
     database: DatabaseConfig,
     config: ServerConfig,
     environment: Environment,
-) -> BootstrapContext<
-    BootstrapAuthenticationService,
-    BootstrapRefreshService,
-    BootstrapVerificationService,
-    BootstrapSessionService,
-    ClientRepositoryAdapter<SharedPostgresClientRepository>,
-    BootstrapAuthorizationAdapter<SharedPostgresOAuthClientRepository>,
-    BootstrapTokenExchangeAdapter<SharedPostgresOAuthClientRepository>,
-    BootstrapTokenIssuanceService,
-    BootstrapIdentityRoleAdapter,
-    BootstrapIdentityUseCase,
-    BootstrapIdTokenIssuer,
-    BootstrapClientAuthenticationRepository,
-    BootstrapOAuthClientRepository,
+) -> Result<
+    BootstrapContext<
+        BootstrapAuthenticationService,
+        BootstrapRefreshService,
+        BootstrapVerificationService,
+        BootstrapSessionService,
+        ClientRepositoryAdapter<SharedPostgresClientRepository>,
+        BootstrapAuthorizationAdapter<SharedPostgresOAuthClientRepository>,
+        BootstrapTokenExchangeAdapter<SharedPostgresOAuthClientRepository>,
+        BootstrapTokenIssuanceService,
+        BootstrapIdentityRoleAdapter,
+        BootstrapIdentityUseCase,
+        BootstrapIdTokenIssuer,
+        BootstrapClientAuthenticationRepository,
+        BootstrapOAuthClientRepository,
+    >,
+    BootstrapError,
 > {
     let should_seed = environment.should_seed();
 
-    let repositories = create_postgres_repositories(&database, Handle::current())
-        .await
-        .expect("postgres repositories should initialize");
+    let repositories = create_postgres_repositories(&database, Handle::current()).await?;
 
     let mut identity_repository = repositories.identity.clone();
 
@@ -346,10 +350,11 @@ pub async fn create_state_with_config(
 
     let key_path = PathBuf::from(config.signing_key_path.clone());
 
-    let key_pair = Arc::new(
-        KeyPair::load_or_generate(&key_storage, &key_path, KeyId::new("localid-key-1"))
-            .expect("signing key loading should succeed"),
-    );
+    let key_pair = Arc::new(KeyPair::load_or_generate(
+        &key_storage,
+        &key_path,
+        KeyId::new("localid-key-1"),
+    )?);
 
     let id_token_issuer = BootstrapIdTokenIssuer::new(Arc::clone(&key_pair));
 
@@ -372,7 +377,7 @@ pub async fn create_state_with_config(
         client_use_case,
     );
 
-    BootstrapContext {
+    Ok(BootstrapContext {
         state: AppState::new(
             config,
             login_use_case,
@@ -419,5 +424,5 @@ pub async fn create_state_with_config(
         oauth_client_repository,
 
         demo_seed,
-    }
+    })
 }

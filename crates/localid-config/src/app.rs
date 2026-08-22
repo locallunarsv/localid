@@ -79,6 +79,12 @@ impl AppConfig {
     }
 
     fn apply_env_overrides(mut self) -> Result<Self, AppConfigLoadError> {
+        if let Ok(environment) = env::var("LOCALID_ENVIRONMENT") {
+            self.environment = environment
+                .parse::<Environment>()
+                .map_err(|_| AppConfigLoadError::InvalidEnvironment(environment))?;
+        }
+
         if let Ok(url) = env::var("LOCALID_DATABASE_URL") {
             self.database.url = url;
         }
@@ -125,11 +131,17 @@ pub enum AppConfigLoadError {
 
     /// Database maximum connections environment override is invalid.
     InvalidDatabaseMaxConnections(String),
+
+    /// Runtime environment override is invalid.
+    InvalidEnvironment(String),
 }
 
 impl fmt::Display for AppConfigLoadError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidEnvironment(value) => {
+                write!(formatter, "invalid LOCALID_ENVIRONMENT: {value}")
+            }
             Self::Read(error) => {
                 write!(formatter, "failed to read configuration file: {error}")
             }
@@ -152,6 +164,7 @@ impl fmt::Display for AppConfigLoadError {
 impl Error for AppConfigLoadError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::InvalidEnvironment(_) => None,
             Self::Read(error) => Some(error),
             Self::Parse(error) => Some(error),
             Self::InvalidServerPort(_) => None,
