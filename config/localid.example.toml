@@ -6,6 +6,6 @@ max_connections = 10
 
 [server]
 host = "127.0.0.1"
-port = 8080
-issuer = "https://id.example.com"
+port = 9130
+issuer = "https://id.home.arpa"
 signing_key_path = "/var/lib/localid/keys/signing-key.pem"

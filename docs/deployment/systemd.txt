@@ -148,7 +148,7 @@ Check recent logs:
 
 Verify the health endpoint:
 
-    curl --fail http://127.0.0.1:8080/health
+    curl --fail http://127.0.0.1:9130/health
 
 Verify the signing key permissions:
 
@@ -157,6 +157,13 @@ Verify the signing key permissions:
 
 The signing key should be owned by localid and should not be accessible to
 other users.
+
+LocalID Port Allocation
+-----------------------
+
+9130    Rust identity service
+9131    Go backend / BFF
+9132    Frontend
 
 
 8. Shutdown
