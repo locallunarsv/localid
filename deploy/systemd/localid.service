@@ -1,0 +1,26 @@
+[Unit]
+Description=LocalID Identity Provider
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=localid
+Group=localid
+
+ExecStart=/usr/local/bin/localid-api
+
+Environment=LOCALID_CONFIG=/etc/localid/localid.toml
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+ReadWritePaths=/var/lib/localid
+
+[Install]
+WantedBy=multi-user.target

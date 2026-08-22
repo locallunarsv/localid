@@ -1,0 +1,169 @@
+LocalID systemd Deployment
+==========================
+
+This document describes how to deploy the LocalID API as a systemd service.
+
+
+1. Filesystem Layout
+--------------------
+
+LocalID uses the following production filesystem layout:
+
+    /usr/local/bin/localid-api
+
+    /etc/localid/
+    └── localid.toml
+
+    /var/lib/localid/
+    └── keys/
+        └── signing-key.pem
+
+The application binary is installed under /usr/local/bin.
+
+Configuration is stored under /etc/localid.
+
+Persistent application state, including the private signing key, is stored
+under /var/lib/localid.
+
+
+2. Service Account
+------------------
+
+LocalID should run using a dedicated system account:
+
+    localid
+
+The service account should not have an interactive login shell or home
+directory.
+
+Create the account with:
+
+    sudo useradd \
+      --system \
+      --no-create-home \
+      --shell /usr/sbin/nologin \
+      localid
+
+
+3. Directories
+--------------
+
+Create the required directories:
+
+    sudo install -d \
+      -o root \
+      -g localid \
+      -m 0750 \
+      /etc/localid
+
+    sudo install -d \
+      -o localid \
+      -g localid \
+      -m 0700 \
+      /var/lib/localid
+
+    sudo install -d \
+      -o localid \
+      -g localid \
+      -m 0700 \
+      /var/lib/localid/keys
+
+
+4. Build
+--------
+
+Build the LocalID API in release mode:
+
+    cargo build --release -p localid-api
+
+Install the resulting binary:
+
+    sudo install \
+      -o root \
+      -g root \
+      -m 0755 \
+      target/release/localid-api \
+      /usr/local/bin/localid-api
+
+
+5. Configuration
+----------------
+
+Copy the example configuration:
+
+    sudo install \
+      -o root \
+      -g localid \
+      -m 0640 \
+      config/localid.example.toml \
+      /etc/localid/localid.toml
+
+Edit the production configuration:
+
+    sudoedit /etc/localid/localid.toml
+
+The signing key path should point to:
+
+    signing_key_path = "/var/lib/localid/keys/signing-key.pem"
+
+Production deployments should also use:
+
+    environment = "production"
+
+Database credentials and the issuer URL must be configured for the target
+environment.
+
+
+6. systemd Unit
+---------------
+
+Install the systemd unit:
+
+    sudo install \
+      -o root \
+      -g root \
+      -m 0644 \
+      deploy/systemd/localid.service \
+      /etc/systemd/system/localid.service
+
+Reload systemd:
+
+    sudo systemctl daemon-reload
+
+Enable and start LocalID:
+
+    sudo systemctl enable --now localid.service
+
+
+7. Verification
+---------------
+
+Check the service:
+
+    systemctl status localid.service
+
+Check recent logs:
+
+    journalctl -u localid.service -n 100 --no-pager
+
+Verify the health endpoint:
+
+    curl --fail http://127.0.0.1:8080/health
+
+Verify the signing key permissions:
+
+    stat -c '%a %U %G %n' \
+      /var/lib/localid/keys/signing-key.pem
+
+The signing key should be owned by localid and should not be accessible to
+other users.
+
+
+8. Shutdown
+-----------
+
+LocalID supports graceful shutdown through SIGTERM and SIGINT.
+
+systemd uses SIGTERM when stopping the service:
+
+    sudo systemctl stop localid.service

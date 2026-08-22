@@ -1,17 +1,17 @@
 //! File based key storage.
 
 use std::fs;
-
-use crate::KeyStorage;
-
 use std::path::Path;
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 use rsa::{
     RsaPrivateKey,
     pkcs8::{DecodePrivateKey, EncodePrivateKey},
 };
 
-use crate::{CryptoError, KeyId, KeyPair};
+use crate::{CryptoError, KeyId, KeyPair, KeyStorage};
 
 /// File based key storage.
 pub struct FileKeyStorage;
@@ -59,6 +59,13 @@ impl KeyStorage for FileKeyStorage {
 
         fs::write(path, pem.as_bytes()).map_err(|_| CryptoError::StorageFailure)?;
 
+        #[cfg(unix)]
+        {
+            let permissions = fs::Permissions::from_mode(0o600);
+
+            fs::set_permissions(path, permissions).map_err(|_| CryptoError::StorageFailure)?;
+        }
+
         Ok(())
     }
 }
@@ -90,5 +97,24 @@ mod tests {
             .expect("key should exist");
 
         assert_eq!(loaded.kid().value(), "localid-key-1");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_key_should_have_private_permissions() {
+        let dir = tempdir().unwrap();
+
+        let path = dir.path().join("signing-key.pem");
+
+        let key =
+            KeyPair::generate(KeyId::new("localid-key-1")).expect("key generation should succeed");
+
+        let storage = FileKeyStorage::new();
+
+        storage.save(&path, &key).expect("key save should succeed");
+
+        let metadata = fs::metadata(&path).expect("key metadata should be readable");
+
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
     }
 }

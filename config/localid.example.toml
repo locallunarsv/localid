@@ -1,0 +1,11 @@
+environment = "production"
+
+[database]
+url = "postgres://localid:CHANGE_ME@localhost:5432/localid"
+max_connections = 10
+
+[server]
+host = "127.0.0.1"
+port = 8080
+issuer = "https://id.example.com"
+signing_key_path = "/var/lib/localid/keys/signing-key.pem"
